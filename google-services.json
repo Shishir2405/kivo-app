@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "249950991247",
+    "firebase_url": "https://bad-talks-demo-default-rtdb.firebaseio.com",
+    "project_id": "bad-talks-demo",
+    "storage_bucket": "bad-talks-demo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:249950991247:android:df52d0876d5d472fe4d1fa",
+        "android_client_info": {
+          "package_name": "com.kivo.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "249950991247-s7f0ps8ehkjm4ikr1gj0kmhqba0jhji0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAb1ZOiq1U7UNU96BgfA3Ib7mHygiz0fHw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "249950991247-s7f0ps8ehkjm4ikr1gj0kmhqba0jhji0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:249950991247:android:96c083269d40d41de4d1fa",
+        "android_client_info": {
+          "package_name": "com.package.healverse"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "249950991247-s7f0ps8ehkjm4ikr1gj0kmhqba0jhji0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAb1ZOiq1U7UNU96BgfA3Ib7mHygiz0fHw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "249950991247-s7f0ps8ehkjm4ikr1gj0kmhqba0jhji0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Kivo",
+    "slug": "kivo",
+    "version": "1.0.0",
+    "scheme": "kivo",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kivo.app"
+    },
+    "android": {
+      "package": "com.kivo.app",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#F2F2F2",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F2F2F2",
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/favicon.png",
+          "color": "#e6e51e"
+        }
+      ]
+    ],
+    "notification": {
+      "icon": "./assets/favicon.png",
+      "color": "#e6e51e"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

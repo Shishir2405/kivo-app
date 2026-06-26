@@ -1,0 +1,327 @@
+{
+  "source": "i.html (Aaply Tilda export)",
+  "generatedFor": "Kivo mobile app brand assets",
+  "count": 64,
+  "assets": {
+    "button-shape.svg": {
+      "url": "https://static.tildacdn.com/tild3032-3031-4562-b430-663561306464/Button.svg",
+      "description": "Pill button background shape (SVG)",
+      "bytes": 276
+    },
+    "avatar-f.png": {
+      "url": "https://static.tildacdn.com/tild3032-6464-4331-a336-323032653836/Ava_05-04_19.png",
+      "description": "Avatar F (round user photo)",
+      "bytes": 226105
+    },
+    "medium.svg": {
+      "url": "https://static.tildacdn.com/tild3039-6335-4634-b236-366230393037/Medium.svg",
+      "description": "Medium social icon",
+      "bytes": 630
+    },
+    "group-illustration-362.svg": {
+      "url": "https://static.tildacdn.com/tild3139-3030-4562-b361-383234633734/Group_362.svg",
+      "description": "Decorative grouped illustration 362",
+      "bytes": 380
+    },
+    "group-illustration-53.svg": {
+      "url": "https://static.tildacdn.com/tild3139-6463-4131-b033-653066353336/Group_53.svg",
+      "description": "Decorative grouped illustration 53",
+      "bytes": 2505
+    },
+    "avatar-linda.png": {
+      "url": "https://static.tildacdn.com/tild3163-3830-4365-b237-636339663532/Useer_Linda_3_1.png",
+      "description": "Avatar - Linda (user)",
+      "bytes": 539774
+    },
+    "thumb-9.png": {
+      "url": "https://static.tildacdn.com/tild3163-6132-4038-b839-613265396163/Rectangle_363-2.png",
+      "description": "Gallery thumbnail 9",
+      "bytes": 11823
+    },
+    "rectangle-frame.svg": {
+      "url": "https://static.tildacdn.com/tild3235-3932-4236-b532-666266363230/Rectangle_80.svg",
+      "description": "Rounded rectangle frame decoration",
+      "bytes": 459
+    },
+    "thumb-6.png": {
+      "url": "https://static.tildacdn.com/tild3238-3839-4330-b135-613163383264/Rectangle_360.png",
+      "description": "Gallery thumbnail 6",
+      "bytes": 9906
+    },
+    "union-shape.svg": {
+      "url": "https://static.tildacdn.com/tild3366-6134-4336-a434-616334386464/Union_1.svg",
+      "description": "Union decorative shape",
+      "bytes": 945
+    },
+    "logo-primary-alt.svg": {
+      "url": "https://static.tildacdn.com/tild3432-3432-4565-a233-333364323439/Logo_Primary_32_2.svg",
+      "description": "Aaply primary logo, alternate header instance",
+      "bytes": 4576
+    },
+    "arrow-right.svg": {
+      "url": "https://static.tildacdn.com/tild3434-3532-4838-a164-373231643338/Right.svg",
+      "description": "Right arrow / carousel control",
+      "bytes": 8218
+    },
+    "logo-footer.svg": {
+      "url": "https://static.tildacdn.com/tild3436-3463-4362-a638-613363363731/logo_footer.svg",
+      "description": "Aaply footer logo",
+      "bytes": 1286
+    },
+    "mockup-phone-heart.png": {
+      "url": "https://static.tildacdn.com/tild3437-3434-4264-b832-636530643966/Smartphone_UI_heart_.png",
+      "description": "Smartphone UI mockup with heart",
+      "bytes": 49571
+    },
+    "avatar-circle-3.png": {
+      "url": "https://static.tildacdn.com/tild3438-3661-4531-b839-313638653934/Ellipse_6-3.png",
+      "description": "Circular avatar 3",
+      "bytes": 2231
+    },
+    "icon-add.svg": {
+      "url": "https://static.tildacdn.com/tild3462-6537-4237-a134-336161323063/add.svg",
+      "description": "Plus / add icon",
+      "bytes": 538
+    },
+    "mockup-phone-ui.png": {
+      "url": "https://static.tildacdn.com/tild3532-6230-4237-b030-346563626665/Smartphone_UI_1.png",
+      "description": "Smartphone UI product mockup",
+      "bytes": 98756
+    },
+    "vector-mark-2.svg": {
+      "url": "https://static.tildacdn.com/tild3535-3236-4034-b332-653461633435/Vector-20.svg",
+      "description": "Decorative vector mark / glyph (variant)",
+      "bytes": 1376
+    },
+    "card-mockup-2.png": {
+      "url": "https://static.tildacdn.com/tild3535-3634-4631-b162-653737303861/Frame_5234599-3-2.png",
+      "description": "Product card mockup 2",
+      "bytes": 81537
+    },
+    "mockup-phone-clear.png": {
+      "url": "https://static.tildacdn.com/tild3562-3532-4430-a361-363134396337/Smartphone_Clear_1.png",
+      "description": "Clear smartphone mockup frame",
+      "bytes": 184176
+    },
+    "card-mockup-1.png": {
+      "url": "https://static.tildacdn.com/tild3636-3064-4366-b837-643436333166/Frame_5234599-2.png",
+      "description": "Product card mockup 1",
+      "bytes": 31268
+    },
+    "avatar-d.png": {
+      "url": "https://static.tildacdn.com/tild3661-6334-4530-b930-366661626538/Ava_05-04_11_2.png",
+      "description": "Avatar D (round user photo)",
+      "bytes": 226332
+    },
+    "vector-mark-1.svg": {
+      "url": "https://static.tildacdn.com/tild3664-3231-4461-b336-666335363063/Vector.svg",
+      "description": "Decorative vector mark / glyph",
+      "bytes": 546
+    },
+    "avatars-popup.png": {
+      "url": "https://static.tildacdn.com/tild3738-6565-4132-b434-383438373864/avatars_popuppng_1.png",
+      "description": "Popup avatar group",
+      "bytes": 381769
+    },
+    "thumb-2.png": {
+      "url": "https://static.tildacdn.com/tild3766-3563-4131-b231-383262346231/Rectangle_356.png",
+      "description": "Gallery thumbnail 2",
+      "bytes": 35903
+    },
+    "card-mockup-3.jpg": {
+      "url": "https://static.tildacdn.com/tild3839-3135-4164-b730-376439376262/Frame_5234600-2.jpg",
+      "description": "Product card mockup 3",
+      "bytes": 13375
+    },
+    "frame-badge.svg": {
+      "url": "https://static.tildacdn.com/tild3864-6631-4164-b831-623461343034/Frame_5234712.svg",
+      "description": "Frame badge / sticker SVG",
+      "bytes": 267
+    },
+    "avatar-c.png": {
+      "url": "https://static.tildacdn.com/tild3866-3734-4362-b339-363366666533/Ava_05-04_7_3.png",
+      "description": "Avatar C (round user photo)",
+      "bytes": 233071
+    },
+    "decoration-group-203.png": {
+      "url": "https://static.tildacdn.com/tild3930-3163-4661-a666-666366326539/Group_203_1.png",
+      "description": "Decorative group 203 raster",
+      "bytes": 117376
+    },
+    "arrow-doodle.png": {
+      "url": "https://static.tildacdn.com/tild3936-3330-4132-b564-383166346230/arrow_catcher_2_1.png",
+      "description": "Hand-drawn arrow doodle",
+      "bytes": 295139
+    },
+    "thumb-5.png": {
+      "url": "https://static.tildacdn.com/tild3962-6536-4363-b330-376434393366/Rectangle_359.png",
+      "description": "Gallery thumbnail 5",
+      "bytes": 10037
+    },
+    "chat-bubble.png": {
+      "url": "https://static.tildacdn.com/tild3964-6238-4334-b462-643135376130/chat_1.png",
+      "description": "Chat bubble decoration",
+      "bytes": 61230
+    },
+    "thumb-1.png": {
+      "url": "https://static.tildacdn.com/tild3964-6463-4435-b066-333031643831/Rectangle_354.png",
+      "description": "Gallery thumbnail 1",
+      "bytes": 35258
+    },
+    "group-illustration-431-2.svg": {
+      "url": "https://static.tildacdn.com/tild6132-3666-4632-b239-386363316239/Group_431-2.svg",
+      "description": "Decorative grouped illustration 431 (variant)",
+      "bytes": 280
+    },
+    "thumb-3.png": {
+      "url": "https://static.tildacdn.com/tild6136-6334-4237-a632-313237346265/Rectangle_357.png",
+      "description": "Gallery thumbnail 3",
+      "bytes": 33452
+    },
+    "avatars-stack.png": {
+      "url": "https://static.tildacdn.com/tild6138-3438-4564-a664-646536386165/avatars_1.png",
+      "description": "Stacked avatar group (social proof)",
+      "bytes": 123249
+    },
+    "cursor.png": {
+      "url": "https://static.tildacdn.com/tild6162-3132-4165-b432-363537393864/Cursor_2.png",
+      "description": "Decorative cursor pointer",
+      "bytes": 96863
+    },
+    "avatar-dave.png": {
+      "url": "https://static.tildacdn.com/tild6232-3037-4135-b637-386333333464/Useer_Dave_2_1.png",
+      "description": "Avatar - Dave (user)",
+      "bytes": 456680
+    },
+    "linkedin.svg": {
+      "url": "https://static.tildacdn.com/tild6232-3065-4030-a264-653535346362/LinkedIn_-_Negative.svg",
+      "description": "LinkedIn social icon (negative)",
+      "bytes": 856
+    },
+    "avatar-b.png": {
+      "url": "https://static.tildacdn.com/tild6234-3161-4262-b138-663032343062/Ava_05-04_5.png",
+      "description": "Avatar B (round user photo)",
+      "bytes": 239854
+    },
+    "wave-decoration.svg": {
+      "url": "https://static.tildacdn.com/tild6263-6130-4432-b135-336161356537/bave1.svg",
+      "description": "Wave / squiggle decorative mark",
+      "bytes": 301
+    },
+    "avatar-circle-2.png": {
+      "url": "https://static.tildacdn.com/tild6263-6661-4365-b934-386334393864/Ellipse_5-4.png",
+      "description": "Circular avatar 2",
+      "bytes": 5383
+    },
+    "thumb-8.png": {
+      "url": "https://static.tildacdn.com/tild6366-6231-4032-b338-353033643061/Rectangle_362.png",
+      "description": "Gallery thumbnail 8",
+      "bytes": 40130
+    },
+    "logo-primary.svg": {
+      "url": "https://static.tildacdn.com/tild6432-6563-4162-a664-316538333431/Logo_Primary_32.svg",
+      "description": "Aaply primary logo (header), 32px height",
+      "bytes": 4375
+    },
+    "avatar-circle-1.png": {
+      "url": "https://static.tildacdn.com/tild6437-6166-4062-a165-663763653634/Ellipse_4-3-2.png",
+      "description": "Circular avatar 1",
+      "bytes": 7335
+    },
+    "group-illustration-431.svg": {
+      "url": "https://static.tildacdn.com/tild6465-6239-4734-b837-363462383963/Group_431.svg",
+      "description": "Decorative grouped illustration 431",
+      "bytes": 310
+    },
+    "twitter.svg": {
+      "url": "https://static.tildacdn.com/tild6534-3764-4236-b434-373936376261/Twitter_-_Negative.svg",
+      "description": "Twitter/X social icon (negative)",
+      "bytes": 1394
+    },
+    "avatar-e.png": {
+      "url": "https://static.tildacdn.com/tild6535-3338-4863-a333-663436393130/Ava_05-04_17_1.png",
+      "description": "Avatar E (round user photo)",
+      "bytes": 59031
+    },
+    "avatar-johny.png": {
+      "url": "https://static.tildacdn.com/tild6536-6366-4634-a163-353139393838/Johny_2.png",
+      "description": "Avatar - Johny (testimonial)",
+      "bytes": 247862
+    },
+    "frame-badge-2.svg": {
+      "url": "https://static.tildacdn.com/tild6538-6264-4163-b766-303033303761/Frame_5234712-2.svg",
+      "description": "Frame badge / sticker SVG (variant)",
+      "bytes": 382
+    },
+    "thumb-4.png": {
+      "url": "https://static.tildacdn.com/tild6564-3339-4534-b964-373535316264/Rectangle_358.png",
+      "description": "Gallery thumbnail 4",
+      "bytes": 9273
+    },
+    "discord.svg": {
+      "url": "https://static.tildacdn.com/tild6565-3330-4034-b464-343462613262/discord.svg",
+      "description": "Discord social icon",
+      "bytes": 1355
+    },
+    "group-illustration-361.svg": {
+      "url": "https://static.tildacdn.com/tild6630-6531-4235-b238-363531633239/Group_361.svg",
+      "description": "Decorative grouped illustration 361",
+      "bytes": 388
+    },
+    "thumb-7.png": {
+      "url": "https://static.tildacdn.com/tild6632-3839-4630-b533-393733653733/Rectangle_361.png",
+      "description": "Gallery thumbnail 7",
+      "bytes": 9793
+    },
+    "icon-message-add.svg": {
+      "url": "https://static.tildacdn.com/tild6633-3733-4532-a166-653936366261/message-add.svg",
+      "description": "Message add / new chat icon",
+      "bytes": 481
+    },
+    "arrow-left.svg": {
+      "url": "https://static.tildacdn.com/tild6636-3133-4831-a632-383438326466/Left.svg",
+      "description": "Left arrow / carousel control",
+      "bytes": 304
+    },
+    "avatar-a.png": {
+      "url": "https://static.tildacdn.com/tild6664-6461-4962-a462-353333643130/Ava_05-04_3_6.png",
+      "description": "Avatar A (round user photo)",
+      "bytes": 36306
+    },
+    "kivo-mark.svg": {
+      "url": "derived from logo-primary-alt.svg (Logo_Primary_32_2.svg)",
+      "description": "Kivo brand mark (yellow blob + black up/down arrow), re-based to viewBox 0 0 36 26. Official Kivo glyph.",
+      "bytes": 1330
+    },
+    "kivo-logo.png": {
+      "url": "derived from kivo-mark.svg + Poppins 700 wordmark",
+      "description": "Kivo full lockup raster (mark + \"Kivo\" wordmark) for in-app use.",
+      "bytes": 7334
+    },
+    "app/icon.png": {
+      "url": "derived from logo-primary-alt.svg",
+      "description": "App icon 1024x1024 \u2014 Kivo mark on paper-white (derived from kivo-mark.svg)",
+      "bytes": 17596
+    },
+    "app/adaptive-icon.png": {
+      "url": "derived from logo-primary-alt.svg",
+      "description": "Android adaptive foreground 1024 \u2014 Kivo mark, transparent safe-zone (derived)",
+      "bytes": 15740
+    },
+    "app/android-icon-foreground.png": {
+      "url": "derived from logo-primary-alt.svg",
+      "description": "Android adaptive foreground (derived from kivo-mark.svg)",
+      "bytes": 15740
+    },
+    "app/splash-icon.png": {
+      "url": "derived from logo-primary-alt.svg",
+      "description": "Splash icon 1024 \u2014 Kivo mark on graphite-mist #f2f2f2 (derived)",
+      "bytes": 14684
+    },
+    "app/favicon.png": {
+      "url": "derived from logo-primary-alt.svg",
+      "description": "Web favicon 48x48 \u2014 Kivo mark (derived)",
+      "bytes": 833
+    }
+  }
+}
