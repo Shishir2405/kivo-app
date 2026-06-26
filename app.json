@@ -18,7 +18,8 @@
         "backgroundColor": "#F2F2F2",
         "foregroundImage": "./assets/adaptive-icon.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -45,6 +46,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1a98afe6-8f8b-4bfa-b101-54bab37d4bd3"
+      }
+    },
+    "owner": "kkkkkwwwwwa"
   }
 }
