@@ -43,10 +43,6 @@
         }
       ]
     ],
-    "notification": {
-      "icon": "./assets/favicon.png",
-      "color": "#e6e51e"
-    },
     "experiments": {
       "typedRoutes": true
     }
