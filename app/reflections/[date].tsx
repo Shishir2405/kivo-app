@@ -24,7 +24,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { RatingControl } from '@/components/reflections/RatingControl';
 
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, pressOpacity } from '@/theme/tokens';
 import { TODAY } from '@/data/mock';
 import { useReflections } from '@/hooks/api';
 import type { Mood, Rating, Reflection } from '@/types/models';
@@ -195,7 +195,12 @@ export default function ReflectionDetailScreen() {
                 {goals.map((g) => (
                   <View key={g.id} className="flex-row items-center justify-between" style={{ gap: 12 }}>
                     <Checkbox checked={g.done} onChange={() => toggleGoal(g.id)} label={g.label} style={{ flex: 1 }} />
-                    <Pressable onPress={() => removeGoal(g.id)} hitSlop={8} accessibilityLabel={`Remove ${g.label}`}>
+                    <Pressable
+                      onPress={() => removeGoal(g.id)}
+                      hitSlop={8}
+                      accessibilityLabel={`Remove ${g.label}`}
+                      style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+                    >
                       <Icon name="x" size={15} color="graphite" />
                     </Pressable>
                   </View>
@@ -218,7 +223,12 @@ export default function ReflectionDetailScreen() {
               leading={<Icon name="plus-circle" size={16} color="graphite" />}
               trailing={
                 newGoal.trim().length > 0 ? (
-                  <Pressable onPress={addGoal} hitSlop={8} accessibilityLabel="Add goal">
+                  <Pressable
+                    onPress={addGoal}
+                    hitSlop={8}
+                    accessibilityLabel="Add goal"
+                    style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+                  >
                     <Icon name="check-circle" size={18} color="ink" />
                   </Pressable>
                 ) : undefined

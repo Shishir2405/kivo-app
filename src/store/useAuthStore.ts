@@ -33,6 +33,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   firebaseSignOut,
+  GoogleAuthProvider,
+  signInWithCredential,
 } from '@/services/firebase';
 import type { UserProfile } from '@/types/models';
 
@@ -83,6 +85,13 @@ export interface AuthState {
     password?: string,
     name?: string,
   ) => Promise<AuthResult>;
+  /**
+   * Federated Google sign-in. Pass the Google OAuth `idToken` (obtained on the
+   * client via expo-auth-session). It is exchanged for a Firebase credential,
+   * then the Firebase ID token is POSTed to /auth/login — same backend contract
+   * as email/password `login`. NEVER throws; returns a typed result.
+   */
+  loginWithGoogle: (googleIdToken: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
   setUser: (user: UserProfile | null) => void;
   /** Directly set a session (used by the legacy payload path + tests). */
@@ -202,6 +211,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { ok: true };
     } catch (e) {
       return { ok: false, error: readErr(e, 'Could not create your account. Please try again.') };
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  loginWithGoogle: async (googleIdToken) => {
+    if (!googleIdToken) {
+      return { ok: false, error: 'Could not sign in with Google. Please try again.' };
+    }
+    set({ loading: true });
+    try {
+      // Exchange the Google idToken for a Firebase credential, then mint a
+      // Firebase ID token and POST it to /auth/login (same as the email flow).
+      const credential = GoogleAuthProvider.credential(googleIdToken);
+      const cred = await signInWithCredential(firebaseAuth, credential);
+      const idToken = await cred.user.getIdToken();
+      const data = await requestData<AuthEnvelope>({
+        url: '/auth/login',
+        method: 'POST',
+        data: { idToken },
+      });
+      await get().setSession({ tokens: data.tokens, user: data.user });
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: readErr(e, 'Could not sign in with Google. Please try again.') };
     } finally {
       set({ loading: false });
     }

@@ -4,7 +4,7 @@ import { MotiView } from 'moti';
 import { Card } from '@/components/ui/SoftCard';
 import { AppText } from '@/components/ui/Typography';
 import { Icon } from '@/components/ui/Icon';
-import { colors, radii, spacing } from '@/theme/tokens';
+import { colors, radii, spacing, pressOpacity } from '@/theme/tokens';
 import type { Habit } from '@/types/models';
 
 const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -55,6 +55,7 @@ export function HabitCard({ habit, onToggleToday }: HabitCardProps) {
           accessibilityState={{ selected: done }}
           accessibilityLabel={`Mark ${habit.title} ${done ? 'incomplete' : 'complete'} for today`}
           hitSlop={6}
+          style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
         >
           <MotiView
             animate={{ scale: done ? 1 : 0.96 }}

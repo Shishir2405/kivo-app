@@ -10,7 +10,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/Typography';
-import { Card } from '@/components/ui/SoftCard';
+import { Card, type CardTone } from '@/components/ui/SoftCard';
 import { SoftToggle } from '@/components/ui/SoftToggle';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors, radii, spacing } from '@/theme/tokens';
@@ -63,13 +63,16 @@ export function SectionHeader({
 export function SectionCard({
   children,
   padding = spacing.xs,
+  tone = 'default',
 }: {
   children: React.ReactNode;
   index?: number;
   padding?: number;
+  /** Optional Steep wash so data sections aren't all-white-dead. */
+  tone?: CardTone;
 }) {
   return (
-    <Card radius={radii.card} padding={padding} style={{ marginBottom: spacing.xl }}>
+    <Card radius={radii.card} padding={padding} tone={tone} style={{ marginBottom: spacing.xl }}>
       {children}
     </Card>
   );

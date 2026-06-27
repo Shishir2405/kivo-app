@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { Tag, type TagTone } from '@/components/ui/Tag';
 import { AppText } from '@/components/ui/Typography';
 import { Icon } from '@/components/ui/Icon';
-import { colors, spacing } from '@/theme/tokens';
+import { colors, spacing, pressOpacity } from '@/theme/tokens';
 import type { Task, Priority } from '@/types/models';
 
 /** Today, for relative due labels. Injected so the card stays deterministic. */
@@ -68,7 +68,7 @@ export function TaskCard({ task, onToggle, onToggleChecklistItem }: TaskCardProp
         />
 
         <Pressable
-          style={{ flex: 1 }}
+          style={({ pressed }) => ({ flex: 1, opacity: hasDetail ? pressOpacity({ pressed }) : 1 })}
           disabled={!hasDetail}
           onPress={() => setExpanded((e) => !e)}
         >

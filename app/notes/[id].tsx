@@ -36,7 +36,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { MarkdownView } from '@/components/notes/MarkdownView';
 
-import { colors, fonts, radii } from '@/theme/tokens';
+import { colors, fonts, radii, interaction, pressOpacity } from '@/theme/tokens';
 import { useNote } from '@/hooks/api';
 import type { Note, NoteFolder } from '@/types/models';
 import { FOLDER_ICON, NOTE_FOLDERS, formatShortDate } from '@/components/notes/notesMeta';
@@ -99,7 +99,12 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
       {tags.length > 0 ? (
         <View className="flex-row flex-wrap" style={{ gap: 6, marginBottom: 10 }}>
           {tags.map((t) => (
-            <Pressable key={t} onPress={() => remove(t)} accessibilityLabel={`Remove tag ${t}`}>
+            <Pressable
+              key={t}
+              onPress={() => remove(t)}
+              accessibilityLabel={`Remove tag ${t}`}
+              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+            >
               <View
                 className="flex-row items-center"
                 style={{
@@ -133,7 +138,12 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
         leading={<Icon name="tag" size={16} color="graphite" />}
         trailing={
           draft.trim().length > 0 ? (
-            <Pressable onPress={add} accessibilityLabel="Add tag" hitSlop={8}>
+            <Pressable
+              onPress={add}
+              accessibilityLabel="Add tag"
+              hitSlop={8}
+              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+            >
               <Icon name="plus-circle" size={18} color="ink" />
             </Pressable>
           ) : undefined
@@ -303,7 +313,7 @@ export default function NoteEditorScreen() {
             value={title}
             onChangeText={setTitle}
             placeholder="Note title"
-            style={{ fontFamily: fonts.serifMedium, fontSize: 19 }}
+            style={{ fontFamily: fonts.serifMedium, fontSize: 18 }}
             containerStyle={{ marginBottom: 18 }}
           />
 

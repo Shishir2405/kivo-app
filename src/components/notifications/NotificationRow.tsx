@@ -14,7 +14,7 @@ import { View, Pressable } from 'react-native';
 import { AppText } from '@/components/ui/Typography';
 import { SoftCard } from '@/components/ui/SoftCard';
 import { Icon } from '@/components/ui/Icon';
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, interaction, pressOpacity } from '@/theme/tokens';
 import type { AppNotification } from '@/types/models';
 
 export type NotificationAccent = AppNotification['accent'];
@@ -27,18 +27,18 @@ export type NotificationRowProps = {
 };
 
 export function NotificationRow({ notification, onPress }: NotificationRowProps) {
-  const [pressed, setPressed] = React.useState(false);
   const { read } = notification;
 
   return (
     <Pressable
       onPress={() => onPress(notification.id)}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
       accessibilityRole="button"
       accessibilityLabel={`${notification.title}. ${read ? 'Read' : 'Unread'}`}
       accessibilityState={{ selected: !read }}
-      style={{ opacity: pressed ? 0.9 : 1 }}
+      style={({ pressed }) => ({
+        opacity: pressOpacity({ pressed }, { solid: true }),
+        transform: [{ scale: pressed ? interaction.pressScale : 1 }],
+      })}
     >
       <SoftCard variant={read ? 'inset' : 'raised'} radius={radii.card} padding={13}>
         <View className="flex-row items-start" style={{ gap: 11 }}>

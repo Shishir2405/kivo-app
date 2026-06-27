@@ -6,7 +6,7 @@
  *  1. LOCAL reminders (`scheduleLocalReminder`) — scheduled on-device with
  *     `expo-notifications`. These FIRE ON THE PHONE even when the app is closed
  *     and the device is OFFLINE. This is what powers the "Remind me" actions
- *     and the test reminder in Settings. It works in Expo Go *for the schedule
+ *     (e.g. revision snooze). It works in Expo Go *for the schedule
  *     itself*, though for the most reliable behaviour use a Dev/EAS build.
  *
  *  2. REMOTE push (`registerForPushNotificationsAsync` + `registerDeviceToken`)

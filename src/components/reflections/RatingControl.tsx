@@ -10,7 +10,7 @@ import { Pressable, View } from 'react-native';
 
 import { AppText } from '@/components/ui/Typography';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors } from '@/theme/tokens';
+import { colors, pressOpacity } from '@/theme/tokens';
 import type { Rating } from '@/types/models';
 
 export type { Rating };
@@ -87,7 +87,7 @@ export function RatingControl({
               accessibilityRole="adjustable"
               accessibilityLabel={`${label} ${v} of 5`}
               accessibilityState={{ selected: v === value }}
-              style={{ flex: 1 }}
+              style={({ pressed }) => ({ flex: 1, opacity: pressOpacity({ pressed }, { disabled }) })}
               hitSlop={6}
             >
               <View

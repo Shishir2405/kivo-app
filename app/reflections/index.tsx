@@ -21,7 +21,7 @@ import { PillButton, TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, interaction, pressOpacity } from '@/theme/tokens';
 import { TODAY } from '@/data/mock';
 import { useReflections } from '@/hooks/api';
 import type { Reflection } from '@/types/models';
@@ -95,7 +95,15 @@ function EntryRow({ reflection, onPress }: { reflection: Reflection; onPress: ()
   const journal = journalForDay(reflection.date);
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Reflection for ${shortDate(reflection.date)}`}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Reflection for ${shortDate(reflection.date)}`}
+      style={({ pressed }) => ({
+        opacity: pressOpacity({ pressed }, { solid: true }),
+        transform: [{ scale: pressed ? interaction.pressScale : 1 }],
+      })}
+    >
       <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 10 }}>
         <View className="flex-row" style={{ gap: 12 }}>
           {/* Date chip */}
@@ -293,7 +301,12 @@ export default function ReflectionsScreen() {
                 leading={<Icon name="search" size={16} color="graphite" />}
                 trailing={
                   query.length > 0 ? (
-                    <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityLabel="Clear search">
+                    <Pressable
+                      onPress={() => setQuery('')}
+                      hitSlop={8}
+                      accessibilityLabel="Clear search"
+                      style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+                    >
                       <Icon name="x-circle" size={16} color="graphite" />
                     </Pressable>
                   ) : undefined

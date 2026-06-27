@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { AppText } from '@/components/ui/Typography';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, pressOpacity } from '@/theme/tokens';
 
 export type RoadmapChipProps = {
   label: string;
@@ -27,6 +27,7 @@ export function RoadmapChip({
 }: RoadmapChipProps) {
   return (
     <Pressable onPress={onPress} style={style}>
+      {({ pressed }: { pressed: boolean }) => (
       <View
         className="flex-row items-center"
         style={{
@@ -36,7 +37,9 @@ export function RoadmapChip({
           borderRadius: radii.pill,
           backgroundColor: active ? colors.ink : colors.white,
           borderWidth: 1,
-          borderColor: active ? colors.ink : colors.dove,
+          // Pressed unselected chip hints its border toward Ink.
+          borderColor: active ? colors.ink : pressed ? colors.ink : colors.dove,
+          opacity: pressOpacity({ pressed }),
         }}
       >
         {icon ? (
@@ -51,6 +54,7 @@ export function RoadmapChip({
           {label}
         </AppText>
       </View>
+      )}
     </Pressable>
   );
 }

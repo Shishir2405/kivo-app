@@ -19,7 +19,7 @@ import { Tag } from '@/components/ui/Tag';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, interaction, pressOpacity } from '@/theme/tokens';
 import { useNotifications, useNotes, useRevisions, useAchievements } from '@/hooks/api';
 
 type Tile = {
@@ -40,12 +40,22 @@ type Group = { title: string; tiles: Tile[] };
 
 function FeatureRow({ tile, onPress, divider }: { tile: Tile; onPress: () => void; divider?: boolean }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={tile.label}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={tile.label}
+      style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+    >
+      {({ hovered }: { hovered?: boolean }) => (
       <View
         className="flex-row items-center"
         style={{
           gap: 12,
           paddingVertical: 12,
+          paddingHorizontal: hovered ? 8 : 0,
+          marginHorizontal: hovered ? -8 : 0,
+          borderRadius: hovered ? radii.sm : 0,
+          backgroundColor: hovered ? interaction.hoverWash : 'transparent',
           borderTopWidth: divider ? 1 : 0,
           borderTopColor: colors.fog,
         }}
@@ -62,6 +72,7 @@ function FeatureRow({ tile, onPress, divider }: { tile: Tile; onPress: () => voi
         {tile.badge && tile.badge > 0 ? <Tag label={`${tile.badge}`} tone="rust" size="sm" /> : null}
         <Icon name="chevron-right" size={15} color="dove" />
       </View>
+      )}
     </Pressable>
   );
 }

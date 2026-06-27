@@ -22,7 +22,7 @@ import { PillButton, TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, interaction, pressOpacity } from '@/theme/tokens';
 import { TODAY } from '@/data/mock';
 import { useNotes } from '@/hooks/api';
 import type { Note, NoteFolder } from '@/types/models';
@@ -52,7 +52,15 @@ const QUICK_FILTERS: { key: QuickFilter; label: string; icon: IconName }[] = [
 
 function NoteCard({ note, onPress }: { note: Note; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Open note: ${note.title}`}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Open note: ${note.title}`}
+      style={({ pressed }) => ({
+        opacity: pressOpacity({ pressed }, { solid: true }),
+        transform: [{ scale: pressed ? interaction.pressScale : 1 }],
+      })}
+    >
       <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 10 }}>
         {/* Folder eyebrow + status glyphs */}
         <View className="flex-row items-center justify-between" style={{ marginBottom: 4 }}>
@@ -269,7 +277,12 @@ export default function NotesScreen() {
           leading={<Icon name="search" size={16} color="graphite" />}
           trailing={
             query.length > 0 ? (
-              <Pressable onPress={() => setQuery('')} accessibilityLabel="Clear search" hitSlop={8}>
+              <Pressable
+                onPress={() => setQuery('')}
+                accessibilityLabel="Clear search"
+                hitSlop={8}
+                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+              >
                 <Icon name="x-circle" size={16} color="graphite" />
               </Pressable>
             ) : undefined

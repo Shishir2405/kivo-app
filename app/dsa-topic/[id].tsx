@@ -26,7 +26,7 @@ import {
   progressColor,
 } from '@/components/dsa/dsaMeta';
 import { useDsaTopics, useDsaProblems, useRevisions } from '@/hooks/api';
-import { colors } from '@/theme/tokens';
+import { colors, pressOpacity } from '@/theme/tokens';
 import type { Problem, ProblemStatus, Revision } from '@/types/models';
 
 /* ================================================================== */
@@ -168,7 +168,11 @@ export default function TopicDetailScreen() {
             body="It may have been removed. Go back and pick another topic."
           />
           <View style={{ alignItems: 'center', marginTop: 16 }}>
-            <Pressable onPress={handleBack} hitSlop={8}>
+            <Pressable
+              onPress={handleBack}
+              hitSlop={8}
+              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+            >
               <AppText variant="body" weight="medium" color={colors.ink}>
                 Back to topics
               </AppText>
@@ -206,6 +210,7 @@ export default function TopicDetailScreen() {
               onPress={() => setBookmarked((b) => !b)}
               hitSlop={10}
               accessibilityLabel="Bookmark topic"
+              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
             >
               <Icon
                 name="bookmark"

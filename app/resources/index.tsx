@@ -24,7 +24,7 @@ import { TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, interaction, pressOpacity } from '@/theme/tokens';
 import { useResources } from '@/hooks/api';
 import type { Resource, ResourceType } from '@/types/models';
 
@@ -80,6 +80,10 @@ function ResourceCard({
       onPress={() => onOpen(resource)}
       accessibilityRole="link"
       accessibilityLabel={`Open ${resource.title}`}
+      style={({ pressed }) => ({
+        opacity: pressOpacity({ pressed }, { solid: true }),
+        transform: [{ scale: pressed ? interaction.pressScale : 1 }],
+      })}
     >
       <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 10 }}>
         <View className="flex-row items-start" style={{ gap: 11 }}>
@@ -98,6 +102,7 @@ function ResourceCard({
                 hitSlop={10}
                 accessibilityRole="button"
                 accessibilityLabel={resource.favorite ? 'Unstar' : 'Star'}
+                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
               >
                 <Icon name="star" size={17} color={resource.favorite ? 'rust' : 'dove'} weight={resource.favorite ? 'fill' : 'light'} />
               </Pressable>
@@ -328,7 +333,12 @@ export default function ResourcesScreen() {
           leading={<Icon name="search" size={16} color="graphite" />}
           trailing={
             query.length > 0 ? (
-              <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityLabel="Clear search">
+              <Pressable
+                onPress={() => setQuery('')}
+                hitSlop={8}
+                accessibilityLabel="Clear search"
+                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+              >
                 <Icon name="x-circle" size={16} color="graphite" />
               </Pressable>
             ) : undefined

@@ -4,12 +4,12 @@
  * A small thin leading glyph, an Inter label, an optional value, and a quiet
  * chevron. Flat, compact, hairline-divided. No chips, no neumorphism.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppText } from '@/components/ui/Typography';
-import { colors, spacing } from '@/theme/tokens';
+import { colors, spacing, interaction } from '@/theme/tokens';
 
 export type MenuRowProps = {
   icon: IconName;
@@ -22,20 +22,17 @@ export type MenuRowProps = {
 };
 
 export function MenuRow({ icon, title, value, onPress, last }: MenuRowProps) {
-  const [pressed, setPressed] = useState(false);
-
   return (
     <Pressable
       onPress={onPress}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
       accessibilityRole="button"
       accessibilityLabel={title}
-      style={{
+      style={({ pressed, hovered }) => ({
         borderBottomWidth: last ? 0 : 1,
         borderBottomColor: colors.dove,
         opacity: pressed ? 0.55 : 1,
-      }}
+        backgroundColor: hovered && !pressed ? interaction.hoverWash : 'transparent',
+      })}
     >
       <View
         style={{

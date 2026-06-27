@@ -12,7 +12,7 @@ import {
   STATUS_LABEL,
   STATUS_TONE,
 } from './dsaMeta';
-import { colors } from '@/theme/tokens';
+import { colors, interaction, pressOpacity } from '@/theme/tokens';
 import type { Problem } from '@/types/models';
 
 export type ProblemRowProps = {
@@ -30,7 +30,13 @@ export function ProblemRow({ problem, onPress }: ProblemRowProps) {
   const statusColor = STATUS_COLOR[problem.status];
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        opacity: pressOpacity({ pressed }, { solid: true }),
+        transform: [{ scale: pressed ? interaction.pressScale : 1 }],
+      })}
+    >
       <SoftCard radius={14} padding={12}>
         <View className="flex-row items-center" style={{ gap: 10 }}>
           {/* Status glyph */}

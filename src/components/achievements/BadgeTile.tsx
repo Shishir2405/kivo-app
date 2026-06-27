@@ -12,7 +12,7 @@ import { Pressable, View } from 'react-native';
 import { Card } from '@/components/ui/SoftCard';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppText } from '@/components/ui/Typography';
-import { colors, spacing } from '@/theme/tokens';
+import { colors, spacing, interaction } from '@/theme/tokens';
 
 import { type Accent, ACCENT_INK, ACCENT_WASH } from './accents';
 
@@ -50,8 +50,14 @@ export function BadgeTile({
     <View style={{ width: '47.5%', flexGrow: 1 }}>
       <Pressable
         onPress={onPress}
+        disabled={!onPress}
         accessibilityRole="button"
         accessibilityLabel={`${title}${unlocked ? ', unlocked' : ', locked'}`}
+        style={({ pressed }) =>
+          onPress && pressed
+            ? { opacity: interaction.pressOpacitySolid, transform: [{ scale: interaction.pressScale }] }
+            : null
+        }
       >
         <Card
           variant={unlocked ? 'raised' : 'inset'}

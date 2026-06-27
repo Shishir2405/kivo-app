@@ -3,7 +3,7 @@ import { View, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppText } from '@/components/ui/Typography';
 import { Icon } from '@/components/ui/Icon';
-import { colors } from '@/theme/tokens';
+import { colors, pressOpacity } from '@/theme/tokens';
 
 export type ScreenHeaderProps = {
   /** Small uppercase eyebrow label above the title (e.g. "Topic"). */
@@ -43,7 +43,7 @@ export function ScreenHeader({
         accessibilityRole="button"
         accessibilityLabel="Go back"
         hitSlop={10}
-        style={{ marginLeft: -4 }}
+        style={({ pressed }) => ({ marginLeft: -4, opacity: pressOpacity({ pressed }) })}
       >
         <Icon name="chevron-left" size={22} color="ink" />
       </Pressable>

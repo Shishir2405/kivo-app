@@ -7,7 +7,7 @@ import { Tag } from '@/components/ui/Tag';
 import { Icon } from '@/components/ui/Icon';
 import { ProgressBar } from './ProgressBar';
 import { DIFFICULTY_LABEL, DIFFICULTY_TONE, masteryMeta, progressColor } from './dsaMeta';
-import { colors } from '@/theme/tokens';
+import { colors, interaction, pressOpacity } from '@/theme/tokens';
 import type { DsaTopic } from '@/types/models';
 
 export type TopicCardProps = {
@@ -35,7 +35,13 @@ export function TopicCard({ topic, onPress, index = 0 }: TopicCardProps) {
       animate={{ opacity: 1, translateY: 0 }}
       transition={{ type: 'timing', duration: 320, delay: 40 + index * 50 }}
     >
-      <Pressable onPress={onPress}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({
+          opacity: pressOpacity({ pressed }, { solid: true }),
+          transform: [{ scale: pressed ? interaction.pressScale : 1 }],
+        })}
+      >
         <SoftCard radius={16} padding={14}>
           <View style={{ gap: 12 }}>
             {/* Header row */}

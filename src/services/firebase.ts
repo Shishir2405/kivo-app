@@ -55,4 +55,7 @@ export {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  // Google federated sign-in: exchange a Google idToken for a Firebase credential.
+  GoogleAuthProvider,
+  signInWithCredential,
 } from 'firebase/auth';

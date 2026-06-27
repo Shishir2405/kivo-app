@@ -1,12 +1,13 @@
 /**
  * Settings (Steep).
  *
- * A calm, compact preferences screen. Flat white grouping cards, small thin
- * mono glyphs, serif section labels, SegmentedTabs / Select / Stepper for
- * choices and SoftToggle switches for booleans. The single filled Ink pill is
- * the "Send a test reminder" CTA; everything else (sign out, etc.) is a
- * TextLink. Preference defaults are seeded from the live `/auth/me` payload;
- * edits are local UI state. Sign out runs the REAL auth-store logout.
+ * A calm, compact preferences screen. Flat grouping cards (the data sections
+ * carry a quiet Steep wash), small thin mono glyphs, serif section labels,
+ * SegmentedTabs / Select / Stepper for choices and SoftToggle switches for
+ * booleans. Everything actionable (sign out, retry) is a TextLink. Preference
+ * defaults are seeded from the live `/auth/me` payload; edits are local UI
+ * state. Sign out runs the REAL auth-store logout. Reminders fire from REAL
+ * actions elsewhere (e.g. revision snooze), so there's no test-notification CTA.
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, ScrollView, Alert } from 'react-native';
@@ -14,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { AppText } from '@/components/ui/Typography';
-import { PillButton, TextLink } from '@/components/ui/PillButton';
+import { TextLink } from '@/components/ui/PillButton';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { Select } from '@/components/ui/Select';
 import { Stepper } from '@/components/ui/Stepper';
@@ -34,7 +35,6 @@ import { useAccount, type RawThemeMode } from '@/components/account/accountApi';
 import { colors, spacing } from '@/theme/tokens';
 import {
   requestNotificationPermissions,
-  scheduleReminderInSeconds,
   cancelAllReminders,
 } from '@/services/notifications';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -122,25 +122,6 @@ export default function SettingsScreen() {
     [],
   );
 
-  // The single filled Ink CTA — fires a real local notification ~5s out.
-  const [testState, setTestState] = useState<'idle' | 'scheduled'>('idle');
-  const sendTestReminder = useCallback(async () => {
-    const id = await scheduleReminderInSeconds(5, {
-      title: 'Kivo reminder',
-      body: 'This is a test reminder — your phone notifications are working.',
-      data: { kind: 'test' },
-    });
-    if (!id) {
-      Alert.alert(
-        'Notifications are off',
-        'Enable notifications for Kivo in your device Settings to receive reminders.',
-      );
-      return;
-    }
-    setTestState('scheduled');
-    setTimeout(() => setTestState('idle'), 6000);
-  }, []);
-
   const confirmLogout = useCallback(() => {
     Alert.alert('Sign out', 'You can sign back in anytime.', [
       { text: 'Cancel', style: 'cancel' },
@@ -191,7 +172,7 @@ export default function SettingsScreen() {
         {/* Notifications                                                  */}
         {/* ============================================================ */}
         <SectionHeader title="Notifications" />
-        <SectionCard>
+        <SectionCard tone="cool">
           <ToggleRow
             icon="bell"
             title="Push notifications"
@@ -225,36 +206,11 @@ export default function SettingsScreen() {
           />
         </SectionCard>
 
-        {/* The single filled Ink CTA. */}
-        <View style={{ marginBottom: spacing.xl, gap: spacing.sm }}>
-          <PillButton
-            fullWidth
-            variant="black"
-            label={testState === 'scheduled' ? 'Reminder scheduled' : 'Send a test reminder'}
-            icon={
-              <Icon
-                name={testState === 'scheduled' ? 'check' : 'bell'}
-                size={16}
-                color="white"
-                weight="light"
-              />
-            }
-            onPress={() => void sendTestReminder()}
-          />
-          <AppText
-            variant="caption"
-            color={colors.graphite}
-            style={{ textAlign: 'center' }}
-          >
-            Fires a real notification in ~5 seconds, even if you close the app.
-          </AppText>
-        </View>
-
         {/* ============================================================ */}
         {/* Quiet hours                                                   */}
         {/* ============================================================ */}
         <SectionHeader title="Quiet hours" />
-        <SectionCard>
+        <SectionCard tone="warm">
           <ToggleRow
             icon="moon"
             title="Pause overnight"

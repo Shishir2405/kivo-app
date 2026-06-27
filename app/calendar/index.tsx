@@ -26,7 +26,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Tag } from '@/components/ui/Tag';
 import { AppHeader } from '@/components/ui/AppHeader';
 
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, interaction, pressOpacity } from '@/theme/tokens';
 import { mockCalendarEvents } from '@/data/mock';
 import type { CalendarEvent, CalendarEventType } from '@/types/models';
 
@@ -152,7 +152,12 @@ export default function CalendarScreen() {
         <AppHeader
           onBack={() => router.back()}
           right={
-            <Pressable onPress={goToday} hitSlop={8} accessibilityLabel="Jump to today">
+            <Pressable
+              onPress={goToday}
+              hitSlop={8}
+              accessibilityLabel="Jump to today"
+              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+            >
               <AppText variant="caption" weight="medium" color={colors.ink}>
                 Today
               </AppText>
@@ -252,13 +257,23 @@ function MonthView({
       <SoftCard radius={radii.card} padding={14}>
         {/* Month pager */}
         <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
-          <Pressable onPress={() => onStep(-1)} hitSlop={10} accessibilityLabel="Previous month">
+          <Pressable
+            onPress={() => onStep(-1)}
+            hitSlop={10}
+            accessibilityLabel="Previous month"
+            style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+          >
             <Icon name="chevron-left" size={20} color="ink" />
           </Pressable>
           <AppText variant="heading" display weight="medium">
             {monthLabel(focusY, focusM0)}
           </AppText>
-          <Pressable onPress={() => onStep(1)} hitSlop={10} accessibilityLabel="Next month">
+          <Pressable
+            onPress={() => onStep(1)}
+            hitSlop={10}
+            accessibilityLabel="Next month"
+            style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+          >
             <Icon name="chevron-right" size={20} color="ink" />
           </Pressable>
         </View>
@@ -316,7 +331,7 @@ function DayCell({
       accessibilityRole="button"
       accessibilityLabel={`${day}, ${events.length} events`}
       accessibilityState={{ selected }}
-      style={{ flex: 1, aspectRatio: 1, padding: 2 }}
+      style={({ pressed }) => ({ flex: 1, aspectRatio: 1, padding: 2, opacity: pressed ? interaction.pressOpacity : 1 })}
     >
       <View
         style={{
@@ -423,13 +438,23 @@ function WeekView({
   return (
     <View>
       <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
-        <Pressable onPress={() => onStep(-1)} hitSlop={10} accessibilityLabel="Previous week">
+        <Pressable
+          onPress={() => onStep(-1)}
+          hitSlop={10}
+          accessibilityLabel="Previous week"
+          style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+        >
           <Icon name="chevron-left" size={20} color="ink" />
         </Pressable>
         <AppText variant="heading" display weight="medium">
           {rangeLabel}
         </AppText>
-        <Pressable onPress={() => onStep(1)} hitSlop={10} accessibilityLabel="Next week">
+        <Pressable
+          onPress={() => onStep(1)}
+          hitSlop={10}
+          accessibilityLabel="Next week"
+          style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+        >
           <Icon name="chevron-right" size={20} color="ink" />
         </Pressable>
       </View>

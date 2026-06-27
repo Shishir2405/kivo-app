@@ -110,16 +110,13 @@ export default function DashboardScreen() {
     if (isLoading) return <DashboardSkeleton />;
 
     if (isError) {
-      return (
-        <ErrorState
-          message={
-            error?.isNetwork
-              ? 'Check your connection and try again.'
-              : error?.message ?? 'Something went wrong.'
-          }
-          onRetry={() => void refetch()}
-        />
-      );
+      // Never surface a raw error object — derive a plain string message only.
+      const errorMessage = error?.isNetwork
+        ? 'Check your connection and try again.'
+        : typeof error?.message === 'string' && error.message
+          ? error.message
+          : 'Something went wrong.';
+      return <ErrorState message={errorMessage} onRetry={() => void refetch()} />;
     }
 
     if (!data) {
@@ -135,17 +132,17 @@ export default function DashboardScreen() {
     }
 
     return (
-      <View style={{ gap: spacing.xxl }}>
+      <View style={{ gap: spacing.xl }}>
         {/* ============================================================ */}
         {/* Today — the single warm data card                            */}
         {/* ============================================================ */}
         <View>
           <SectionHeader title="Today" actionLabel="Revisions" onAction={goRevisions} />
-          <WarmCard radius={radii.cardLg} padding={spacing.lg}>
+          <WarmCard radius={radii.cardLg} padding={spacing.md}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
-              <GoalRing progress={goalPct} size={66} stroke={6}>
+              <GoalRing progress={goalPct} size={60} stroke={5}>
                 <View style={{ alignItems: 'center' }}>
-                  <AppText variant="heading" display weight="medium" color={colors.rust} style={{ lineHeight: 22 }}>
+                  <AppText variant="heading" display weight="medium" color={colors.rust} style={{ lineHeight: 20 }}>
                     {data.solvedToday}
                   </AppText>
                   <AppText variant="caption" color={colors.rust} style={{ fontSize: 10, marginTop: -1 }}>
@@ -154,17 +151,20 @@ export default function DashboardScreen() {
                 </View>
               </GoalRing>
               <View style={{ flex: 1 }}>
-                <AppText variant="subheading" weight="medium" color={colors.ink}>
-                  {goalPct >= 100 ? 'Daily goal complete' : 'Daily goal in progress'}
-                </AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Icon name="target" size={14} color="rust" weight="light" />
+                  <AppText variant="subheading" weight="medium" color={colors.ink}>
+                    {goalPct >= 100 ? 'Daily goal complete' : 'Daily goal in progress'}
+                  </AppText>
+                </View>
                 <AppText variant="caption" color={colors.ash} style={{ marginTop: 2 }}>
                   {goalPct >= 100
                     ? 'Nicely done — the goal is in the bag.'
                     : `${remaining} more problem${remaining === 1 ? '' : 's'} to go.`}
                 </AppText>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 10 }}>
-                  <Icon name="flame" size={14} color="rust" weight="fill" />
-                  <AppText variant="caption" weight="medium" color={colors.rust} style={{ fontSize: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 9 }}>
+                  <Icon name="flame" size={13} color="rust" weight="fill" />
+                  <AppText variant="caption" weight="medium" color={colors.rust} style={{ fontSize: 11 }}>
                     {data.streak}-day streak
                   </AppText>
                 </View>
@@ -180,12 +180,26 @@ export default function DashboardScreen() {
           <SectionHeader title="At a glance" />
           <View style={{ flexDirection: 'row', gap: spacing.md }}>
             <StatCard
-              value={`${data.revisionsDueToday}`}
+              value={data.revisionsDueToday}
               label="Revisions due"
+              icon="repeat"
+              tone="warm"
+              accent={data.revisionsDueToday > 0}
               onPress={goRevisions}
             />
-            <StatCard value={`${data.openTasks}`} label="Open tasks" onPress={goTracker} />
-            <StatCard value={data.solvedToday > 0 ? `${data.solvedToday}` : '0'} unit={`/ ${data.dailyGoal}`} label="Solved" />
+            <StatCard
+              value={data.openTasks}
+              label="Open tasks"
+              icon="check-square"
+              tone="cool"
+              onPress={goTracker}
+            />
+            <StatCard
+              value={data.solvedToday}
+              unit={`/ ${data.dailyGoal}`}
+              label="Solved"
+              icon="check-circle"
+            />
           </View>
         </View>
 
@@ -194,14 +208,14 @@ export default function DashboardScreen() {
         {/* ============================================================ */}
         <View>
           <SectionHeader title="Focus" actionLabel="Tracker" onAction={goTracker} />
-          <CoolCard radius={radii.cardLg} padding={spacing.lg}>
+          <CoolCard radius={radii.cardLg} padding={spacing.md}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
                   <AppText variant="headingLg" display weight="medium" color={colors.ink}>
                     {focusHours}
                   </AppText>
-                  <AppText variant="caption" color={colors.ash} style={{ fontSize: 12 }}>
+                  <AppText variant="caption" color={colors.ash} style={{ fontSize: 11 }}>
                     hrs
                   </AppText>
                 </View>
@@ -209,7 +223,7 @@ export default function DashboardScreen() {
                   Focused today
                 </AppText>
               </View>
-              <Icon name="timer" size={18} color="ink" />
+              <Icon name="timer" size={16} color="rust" weight="light" />
             </View>
             <View style={{ marginTop: spacing.md }}>
               <PillButton label="Start focus timer" onPress={goFocusTimer} size="sm" />
@@ -222,13 +236,14 @@ export default function DashboardScreen() {
         {/* ============================================================ */}
         <View>
           <SectionHeader title="Continue" actionLabel="All topics" onAction={goDsa} />
-          <Card padding={spacing.lg}>
+          <Card padding={spacing.md}>
             {continueTopics.length > 0 ? (
               continueTopics.slice(0, 3).map((topic, i, arr) => (
                 <ContinueRow
                   key={topic.id}
                   title={topic.title}
                   progress={topic.progress}
+                  icon={topic.emoji}
                   showDivider={i < arr.length - 1}
                   onPress={() => router.push(`/dsa-topic/${topic.id}`)}
                 />
@@ -282,7 +297,7 @@ export default function DashboardScreen() {
         {/* ============================================================ */}
         {/* Greeting — small serif headline                              */}
         {/* ============================================================ */}
-        <View style={{ marginTop: spacing.lg, marginBottom: spacing.xxl }}>
+        <View style={{ marginTop: spacing.lg, marginBottom: spacing.xl }}>
           <AppText
             variant="caption"
             weight="medium"

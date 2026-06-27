@@ -1,17 +1,19 @@
 /**
  * Presentational building blocks for the Dashboard screen (STEEP).
  *
- * Editorial, calm, premium. Everything here is FLAT: pure white / fog surfaces,
- * a 1px Dove hairline + the ONE subtle shadow (via Card), small compact
- * padding, the small mobile type scale. Color is punctuation — chrome is
- * monochrome Ink/Graphite, Rust is the only warm stroke, and the two washes
- * (apricot / sky) are reserved for the single data card on the screen.
+ * Editorial, calm, premium. Surfaces carry gentle Steep depth (a 1px Dove
+ * hairline + the ONE subtle shadow, via Card), small compact padding, the
+ * small mobile type scale. Color is punctuation — chrome is monochrome
+ * Ink/Graphite, Rust is the only warm stroke, and the two washes (Apricot /
+ * Sky) tone the live DATA tiles/cards so the grid is never all-white-dead.
  *
  * Rules honoured here:
- *  - NO neumorphism, NO dual shadows, NO puffy surfaces, NO accent tints.
+ *  - NO neumorphism, NO dual shadows, NO puffy surfaces.
  *  - NO lucide, NO emoji — every glyph is an `IconName` through `<Icon />`,
- *    small (~14-17px), thin outline, Ink/Graphite (Rust only for the accent).
+ *    small (~14-15px), thin outline, Graphite/Rust accent.
  *  - ONE filled Ink pill per screen; secondary actions are TextLinks.
+ *  - Titles/labels are coerced to strings (`asTitle`) so a stray API object
+ *    can never be rendered as a React child and crash the screen.
  */
 import React from 'react';
 import {
@@ -23,11 +25,18 @@ import {
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-import { Card } from '@/components/ui/SoftCard';
+import { Card, type CardTone } from '@/components/ui/SoftCard';
 import { AppText } from '@/components/ui/Typography';
 import { TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors, radii, spacing } from '@/theme/tokens';
+import { colors, radii, spacing, interaction, pressOpacity } from '@/theme/tokens';
+
+/** Always render a string title — never let an object (e.g. an API error) through. */
+function asTitle(value: unknown, fallback = ''): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return fallback;
+}
 
 /* ------------------------------------------------------------------ */
 /* Section header — small serif title + optional TextLink action       */
@@ -57,10 +66,10 @@ export function SectionHeader({
       ]}
     >
       <AppText variant="headingSm" display weight="medium">
-        {title}
+        {asTitle(title)}
       </AppText>
       {actionLabel ? (
-        <TextLink label={actionLabel} onPress={onAction} muted size="sm" />
+        <TextLink label={asTitle(actionLabel)} onPress={onAction} muted size="sm" />
       ) : null}
     </View>
   );
@@ -103,58 +112,78 @@ export function StreakChip({
 }
 
 /* ------------------------------------------------------------------ */
-/* Stat card — compact white figure tile                               */
+/* Stat card — compact data tile (white OR a warm/cool wash) with a     */
+/* small thin phosphor icon + a Rust key figure. Subtle Steep depth.   */
 /* ------------------------------------------------------------------ */
 
 export function StatCard({
   value,
   unit,
   label,
+  icon,
+  tone = 'default',
+  accent = false,
   onPress,
   style,
 }: {
-  value: string;
+  value: string | number;
   unit?: string;
   label: string;
+  /** Small thin phosphor glyph in the card corner. */
+  icon?: IconName;
+  /** Surface wash — 'warm' Apricot / 'cool' Sky for live data tiles. */
+  tone?: CardTone;
+  /** Render the figure in the Rust accent (use for ONE key stat). */
+  accent?: boolean;
   onPress?: (e: GestureResponderEvent) => void;
   style?: StyleProp<ViewStyle>;
 }) {
-  const body = (
-    <Card padding={spacing.md} style={[{ flex: 1 }, style]}>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-        <AppText variant="heading" display weight="medium" style={{ lineHeight: 26 }}>
-          {value}
+  const figureColor = accent ? colors.rust : colors.ink;
+  // On a wash, the icon reads as the quiet Rust accent; on white it's Graphite.
+  const iconColor = tone === 'default' ? 'graphite' : 'rust';
+
+  const inner = (
+    <>
+      {icon ? (
+        <Icon name={icon} size={14} color={iconColor} weight="light" />
+      ) : null}
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3, marginTop: icon ? 7 : 0 }}>
+        <AppText variant="heading" display weight="medium" color={figureColor} style={{ lineHeight: 24 }}>
+          {asTitle(value)}
         </AppText>
         {unit ? (
-          <AppText variant="caption" color={colors.graphite} style={{ fontSize: 12 }}>
-            {unit}
+          <AppText variant="caption" color={colors.graphite} style={{ fontSize: 11 }}>
+            {asTitle(unit)}
           </AppText>
         ) : null}
       </View>
-      <AppText variant="caption" color={colors.graphite} style={{ marginTop: 4 }} numberOfLines={1}>
-        {label}
+      <AppText variant="caption" color={colors.graphite} style={{ marginTop: 3 }} numberOfLines={1}>
+        {asTitle(label)}
       </AppText>
-    </Card>
+    </>
   );
 
-  if (!onPress) return body;
+  if (!onPress) {
+    return (
+      <Card tone={tone} padding={spacing.md} style={[{ flex: 1 }, style]}>
+        {inner}
+      </Card>
+    );
+  }
+
   return (
     <Pressable onPress={onPress} style={[{ flex: 1 }, style]}>
       {({ pressed }) => (
-        <Card padding={spacing.md} style={{ opacity: pressed ? 0.7 : 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-            <AppText variant="heading" display weight="medium" style={{ lineHeight: 26 }}>
-              {value}
-            </AppText>
-            {unit ? (
-              <AppText variant="caption" color={colors.graphite} style={{ fontSize: 12 }}>
-                {unit}
-              </AppText>
-            ) : null}
-          </View>
-          <AppText variant="caption" color={colors.graphite} style={{ marginTop: 4 }} numberOfLines={1}>
-            {label}
-          </AppText>
+        <Card
+          tone={tone}
+          padding={spacing.md}
+          style={
+            pressed
+              ? { opacity: interaction.pressOpacitySolid, transform: [{ scale: interaction.pressScale }] }
+              : null
+          }
+        >
+          {inner}
         </Card>
       )}
     </Pressable>
@@ -274,16 +303,16 @@ export function ListRow({
             flexDirection: 'row',
             alignItems: 'center',
             gap: spacing.md,
-            paddingVertical: 11,
+            paddingVertical: 10,
             borderBottomWidth: showDivider ? 1 : 0,
             borderBottomColor: colors.fog,
-            opacity: pressed ? 0.6 : 1,
+            opacity: pressOpacity({ pressed }),
           }}
         >
-          {icon ? <Icon name={icon} size={16} color="graphite" /> : null}
+          {icon ? <Icon name={icon} size={15} color="graphite" weight="light" /> : null}
           <View style={{ flex: 1 }}>
             <AppText variant="body" weight="medium" numberOfLines={1}>
-              {title}
+              {asTitle(title)}
             </AppText>
             {meta ? (
               <AppText
@@ -292,7 +321,7 @@ export function ListRow({
                 numberOfLines={1}
                 style={{ marginTop: 1 }}
               >
-                {meta}
+                {asTitle(meta)}
               </AppText>
             ) : null}
           </View>
@@ -310,35 +339,40 @@ export function ListRow({
 export function ContinueRow({
   title,
   progress,
+  icon,
   onPress,
   showDivider = true,
 }: {
   title: string;
   /** 0-100. */
   progress: number;
+  /** Small thin phosphor glyph for the topic. */
+  icon?: IconName;
   onPress?: () => void;
   showDivider?: boolean;
 }) {
+  const pct = Math.max(0, Math.min(100, Math.round(progress)));
   return (
     <Pressable onPress={onPress}>
       {({ pressed }) => (
         <View
           style={{
-            paddingVertical: 11,
+            paddingVertical: 10,
             borderBottomWidth: showDivider ? 1 : 0,
             borderBottomColor: colors.fog,
-            opacity: pressed ? 0.6 : 1,
+            opacity: pressOpacity({ pressed }),
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            {icon ? <Icon name={icon} size={14} color="graphite" weight="light" /> : null}
             <AppText variant="body" weight="medium" numberOfLines={1} style={{ flex: 1 }}>
-              {title}
+              {asTitle(title)}
             </AppText>
-            <AppText variant="caption" color={colors.graphite} style={{ fontSize: 12 }}>
-              {progress}%
+            <AppText variant="caption" color={colors.graphite} style={{ fontSize: 11 }}>
+              {pct}%
             </AppText>
           </View>
-          <ProgressBar progress={progress} style={{ marginTop: 8 }} />
+          <ProgressBar progress={pct} style={{ marginTop: 7 }} />
         </View>
       )}
     </Pressable>
@@ -360,13 +394,13 @@ export function EmptyState({
 }) {
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.xl, gap: 6 }}>
-      <Icon name={icon} size={20} color="graphite" />
+      <Icon name={icon} size={20} color="graphite" weight="light" />
       <AppText variant="body" weight="medium" style={{ marginTop: 2 }}>
-        {title}
+        {asTitle(title)}
       </AppText>
       {subtitle ? (
         <AppText variant="caption" color={colors.graphite} style={{ textAlign: 'center' }}>
-          {subtitle}
+          {asTitle(subtitle)}
         </AppText>
       ) : null}
     </View>
@@ -387,12 +421,12 @@ export function ErrorState({
   return (
     <Card variant="inset" padding={spacing.xl}>
       <View style={{ alignItems: 'center', gap: 6 }}>
-        <Icon name="alert" size={20} color="graphite" />
+        <Icon name="alert" size={20} color="graphite" weight="light" />
         <AppText variant="body" weight="medium" style={{ marginTop: 2 }}>
           Couldn&rsquo;t load this
         </AppText>
         <AppText variant="caption" color={colors.graphite} style={{ textAlign: 'center' }}>
-          {message}
+          {asTitle(message, 'Something went wrong.')}
         </AppText>
         {onRetry ? (
           <TextLink label="Try again" onPress={onRetry} size="sm" style={{ marginTop: 4 }} />
@@ -438,13 +472,13 @@ export function DashboardSkeleton() {
       </View>
 
       {/* overview card */}
-      <Card padding={spacing.lg}>
+      <Card padding={spacing.md} radius={radii.cardLg}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
-          <SkeletonBlock width={64} height={64} radius={32} />
+          <SkeletonBlock width={60} height={60} radius={30} />
           <View style={{ flex: 1, gap: 8 }}>
             <SkeletonBlock width="60%" height={14} />
             <SkeletonBlock width="90%" height={11} />
-            <SkeletonBlock width="100%" height={4} radius={4} />
+            <SkeletonBlock width="40%" height={11} />
           </View>
         </View>
       </Card>
@@ -453,8 +487,9 @@ export function DashboardSkeleton() {
       <View style={{ flexDirection: 'row', gap: spacing.md }}>
         {[0, 1, 2].map((i) => (
           <Card key={i} padding={spacing.md} style={{ flex: 1 }}>
-            <SkeletonBlock width="50%" height={22} radius={radii.input} />
-            <SkeletonBlock width="80%" height={11} style={{ marginTop: 8 }} />
+            <SkeletonBlock width={14} height={14} radius={4} />
+            <SkeletonBlock width="50%" height={20} radius={radii.input} style={{ marginTop: 7 }} />
+            <SkeletonBlock width="80%" height={11} style={{ marginTop: 7 }} />
           </Card>
         ))}
       </View>
