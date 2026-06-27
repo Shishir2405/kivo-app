@@ -15,3 +15,7 @@ export {
   type PasswordStrength,
 } from './PasswordField';
 export { SwitchAuthLink, type SwitchAuthLinkProps } from './SwitchAuthLink';
+export {
+  GoogleSignInButton,
+  type GoogleSignInButtonProps,
+} from './GoogleSignInButton';

@@ -21,6 +21,20 @@ import {
   AppHeader,
   Icon,
 } from '@/components/ui';
+import { GoogleSignInButton } from '@/components/auth';
+
+/** Small Steep "or" divider — two Dove hairlines with a quiet caption. */
+function OrDivider() {
+  return (
+    <View className="flex-row items-center" style={{ gap: spacing.md }}>
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.dove, opacity: 0.6 }} />
+      <AppText variant="caption" color={colors.graphite}>
+        or
+      </AppText>
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.dove, opacity: 0.6 }} />
+    </View>
+  );
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -85,7 +99,7 @@ export default function RegisterScreen() {
     <View style={{ flex: 1, backgroundColor: colors.white }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={{
@@ -108,8 +122,18 @@ export default function RegisterScreen() {
             </AppText>
           </View>
 
+          {/* Continue with Google — primary social option, on top */}
+          <View style={{ marginTop: spacing.xl, gap: spacing.lg }}>
+            <GoogleSignInButton
+              disabled={loading}
+              onError={(msg) => setFormError(msg || null)}
+              onSuccess={() => router.replace('/(tabs)')}
+            />
+            <OrDivider />
+          </View>
+
           {/* Form */}
-          <View style={{ marginTop: spacing.xxl, gap: spacing.lg }}>
+          <View style={{ marginTop: spacing.lg, gap: spacing.lg }}>
             <SoftInput
               label="Name"
               placeholder="Aarav Mehta"
@@ -225,8 +249,8 @@ export default function RegisterScreen() {
             ) : null}
           </View>
 
-          {/* Footer */}
-          <View style={{ marginTop: 'auto', paddingTop: spacing.xxl, gap: spacing.lg }}>
+          {/* Primary action — sits directly under the form so it stays visible above the keyboard */}
+          <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
             <PillButton
               label={loading ? 'Creating account…' : 'Create account'}
               variant="black"
@@ -235,6 +259,14 @@ export default function RegisterScreen() {
               disabled={loading}
               onPress={handleSubmit}
             />
+            <AppText
+              variant="caption"
+              color={colors.graphite}
+              style={{ textAlign: 'center' }}
+            >
+              By continuing you agree to our Terms and Privacy Policy.
+            </AppText>
+
             <View className="flex-row items-center justify-center" style={{ gap: spacing.xs }}>
               <AppText variant="caption" color={colors.graphite}>
                 Already have an account?
