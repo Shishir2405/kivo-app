@@ -76,6 +76,11 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (accessToken) {
     config.headers.set?.('Authorization', `Bearer ${accessToken}`);
   }
+  if (__DEV__) {
+    const m = (config.method ?? 'get').toUpperCase();
+    // eslint-disable-next-line no-console
+    console.log(`[API →] ${m} ${config.url ?? ''}`, config.data ? JSON.stringify(config.data) : '');
+  }
   return config;
 });
 
@@ -90,6 +95,8 @@ export interface ApiError {
   message: string;
   /** Backend error code if present. */
   code?: string;
+  /** Field-level validation errors from the backend (422 details), if present. */
+  details?: { field?: string; message: string; code?: string }[];
   /** True for network/timeout (no response received). */
   isNetwork: boolean;
   /** Original error for debugging (never rendered). */
@@ -108,23 +115,43 @@ export function isApiError(e: unknown): e is ApiError {
 }
 
 function normalizeError(
-  error: AxiosError<{ message?: string; error?: string; code?: string }>,
+  error: AxiosError<{
+    message?: string;
+    error?: string;
+    code?: string;
+    details?: { field?: string; message: string; code?: string }[];
+  }>,
 ): ApiError {
   const response = error.response;
   const isNetwork = !response;
-  return {
+  const data = response?.data;
+  const details = Array.isArray(data?.details) ? data?.details : undefined;
+  const apiError: ApiError = {
     status: response?.status ?? 0,
     message:
-      response?.data?.message ??
-      response?.data?.error ??
-      (isNetwork
-        ? 'Network error. Check your connection and try again.'
-        : error.message) ??
+      data?.message ??
+      data?.error ??
+      (isNetwork ? 'Network error. Check your connection and try again.' : error.message) ??
       'Something went wrong. Please try again.',
-    code: response?.data?.code,
+    code: data?.code,
+    details,
     isNetwork,
     raw: error,
   };
+  if (__DEV__) {
+    const m = (error.config?.method ?? 'get').toUpperCase();
+    // eslint-disable-next-line no-console
+    console.log(`[API ✗] ${apiError.status} ${m} ${error.config?.url ?? ''} — ${apiError.message}`);
+    if (details) {
+      // eslint-disable-next-line no-console
+      console.log('   ↳ validation:', JSON.stringify(details));
+    }
+    if (isNetwork) {
+      // eslint-disable-next-line no-console
+      console.log('   ↳ no response (network/timeout)');
+    }
+  }
+  return apiError;
 }
 
 /* ------------------------------------------------------------------ */
@@ -159,7 +186,14 @@ async function performRefresh(): Promise<string | null> {
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (__DEV__) {
+      const m = (response.config.method ?? 'get').toUpperCase();
+      // eslint-disable-next-line no-console
+      console.log(`[API ✓] ${response.status} ${m} ${response.config.url ?? ''}`);
+    }
+    return response;
+  },
   async (error: AxiosError<{ message?: string; error?: string; code?: string }>) => {
     const original = error.config as RetriableConfig | undefined;
     const status = error.response?.status;

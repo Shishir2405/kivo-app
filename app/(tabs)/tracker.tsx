@@ -1,20 +1,27 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, ScrollView, RefreshControl } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
+import React, { useCallback, useMemo, useState } from "react";
+import { View, ScrollView, RefreshControl } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MotiView } from "moti";
 import {
   useMutation,
   useQueryClient,
   type UseMutationResult,
-} from '@tanstack/react-query';
+} from "@tanstack/react-query";
 
-import { AppText } from '@/components/ui/Typography';
-import { AppHeader } from '@/components/ui/AppHeader';
-import { Card } from '@/components/ui/SoftCard';
-import { Tag } from '@/components/ui/Tag';
-import { Icon } from '@/components/ui/Icon';
-import { SegmentedTabs, type SegmentedOption } from '@/components/ui/SegmentedTabs';
-import { AddButton, QuickAddRow, EmptyStateCTA } from '@/components/ui/AddButton';
+import { AppText } from "@/components/ui/Typography";
+import { AppHeader } from "@/components/ui/AppHeader";
+import { Card } from "@/components/ui/SoftCard";
+import { Tag } from "@/components/ui/Tag";
+import { Icon } from "@/components/ui/Icon";
+import {
+  SegmentedTabs,
+  type SegmentedOption,
+} from "@/components/ui/SegmentedTabs";
+import {
+  AddButton,
+  QuickAddRow,
+  EmptyStateCTA,
+} from "@/components/ui/AddButton";
 import {
   FocusTimer,
   TaskCard,
@@ -30,26 +37,26 @@ import {
   RowActionsSheet,
   type RowAction,
   type PlanBlock,
-} from '@/components/tracker';
-import { HabitFormSheet } from '@/components/habits/HabitFormSheet';
+} from "@/components/tracker";
+import { HabitFormSheet } from "@/components/habits/HabitFormSheet";
 import {
   useTasks,
   useHabits,
   useStudySessions,
   useDeleteTask,
   useDeleteHabit,
-} from '@/hooks/api';
-import { queryKeys } from '@/hooks/api/keys';
-import { requestData, type ApiError } from '@/services/api';
-import { spacing, motion } from '@/theme/tokens';
-import { useTheme } from '@/theme';
-import type { Task, Habit, Priority } from '@/types/models';
+} from "@/hooks/api";
+import { queryKeys } from "@/hooks/api/keys";
+import { requestData, type ApiError } from "@/services/api";
+import { spacing, motion } from "@/theme/tokens";
+import { useTheme } from "@/theme";
+import type { Task, Habit, Priority } from "@/types/models";
 
 /* ================================================================== */
 /* Today                                                               */
 /* ================================================================== */
 
-const TODAY = '2026-06-27';
+const TODAY = "2026-06-27";
 
 /* ================================================================== */
 /* Defensive normalizers                                               */
@@ -68,18 +75,18 @@ function asArray<T>(value: unknown): T[] {
 }
 
 function str(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
+  return typeof value === "string" ? value : undefined;
 }
 
 function num(value: unknown): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 function normalizePriority(value: unknown): Priority {
   const v = str(value)?.toUpperCase();
-  if (v === 'HIGH' || v === 'URGENT') return 'HIGH';
-  if (v === 'MEDIUM') return 'MEDIUM';
-  return 'LOW';
+  if (v === "HIGH" || v === "URGENT") return "HIGH";
+  if (v === "MEDIUM") return "MEDIUM";
+  return "LOW";
 }
 
 /** Read a task into the model shape, tolerating the live wire shape. */
@@ -87,20 +94,22 @@ function normalizeTask(raw: unknown, index: number): Task {
   const t = (raw ?? {}) as Loose;
   const status = str(t.status);
   const done =
-    typeof t.done === 'boolean' ? t.done : status === 'completed' || status === 'done';
+    typeof t.done === "boolean"
+      ? t.done
+      : status === "completed" || status === "done";
   const checklistRaw = asArray<Loose>(t.checklist);
   const checklist = checklistRaw.map((c, i) => ({
     id: str(c.id) ?? `${index}-${i}`,
-    label: str(c.label) ?? str(c.title) ?? '',
-    done: typeof c.done === 'boolean' ? c.done : str(c.status) === 'completed',
+    label: str(c.label) ?? str(c.title) ?? "",
+    done: typeof c.done === "boolean" ? c.done : str(c.status) === "completed",
   }));
   return {
     id: str(t.id) ?? `task-${index}`,
-    title: str(t.title) ?? 'Untitled task',
+    title: str(t.title) ?? "Untitled task",
     done,
     priority: normalizePriority(t.priority),
     dueDate: str(t.dueDate) ?? str(t.dueAt) ?? str(t.due),
-    category: 'OTHER',
+    category: "OTHER",
     notes: str(t.notes) ?? str(t.description),
     checklist: checklist.length ? checklist : undefined,
   };
@@ -112,9 +121,9 @@ function normalizeHabit(raw: unknown, index: number): Habit {
   const stats = (h.stats ?? {}) as Loose;
 
   const completedToday =
-    typeof h.completedToday === 'boolean'
+    typeof h.completedToday === "boolean"
       ? h.completedToday
-      : typeof stats.completedToday === 'boolean'
+      : typeof stats.completedToday === "boolean"
         ? stats.completedToday
         : str(h.lastCompletedDay) === TODAY;
 
@@ -147,18 +156,18 @@ function normalizeHabit(raw: unknown, index: number): Habit {
   const targetPerWeek =
     num(h.targetPerWeek) ||
     num(h.targetPerPeriod) ||
-    (str(h.frequency) === 'daily' ? 7 : 0) ||
+    (str(h.frequency) === "daily" ? 7 : 0) ||
     7;
 
   return {
     id: str(h.id) ?? `habit-${index}`,
-    title: str(h.title) ?? str(h.name) ?? 'Habit',
-    emoji: 'flame',
+    title: str(h.title) ?? str(h.name) ?? "Habit",
+    emoji: "flame",
     streak,
     completedToday,
     targetPerWeek,
     weekHistory,
-    accent: 'peach',
+    accent: "peach",
   };
 }
 
@@ -190,12 +199,12 @@ function sessionDay(raw: unknown): string | undefined {
 /* Task filter                                                         */
 /* ================================================================== */
 
-type TaskFilter = 'open' | 'all' | 'done';
+type TaskFilter = "open" | "all" | "done";
 
 const TASK_FILTERS: SegmentedOption<TaskFilter>[] = [
-  { label: 'Open', value: 'open' },
-  { label: 'All', value: 'all' },
-  { label: 'Done', value: 'done' },
+  { label: "Open", value: "open" },
+  { label: "All", value: "all" },
+  { label: "Done", value: "done" },
 ];
 
 /* ================================================================== */
@@ -212,8 +221,8 @@ function useToggleTask(): UseMutationResult<
     mutationFn: ({ id, done }) =>
       requestData({
         url: `/tasks/${id}`,
-        method: 'PATCH',
-        data: { status: done ? 'completed' : 'pending' },
+        method: "PATCH",
+        data: { status: done ? "completed" : "pending" },
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.tasks });
@@ -222,11 +231,15 @@ function useToggleTask(): UseMutationResult<
   });
 }
 
-function useCompleteHabit(): UseMutationResult<unknown, ApiError, { id: string }> {
+function useCompleteHabit(): UseMutationResult<
+  unknown,
+  ApiError,
+  { id: string }
+> {
   const qc = useQueryClient();
   return useMutation<unknown, ApiError, { id: string }>({
     mutationFn: ({ id }) =>
-      requestData({ url: `/habits/${id}/complete`, method: 'POST', data: {} }),
+      requestData({ url: `/habits/${id}/complete`, method: "POST", data: {} }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.habits });
       void qc.invalidateQueries({ queryKey: queryKeys.dashboard });
@@ -237,18 +250,22 @@ function useCompleteHabit(): UseMutationResult<unknown, ApiError, { id: string }
 function useLogStudySession(): UseMutationResult<
   unknown,
   ApiError,
-  { minutes: number; timerType: 'pomodoro' | 'deep' }
+  { minutes: number; timerType: "pomodoro" | "deep" }
 > {
   const qc = useQueryClient();
-  return useMutation<unknown, ApiError, { minutes: number; timerType: 'pomodoro' | 'deep' }>({
+  return useMutation<
+    unknown,
+    ApiError,
+    { minutes: number; timerType: "pomodoro" | "deep" }
+  >({
     mutationFn: ({ minutes, timerType }) => {
       const end = new Date();
       const start = new Date(end.getTime() - minutes * 60_000);
       return requestData({
-        url: '/study-sessions',
-        method: 'POST',
+        url: "/study-sessions",
+        method: "POST",
         data: {
-          timerType: timerType === 'deep' ? 'deepwork' : 'pomodoro',
+          timerType: timerType === "deep" ? "deepwork" : "pomodoro",
           startTime: start.toISOString(),
           endTime: end.toISOString(),
           durationMinutes: minutes,
@@ -280,14 +297,20 @@ export default function TrackerScreen() {
   const deleteTask = useDeleteTask();
   const deleteHabit = useDeleteHabit();
 
-  const [taskFilter, setTaskFilter] = useState<TaskFilter>('open');
+  const [taskFilter, setTaskFilter] = useState<TaskFilter>("open");
 
   /* ---- Create / edit sheet + long-press menu state ---- */
-  const [taskSheet, setTaskSheet] = useState<{ open: boolean; task: Task | null }>({
+  const [taskSheet, setTaskSheet] = useState<{
+    open: boolean;
+    task: Task | null;
+  }>({
     open: false,
     task: null,
   });
-  const [habitSheet, setHabitSheet] = useState<{ open: boolean; habit: Habit | null }>({
+  const [habitSheet, setHabitSheet] = useState<{
+    open: boolean;
+    habit: Habit | null;
+  }>({
     open: false,
     habit: null,
   });
@@ -327,17 +350,17 @@ export default function TrackerScreen() {
     const open = tasks.filter((t) => !t.done).slice(0, 4);
     return open.map((t, i) => ({
       id: t.id,
-      time: i === 0 ? 'Now' : 'Next',
+      time: i === 0 ? "Now" : "Next",
       title: t.title,
-      detail: t.priority === 'HIGH' ? 'High priority' : undefined,
-      state: i === 0 ? 'active' : 'upcoming',
+      detail: t.priority === "HIGH" ? "High priority" : undefined,
+      state: i === 0 ? "active" : "upcoming",
     }));
   }, [tasks]);
 
   /* ---- Visible tasks for the filter ---- */
   const visibleTasks = useMemo(() => {
-    if (taskFilter === 'open') return tasks.filter((t) => !t.done);
-    if (taskFilter === 'done') return tasks.filter((t) => t.done);
+    if (taskFilter === "open") return tasks.filter((t) => !t.done);
+    if (taskFilter === "done") return tasks.filter((t) => t.done);
     return tasks;
   }, [tasks, taskFilter]);
 
@@ -356,25 +379,34 @@ export default function TrackerScreen() {
     [completeHabit],
   );
   const onSessionComplete = useCallback(
-    (minutes: number, mode: 'pomodoro' | 'deep') => {
+    (minutes: number, mode: "pomodoro" | "deep") => {
       if (minutes > 0) logSession.mutate({ minutes, timerType: mode });
     },
     [logSession],
   );
 
   /* ---- Create / edit / delete handlers ---- */
-  const openNewTask = useCallback(() => setTaskSheet({ open: true, task: null }), []);
+  const openNewTask = useCallback(
+    () => setTaskSheet({ open: true, task: null }),
+    [],
+  );
   const openEditTask = useCallback(
     (task: Task) => setTaskSheet({ open: true, task }),
     [],
   );
-  const closeTaskSheet = useCallback(() => setTaskSheet({ open: false, task: null }), []);
+  const closeTaskSheet = useCallback(
+    () => setTaskSheet({ open: false, task: null }),
+    [],
+  );
   const onDeleteTask = useCallback(
     (id: string) => deleteTask.mutate(id),
     [deleteTask],
   );
 
-  const openNewHabit = useCallback(() => setHabitSheet({ open: true, habit: null }), []);
+  const openNewHabit = useCallback(
+    () => setHabitSheet({ open: true, habit: null }),
+    [],
+  );
   const openEditHabit = useCallback(
     (habit: Habit) => setHabitSheet({ open: true, habit }),
     [],
@@ -392,11 +424,16 @@ export default function TrackerScreen() {
     if (!taskMenu) return [];
     const t = taskMenu;
     return [
-      { key: 'edit', label: 'Edit task', icon: 'edit', onPress: () => openEditTask(t) },
       {
-        key: 'delete',
-        label: 'Delete task',
-        icon: 'trash',
+        key: "edit",
+        label: "Edit task",
+        icon: "edit",
+        onPress: () => openEditTask(t),
+      },
+      {
+        key: "delete",
+        label: "Delete task",
+        icon: "trash",
         destructive: true,
         onPress: () => onDeleteTask(t.id),
       },
@@ -407,11 +444,16 @@ export default function TrackerScreen() {
     if (!habitMenu) return [];
     const h = habitMenu;
     return [
-      { key: 'edit', label: 'Edit habit', icon: 'edit', onPress: () => openEditHabit(h) },
       {
-        key: 'delete',
-        label: 'Delete habit',
-        icon: 'trash',
+        key: "edit",
+        label: "Edit habit",
+        icon: "edit",
+        onPress: () => openEditHabit(h),
+      },
+      {
+        key: "delete",
+        label: "Delete habit",
+        icon: "trash",
         destructive: true,
         onPress: () => onDeleteHabit(h.id),
       },
@@ -452,26 +494,21 @@ export default function TrackerScreen() {
                   label={`${streak}-day streak`}
                   tone="warm"
                   size="sm"
-                  icon={<Icon name="flame" size={11} color="rust" weight="fill" />}
+                  icon={
+                    <Icon name="flame" size={11} color="rust" weight="fill" />
+                  }
                 />
               ) : null}
               <AddButton onPress={openNewTask} accessibilityLabel="New task" />
             </View>
           }
         />
-        <AppText
-          variant="caption"
-          color={colors.graphite}
-          style={{ marginTop: 2, marginBottom: spacing.lg, marginLeft: 30 }}
-        >
-          Friday · Jun 27
-        </AppText>
 
         {/* ---------- Quick stats ---------- */}
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: motion.duration.transition }}
+          transition={{ type: "timing", duration: motion.duration.transition }}
           className="flex-row"
           style={{ gap: spacing.md, marginBottom: spacing.xl }}
         >
@@ -487,7 +524,11 @@ export default function TrackerScreen() {
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: motion.duration.transition, delay: 60 }}
+          transition={{
+            type: "timing",
+            duration: motion.duration.transition,
+            delay: 60,
+          }}
         >
           <SectionHeader eyebrow="Today" title="Plan" />
           <Card style={{ marginBottom: spacing.xl }} padding={spacing.lg}>
@@ -501,7 +542,10 @@ export default function TrackerScreen() {
             ) : planBlocks.length > 0 ? (
               <Timeline blocks={planBlocks} />
             ) : (
-              <View className="items-center" style={{ gap: 6, paddingVertical: spacing.sm }}>
+              <View
+                className="items-center"
+                style={{ gap: 6, paddingVertical: spacing.sm }}
+              >
                 <Icon name="check-circle" size={18} color="dove" />
                 <AppText variant="caption" color={colors.graphite}>
                   Nothing scheduled — you are all caught up.
@@ -515,7 +559,11 @@ export default function TrackerScreen() {
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: motion.duration.transition, delay: 120 }}
+          transition={{
+            type: "timing",
+            duration: motion.duration.transition,
+            delay: 120,
+          }}
         >
           <SectionHeader eyebrow="Stay in flow" title="Focus" />
           <View style={{ marginBottom: spacing.xl }}>
@@ -530,7 +578,11 @@ export default function TrackerScreen() {
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: motion.duration.transition, delay: 180 }}
+          transition={{
+            type: "timing",
+            duration: motion.duration.transition,
+            delay: 180,
+          }}
         >
           <SectionHeader eyebrow="Get it done" title="Tasks" />
           <View style={{ marginBottom: spacing.md }}>
@@ -588,12 +640,14 @@ export default function TrackerScreen() {
                   style={{ marginBottom: spacing.sm }}
                 />
                 <EmptyState
-                  icon={taskFilter === 'done' ? 'check-circle' : 'badge-check'}
-                  title={taskFilter === 'done' ? 'Nothing finished yet' : 'All clear'}
+                  icon={taskFilter === "done" ? "check-circle" : "badge-check"}
+                  title={
+                    taskFilter === "done" ? "Nothing finished yet" : "All clear"
+                  }
                   body={
-                    taskFilter === 'done'
-                      ? 'Complete a task and it lands here.'
-                      : 'No open tasks right now.'
+                    taskFilter === "done"
+                      ? "Complete a task and it lands here."
+                      : "No open tasks right now."
                   }
                 />
               </>
@@ -605,12 +659,22 @@ export default function TrackerScreen() {
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: motion.duration.transition, delay: 240 }}
+          transition={{
+            type: "timing",
+            duration: motion.duration.transition,
+            delay: 240,
+          }}
         >
           <SectionHeader
             eyebrow="Build momentum"
             title="Habits"
-            trailing={<AddButton onPress={openNewHabit} size={30} accessibilityLabel="New habit" />}
+            trailing={
+              <AddButton
+                onPress={openNewHabit}
+                size={30}
+                accessibilityLabel="New habit"
+              />
+            }
           />
           {habitsQuery.isLoading ? (
             <LoadingState label="Loading habits" />
