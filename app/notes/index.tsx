@@ -25,6 +25,7 @@ import { PillButton, TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Skeleton, SkeletonText } from '@/components/ui/Skeleton';
+import { AddButton, QuickAddRow, EmptyStateCTA } from '@/components/ui/AddButton';
 
 import { radii, motion, interaction, pressOpacity, toneAt } from '@/theme/tokens';
 import { useTheme } from '@/theme';
@@ -302,10 +303,16 @@ export default function NotesScreen() {
 
   const hasFilters = query.trim() !== '' || quick !== 'all' || folder !== null;
 
+  const goNew = () => router.push('/notes/new');
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
-        <AppHeader onBack={() => router.back()} markSize={20} />
+        <AppHeader
+          onBack={() => router.back()}
+          markSize={20}
+          right={<AddButton onPress={goNew} accessibilityLabel="Write a new note" />}
+        />
       </View>
 
       <ScrollView
@@ -338,7 +345,7 @@ export default function NotesScreen() {
             <PillButton
               label="New"
               size="sm"
-              onPress={() => router.push('/notes/new')}
+              onPress={goNew}
               icon={<Icon name="plus" size={15} color={colors.inkInverted} />}
             />
           </View>
@@ -426,26 +433,22 @@ export default function NotesScreen() {
         ) : isLoading ? (
           <LoadingBlock />
         ) : filtered.length === 0 ? (
-          <CenterNote
-            icon="notebook-pen"
-            title={hasFilters ? 'No notes match' : 'No notes yet'}
-            body={
-              hasFilters
-                ? 'Nothing matches your search or filters. Try clearing them.'
-                : 'Capture an idea, a snippet, or a lesson — it’ll live here, searchable forever.'
-            }
-            action={
-              hasFilters ? (
-                <TextLink label="Clear filters" onPress={resetFilters} />
-              ) : (
-                <PillButton
-                  label="Write your first note"
-                  onPress={() => router.push('/notes/new')}
-                  icon={<Icon name="plus" size={15} color={colors.inkInverted} />}
-                />
-              )
-            }
-          />
+          hasFilters ? (
+            <CenterNote
+              icon="notebook-pen"
+              title="No notes match"
+              body="Nothing matches your search or filters. Try clearing them."
+              action={<TextLink label="Clear filters" onPress={resetFilters} />}
+            />
+          ) : (
+            <EmptyStateCTA
+              icon="notebook-pen"
+              title="No notes yet"
+              description="Capture an idea, a snippet, or a lesson — it’ll live here, searchable forever."
+              actionLabel="Write your first note"
+              onAction={goNew}
+            />
+          )
         ) : (
           <>
             {pinned.length > 0 ? (
@@ -479,6 +482,9 @@ export default function NotesScreen() {
                 ))}
               </>
             ) : null}
+
+            {/* Inline quick-add at the foot of the list. */}
+            <QuickAddRow onPress={goNew} label="Write a new note" style={{ marginTop: 4 }} />
           </>
         )}
       </ScrollView>

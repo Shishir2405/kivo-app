@@ -75,6 +75,7 @@ function ThemedRoot() {
         <Stack.Screen name="calendar/index" />
         <Stack.Screen name="focus-timer/index" />
         <Stack.Screen name="settings/index" />
+        <Stack.Screen name="settings/profile" />
       </Stack>
 
       {/* Animated in-app splash overlays everything until it finishes. */}

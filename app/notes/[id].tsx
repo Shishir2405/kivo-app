@@ -8,8 +8,10 @@
  * Ink pill CTA (Cancel is a TextLink). Loading / error / not-found states are
  * rendered from the query flags so a failed fetch never crashes the app.
  *
- * Saving is local-only (the create/update endpoint is out of scope here) — it
- * surfaces a confirmation, then returns to the list.
+ * Saving persists to the backend: a new note CREATEs (`useCreateNote`) and an
+ * existing one UPDATEs (`useUpdateNote`) — both invalidate the list / single-note
+ * queries. Existing notes can also be deleted (`useDeleteNote`) behind an Alert
+ * confirm. Errors surface inline; the screen never crashes on a failed request.
  */
 import React, { useMemo, useState } from 'react';
 import {
@@ -20,6 +22,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -38,7 +41,7 @@ import { MarkdownView } from '@/components/notes/MarkdownView';
 
 import { fonts, radii, pressOpacity } from '@/theme/tokens';
 import { useTheme } from '@/theme';
-import { useNote } from '@/hooks/api';
+import { useNote, useCreateNote, useUpdateNote, useDeleteNote } from '@/hooks/api';
 import type { Note, NoteFolder } from '@/types/models';
 import { FOLDER_ICON, NOTE_FOLDERS, formatShortDate } from '@/components/notes/notesMeta';
 
@@ -58,6 +61,17 @@ const BLANK: Pick<Note, 'title' | 'body' | 'tags' | 'folder' | 'favorite' | 'pin
   favorite: false,
   pinned: false,
 };
+
+/* ------------------------------------------------------------------ */
+/* Validation — mirrors backend createNoteSchema / notes.validator.ts  */
+/* ------------------------------------------------------------------ */
+
+const NOTE_LIMITS = {
+  TITLE_MAX: 200,
+  BODY_MAX: 100000,
+  TAGS_MAX: 30,
+  TAG_MAX: 40,
+} as const;
 
 /* ------------------------------------------------------------------ */
 /* Section label                                                       */
@@ -82,12 +96,25 @@ function SectionLabel({ icon, text }: { icon: IconName; text: string }) {
 function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string[]) => void }) {
   const { colors } = useTheme();
   const [draft, setDraft] = useState('');
+  const [tagErr, setTagErr] = useState('');
 
   const add = () => {
     const t = draft.trim();
-    if (!t) return;
+    if (!t) {
+      setTagErr('Tag is required');
+      return;
+    }
+    if (t.length > NOTE_LIMITS.TAG_MAX) {
+      setTagErr(`Tag must be at most ${NOTE_LIMITS.TAG_MAX} characters`);
+      return;
+    }
+    if (tags.length >= NOTE_LIMITS.TAGS_MAX) {
+      setTagErr(`At most ${NOTE_LIMITS.TAGS_MAX} tags allowed`);
+      return;
+    }
     if (!tags.some((x) => x.toLowerCase() === t.toLowerCase())) onChange([...tags, t]);
     setDraft('');
+    setTagErr('');
   };
 
   const remove = (t: string) => onChange(tags.filter((x) => x !== t));
@@ -129,7 +156,11 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
         key="note-tag-draft"
         placeholder="Add a tag…"
         value={draft}
-        onChangeText={setDraft}
+        onChangeText={(v) => {
+          setDraft(v);
+          if (tagErr) setTagErr('');
+        }}
+        error={tagErr || undefined}
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="done"
@@ -209,6 +240,10 @@ export default function NoteEditorScreen() {
   const isNew = id === 'new';
   const { data: fetched, isLoading, isError, error, refetch } = useNote(isNew ? '' : (id ?? ''));
 
+  const createNote = useCreateNote();
+  const updateNote = useUpdateNote();
+  const deleteNote = useDeleteNote();
+
   const seed = fetched ?? BLANK;
 
   const [title, setTitle] = useState(seed.title);
@@ -218,7 +253,9 @@ export default function NoteEditorScreen() {
   const [favorite, setFavorite] = useState(seed.favorite);
   const [pinned, setPinned] = useState(seed.pinned);
   const [mode, setMode] = useState<Mode>(isNew ? 'write' : 'preview');
-  const [saved, setSaved] = useState(false);
+  const [saveErr, setSaveErr] = useState('');
+  const [titleErr, setTitleErr] = useState('');
+  const [bodyErr, setBodyErr] = useState('');
   // Re-seed once the fetch lands (keyed so we only adopt server values once).
   const [seededId, setSeededId] = useState<string | null>(null);
 
@@ -234,7 +271,82 @@ export default function NoteEditorScreen() {
 
   const wordCount = body.trim() ? body.trim().split(/\s+/).length : 0;
 
-  const handleSave = () => setSaved(true);
+  const saving = createNote.isPending || updateNote.isPending;
+  // Form is valid when there's something to save and no length violations.
+  const canSave =
+    (title.trim() !== '' || body.trim() !== '') &&
+    title.trim().length <= NOTE_LIMITS.TITLE_MAX &&
+    body.length <= NOTE_LIMITS.BODY_MAX;
+
+  const handleSave = () => {
+    const t = title.trim();
+    const b = body.trim();
+
+    // Per-field validation mirroring the backend note schema.
+    let ok = true;
+    if (!t && !b) {
+      setSaveErr('Add a title or some body text before saving.');
+      ok = false;
+    } else {
+      setSaveErr('');
+    }
+    if (t.length > NOTE_LIMITS.TITLE_MAX) {
+      setTitleErr(`Title must be at most ${NOTE_LIMITS.TITLE_MAX} characters`);
+      ok = false;
+    } else {
+      setTitleErr('');
+    }
+    if (body.length > NOTE_LIMITS.BODY_MAX) {
+      setBodyErr(`Body must be at most ${NOTE_LIMITS.BODY_MAX} characters`);
+      ok = false;
+    } else {
+      setBodyErr('');
+    }
+    if (!ok) return;
+
+    // Fall back to a derived title so the note is never untitled on the server.
+    const finalTitle = t || b.split('\n')[0].slice(0, 60) || 'Untitled note';
+    const preview = b.replace(/[#>*`_-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 140);
+
+    if (isNew) {
+      createNote.mutate(
+        { title: finalTitle, body, tags, folder, favorite, pinned, preview, wordCount },
+        {
+          onSuccess: () => router.back(),
+          onError: (e) => setSaveErr(e.message),
+        },
+      );
+    } else if (id) {
+      updateNote.mutate(
+        { id, patch: { title: finalTitle, body, tags, folder, favorite, pinned, preview, wordCount } },
+        {
+          onSuccess: () => router.back(),
+          onError: (e) => setSaveErr(e.message),
+        },
+      );
+    }
+  };
+
+  const handleDelete = () => {
+    if (isNew || !id) return;
+    Alert.alert(
+      'Delete note?',
+      `"${fetched?.title || title || 'This note'}" will be permanently removed.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteNote.mutate(id, {
+              onSuccess: () => router.back(),
+              onError: (e) => setSaveErr(e.message),
+            });
+          },
+        },
+      ],
+    );
+  };
 
   /* ----- Loading / error states for an existing note ----- */
   if (!isNew && isLoading) {
@@ -288,9 +400,23 @@ export default function NoteEditorScreen() {
             onBack={() => router.back()}
             right={
               !isNew && fetched ? (
-                <AppText variant="caption" color={colors.muted}>
-                  Updated {formatShortDate(fetched.updatedAt)}
-                </AppText>
+                <View className="flex-row items-center" style={{ gap: 14 }}>
+                  <AppText variant="caption" color={colors.muted}>
+                    Updated {formatShortDate(fetched.updatedAt)}
+                  </AppText>
+                  <Pressable
+                    onPress={handleDelete}
+                    disabled={deleteNote.isPending}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel="Delete note"
+                    style={({ pressed }) => ({
+                      opacity: pressOpacity({ pressed }, { disabled: deleteNote.isPending }),
+                    })}
+                  >
+                    <Icon name="trash" size={18} color={colors.danger} />
+                  </Pressable>
+                </View>
               ) : (
                 <AppText variant="caption" color={colors.muted}>
                   New note
@@ -314,8 +440,13 @@ export default function NoteEditorScreen() {
           <SoftInput
             key="note-title"
             value={title}
-            onChangeText={setTitle}
+            onChangeText={(v) => {
+              setTitle(v);
+              if (titleErr) setTitleErr('');
+            }}
+            error={titleErr || undefined}
             placeholder="Note title"
+            maxLength={NOTE_LIMITS.TITLE_MAX}
             style={{ fontFamily: fonts.serifMedium, fontSize: 18 }}
             containerStyle={{ marginBottom: 18 }}
           />
@@ -343,15 +474,18 @@ export default function NoteEditorScreen() {
               <View
                 style={{
                   borderRadius: radii.input,
-                  borderWidth: 1,
-                  borderColor: colors.hairline,
+                  borderWidth: bodyErr ? 1.5 : 1,
+                  borderColor: bodyErr ? colors.danger : colors.hairline,
                   backgroundColor: colors.surface,
                 }}
               >
                 <TextInput
                   key="note-body"
                   value={body}
-                  onChangeText={setBody}
+                  onChangeText={(v) => {
+                    setBody(v);
+                    if (bodyErr) setBodyErr('');
+                  }}
                   placeholder={'# Start writing…\n\nMarkdown supported — headings, **bold**, lists,\n> quotes, and ```code``` fences.'}
                   placeholderTextColor={colors.muted}
                   multiline
@@ -366,6 +500,11 @@ export default function NoteEditorScreen() {
                   }}
                 />
               </View>
+              {bodyErr ? (
+                <AppText variant="caption" color={colors.danger} style={{ marginTop: 5 }}>
+                  {bodyErr}
+                </AppText>
+              ) : null}
               <AppText variant="caption" color={colors.muted} style={{ marginTop: 6 }}>
                 Supports Markdown: # headings, lists, `code` and ``` fences.
               </AppText>
@@ -425,12 +564,24 @@ export default function NoteEditorScreen() {
             </SoftCard>
           </View>
 
-          {saved ? (
+          {/* Delete affordance for existing notes (also in the header). */}
+          {!isNew && fetched ? (
+            <View style={{ marginTop: 22, alignItems: 'flex-start' }}>
+              <TextLink
+                label="Delete note"
+                onPress={handleDelete}
+                disabled={deleteNote.isPending}
+                icon={<Icon name="trash" size={14} color={colors.danger} />}
+              />
+            </View>
+          ) : null}
+
+          {saveErr ? (
             <SoftCard variant="inset" radius={radii.card} padding={14} style={{ marginTop: 18 }}>
               <View className="flex-row items-center" style={{ gap: 10 }}>
-                <Icon name="check-circle" size={18} color={colors.success} weight="fill" />
-                <AppText variant="body" color={colors.muted} style={{ flex: 1 }}>
-                  Saved. Your changes are stored on this device.
+                <Icon name="alert" size={18} color={colors.danger} />
+                <AppText variant="body" color={colors.danger} style={{ flex: 1 }}>
+                  {saveErr}
                 </AppText>
               </View>
             </SoftCard>
@@ -452,12 +603,13 @@ export default function NoteEditorScreen() {
             gap: 16,
           }}
         >
-          <TextLink label="Cancel" onPress={() => router.back()} muted />
+          <TextLink label="Cancel" onPress={() => router.back()} muted disabled={saving} />
           <View style={{ flex: 1 }} />
+          {saving ? <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 4 }} /> : null}
           <PillButton
             label={isNew ? 'Create note' : 'Save changes'}
             onPress={handleSave}
-            disabled={title.trim() === '' && body.trim() === ''}
+            disabled={!canSave || saving}
             icon={<Icon name="check" size={15} color={colors.inkInverted} />}
           />
         </View>

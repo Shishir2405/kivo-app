@@ -1,20 +1,24 @@
 /**
  * Calendar — a flat STEEP study planner (no external calendar lib).
  *
- * There is no `/calendar` endpoint, so this reads the deterministic mock
- * (`mockCalendarEvents`) — the only screen here that falls back to mock. Three
- * views switch with the Steep SegmentedTabs:
+ * REAL data only: there is no `/calendar` endpoint, so this screen aggregates
+ * the live domain lists — tasks (dueDate), revisions (dueDate), study sessions
+ * (date) and reflections (date) — into one `CalendarEvent[]` via
+ * `aggregateCalendarEvents`. The mock fallback has been removed. Three views
+ * switch with the Steep SegmentedTabs:
  *   • Month  — a hand-built 6×7 grid. TODAY is a small filled Ink chip; the
- *              selected day is a Fog well. Up to three small Rust/Ink/Graphite
- *              event dots per cell. Tapping a day reveals its events below.
+ *              selected day is a Fog well. Up to three small event dots per
+ *              cell. Tapping a day reveals its events below.
  *   • Week   — seven day rows with their events inline.
  *   • Agenda — Today / Upcoming / Earlier sections.
  *
- * A flat-Chip type filter narrows all three views. Editorial + flat: serif
- * titles, Inter body, small thin icons, one subtle shadow + Dove hairline.
+ * CRUD: study sessions can be created (header "+", quick-add row, day CTA) and,
+ * once they exist as events, tap-to-edit / long-press-to-delete. All writes go
+ * through the shared FormSheet + the study-session mutation hooks; loading /
+ * empty / error states are surfaced inline (never crashes).
  */
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
+import { View, ScrollView, Pressable, Alert } from 'react-native';
 import { MotiView } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -26,13 +30,31 @@ import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { Tag } from '@/components/ui/Tag';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { TextLink } from '@/components/ui/PillButton';
+import { Skeleton, SkeletonText } from '@/components/ui';
+import {
+  AddButton,
+  QuickAddRow,
+  EmptyStateCTA,
+  FormSheet,
+  SoftInput,
+} from '@/components/ui';
 
 import { useTheme, motion } from '@/theme';
 import { radii, interaction, pressOpacity } from '@/theme/tokens';
-import { mockCalendarEvents } from '@/data/mock';
-import type { CalendarEvent, CalendarEventType } from '@/types/models';
+import type { CalendarEvent, CalendarEventType, StudySession } from '@/types/models';
+import {
+  useTasks,
+  useRevisions,
+  useStudySessions,
+  useReflections,
+  useCreateStudySession,
+  useUpdateStudySession,
+  useDeleteStudySession,
+} from '@/hooks/api';
 
 import { EventRow } from '@/components/calendar/EventRow';
+import { aggregateCalendarEvents } from '@/components/calendar/calendarAggregate';
 import {
   accentDot,
   TYPE_META,
@@ -74,6 +96,11 @@ function pad(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
 }
 
+/** A study-session event id is prefixed "session_<id>" by the aggregator. */
+function sessionIdFromEvent(ev: CalendarEvent): string | null {
+  return ev.id.startsWith('session_') ? ev.id.slice('session_'.length) : null;
+}
+
 /* ================================================================== */
 /* Screen                                                              */
 /* ================================================================== */
@@ -83,6 +110,39 @@ export default function CalendarScreen() {
   const router = useRouter();
   const { colors } = useTheme();
 
+  // ---- Real data sources -------------------------------------------------
+  const tasksQuery = useTasks();
+  const revisionsQuery = useRevisions();
+  const sessionsQuery = useStudySessions();
+  const reflectionsQuery = useReflections();
+
+  const createSession = useCreateStudySession();
+  const updateSession = useUpdateStudySession();
+  const deleteSession = useDeleteStudySession();
+
+  const queries = [tasksQuery, revisionsQuery, sessionsQuery, reflectionsQuery];
+  const isInitialLoading = queries.some((q) => q.isLoading);
+  const isError = queries.some((q) => q.isError);
+  const firstError = queries.find((q) => q.isError)?.error?.message ?? 'Couldn’t load your calendar.';
+  const refetchAll = useCallback(() => {
+    void tasksQuery.refetch();
+    void revisionsQuery.refetch();
+    void sessionsQuery.refetch();
+    void reflectionsQuery.refetch();
+  }, [tasksQuery, revisionsQuery, sessionsQuery, reflectionsQuery]);
+
+  const allEvents = useMemo<CalendarEvent[]>(
+    () =>
+      aggregateCalendarEvents({
+        tasks: tasksQuery.data,
+        revisions: revisionsQuery.data,
+        sessions: sessionsQuery.data,
+        reflections: reflectionsQuery.data,
+      }),
+    [tasksQuery.data, revisionsQuery.data, sessionsQuery.data, reflectionsQuery.data],
+  );
+
+  // ---- View state --------------------------------------------------------
   const [view, setView] = useState<ViewMode>('month');
   const [filter, setFilter] = useState<TypeFilter>(null);
   const [selectedDay, setSelectedDay] = useState<string>(TODAY_KEY);
@@ -92,9 +152,119 @@ export default function CalendarScreen() {
   const [focusM0, setFocusM0] = useState(todayParts.m0);
   const [weekAnchor, setWeekAnchor] = useState(TODAY_KEY);
 
+  // ---- Session create/edit sheet ----------------------------------------
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<StudySession | null>(null);
+  const [sheetDay, setSheetDay] = useState<string>(TODAY_KEY);
+  const [fTopic, setFTopic] = useState('');
+  const [fMinutes, setFMinutes] = useState('');
+  const [fSolved, setFSolved] = useState('');
+  const [formErr, setFormErr] = useState('');
+
+  const sessionsById = useMemo(() => {
+    const m = new Map<string, StudySession>();
+    for (const s of sessionsQuery.data ?? []) if (s) m.set(s.id, s);
+    return m;
+  }, [sessionsQuery.data]);
+
+  const openCreate = useCallback((dayKey: string) => {
+    setEditing(null);
+    setSheetDay(dayKey);
+    setFTopic('');
+    setFMinutes('');
+    setFSolved('');
+    setFormErr('');
+    setSheetOpen(true);
+  }, []);
+
+  const openEditByEvent = useCallback(
+    (ev: CalendarEvent) => {
+      const id = sessionIdFromEvent(ev);
+      if (!id) return;
+      const session = sessionsById.get(id);
+      if (!session) return;
+      setEditing(session);
+      setSheetDay(session.date.slice(0, 10));
+      setFTopic(session.topic ?? '');
+      setFMinutes(String(session.minutes ?? ''));
+      setFSolved(session.problemsSolved > 0 ? String(session.problemsSolved) : '');
+      setFormErr('');
+      setSheetOpen(true);
+    },
+    [sessionsById],
+  );
+
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    setEditing(null);
+  }, []);
+
+  const minutesNum = parseInt(fMinutes, 10);
+  const minutesValid = !Number.isNaN(minutesNum) && minutesNum > 0;
+  const topicValid = fTopic.trim().length > 0;
+  const submitDisabled = !topicValid || !minutesValid;
+  const saving = createSession.isPending || updateSession.isPending;
+
+  const submitSession = useCallback(() => {
+    if (!topicValid) {
+      setFormErr('Give the session a topic.');
+      return;
+    }
+    if (!minutesValid) {
+      setFormErr('Enter the minutes focused (a number above 0).');
+      return;
+    }
+    setFormErr('');
+    const solvedNum = parseInt(fSolved, 10);
+    const problemsSolved = Number.isNaN(solvedNum) || solvedNum < 0 ? 0 : solvedNum;
+
+    if (editing) {
+      updateSession.mutate(
+        {
+          id: editing.id,
+          patch: { topic: fTopic.trim(), minutes: minutesNum, problemsSolved },
+        },
+        { onSuccess: closeSheet, onError: (e) => setFormErr(e.message) },
+      );
+    } else {
+      createSession.mutate(
+        { topic: fTopic.trim(), minutes: minutesNum, problemsSolved, date: sheetDay },
+        { onSuccess: closeSheet, onError: (e) => setFormErr(e.message) },
+      );
+    }
+  }, [
+    topicValid,
+    minutesValid,
+    fSolved,
+    editing,
+    updateSession,
+    fTopic,
+    minutesNum,
+    closeSheet,
+    createSession,
+    sheetDay,
+  ]);
+
+  const confirmDeleteEvent = useCallback(
+    (ev: CalendarEvent) => {
+      const id = sessionIdFromEvent(ev);
+      if (!id) return;
+      Alert.alert('Delete session?', `“${ev.title}” will be removed from your calendar.`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteSession.mutate(id),
+        },
+      ]);
+    },
+    [deleteSession],
+  );
+
+  // ---- Derived view data -------------------------------------------------
   const filtered = useMemo<CalendarEvent[]>(
-    () => (filter ? mockCalendarEvents.filter((e) => e.type === filter) : mockCalendarEvents),
-    [filter],
+    () => (filter ? allEvents.filter((e) => e.type === filter) : allEvents),
+    [filter, allEvents],
   );
 
   const byDay = useMemo(() => indexByDay(filtered), [filtered]);
@@ -105,8 +275,8 @@ export default function CalendarScreen() {
   const selectedEvents = byDay.get(selectedDay) ?? [];
 
   const totalUpcoming = useMemo(
-    () => mockCalendarEvents.filter((e) => e.date >= TODAY_KEY && !e.done).length,
-    [],
+    () => allEvents.filter((e) => e.date >= TODAY_KEY && !e.done).length,
+    [allEvents],
   );
 
   const stepMonth = useCallback((dir: -1 | 1) => {
@@ -149,22 +319,29 @@ export default function CalendarScreen() {
     }
   }, []);
 
+  // ---- Render ------------------------------------------------------------
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
         <AppHeader
           onBack={() => router.back()}
           right={
-            <Pressable
-              onPress={goToday}
-              hitSlop={8}
-              accessibilityLabel="Jump to today"
-              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
-            >
-              <AppText variant="caption" weight="medium" color={colors.ink}>
-                Today
-              </AppText>
-            </Pressable>
+            <View className="flex-row items-center" style={{ gap: 14 }}>
+              <Pressable
+                onPress={goToday}
+                hitSlop={8}
+                accessibilityLabel="Jump to today"
+                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+              >
+                <AppText variant="caption" weight="medium" color={colors.ink}>
+                  Today
+                </AppText>
+              </Pressable>
+              <AddButton
+                onPress={() => openCreate(selectedDay)}
+                accessibilityLabel="Log a study session"
+              />
+            </View>
           }
         />
       </View>
@@ -215,8 +392,12 @@ export default function CalendarScreen() {
           ))}
         </ScrollView>
 
-        {/* Active view */}
-        {view === 'month' ? (
+        {/* Loading / error / active view */}
+        {isError && allEvents.length === 0 ? (
+          <CalendarError message={firstError} onRetry={refetchAll} />
+        ) : isInitialLoading && allEvents.length === 0 ? (
+          <CalendarLoading />
+        ) : view === 'month' ? (
           <MonthView
             grid={grid}
             focusY={focusY}
@@ -226,14 +407,112 @@ export default function CalendarScreen() {
             onSelectDay={onSelectDay}
             onStep={stepMonth}
             selectedEvents={selectedEvents}
+            onAddSession={openCreate}
+            onEditSession={openEditByEvent}
+            onDeleteSession={confirmDeleteEvent}
           />
         ) : view === 'week' ? (
           <WeekView anchor={weekAnchor} byDay={byDay} onStep={stepWeek} />
         ) : (
-          <AgendaView sections={agenda} />
+          <AgendaView
+            sections={agenda}
+            empty={allEvents.length === 0}
+            onAdd={() => openCreate(TODAY_KEY)}
+            onEditSession={openEditByEvent}
+            onDeleteSession={confirmDeleteEvent}
+          />
         )}
       </ScrollView>
+
+      {/* Create / edit study-session sheet */}
+      <FormSheet
+        visible={sheetOpen}
+        onClose={closeSheet}
+        onSubmit={submitSession}
+        title={editing ? 'Edit session' : 'Log a session'}
+        subtitle={editing ? undefined : longDayLabel(sheetDay)}
+        submitLabel={editing ? 'Save' : 'Log session'}
+        pending={saving}
+        submitDisabled={submitDisabled}
+        error={
+          formErr ||
+          (editing ? updateSession.error?.message : createSession.error?.message) ||
+          null
+        }
+      >
+        <SoftInput
+          label="Topic"
+          value={fTopic}
+          onChangeText={setFTopic}
+          placeholder="e.g. Graphs · BFS / DFS"
+          autoFocus
+          returnKeyType="next"
+          error={!topicValid && formErr ? 'Topic is required' : undefined}
+        />
+        <SoftInput
+          label="Minutes focused"
+          value={fMinutes}
+          onChangeText={setFMinutes}
+          placeholder="e.g. 45"
+          keyboardType="number-pad"
+          error={!minutesValid && formErr ? 'Enter a number above 0' : undefined}
+        />
+        <SoftInput
+          label="Problems solved (optional)"
+          value={fSolved}
+          onChangeText={setFSolved}
+          placeholder="e.g. 3"
+          keyboardType="number-pad"
+        />
+      </FormSheet>
     </View>
+  );
+}
+
+/* ================================================================== */
+/* Loading + error states                                              */
+/* ================================================================== */
+
+function CalendarLoading() {
+  const { colors } = useTheme();
+  return (
+    <View>
+      <SoftCard radius={radii.card} padding={14}>
+        <Skeleton width="50%" height={18} radius={6} style={{ alignSelf: 'center', marginBottom: 14 }} />
+        {[0, 1, 2, 3, 4].map((row) => (
+          <View key={row} className="flex-row" style={{ marginBottom: 8, gap: 8 }}>
+            {[0, 1, 2, 3, 4, 5, 6].map((c) => (
+              <Skeleton key={c} height={34} radius={10} style={{ flex: 1 }} />
+            ))}
+          </View>
+        ))}
+      </SoftCard>
+      <View style={{ gap: 8, marginTop: 16 }}>
+        {[0, 1, 2].map((i) => (
+          <SoftCard key={i} radius={radii.card} padding={12}>
+            <SkeletonText lines={2} lineHeight={12} gap={8} lastWidth="60%" />
+          </SoftCard>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function CalendarError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <SoftCard variant="inset" radius={radii.card} padding={22}>
+      <View className="items-center" style={{ gap: 8 }}>
+        <Icon name="alert" size={22} color="graphite" />
+        <AppText variant="subheading" weight="medium">
+          Couldn’t load your calendar
+        </AppText>
+        <AppText variant="body" color={colors.ash} style={{ textAlign: 'center', maxWidth: 260 }}>
+          {message}
+        </AppText>
+        <TextLink label="Try again" onPress={onRetry} icon={<Icon name="repeat" size={14} color="ink" />} />
+      </View>
+    </SoftCard>
   );
 }
 
@@ -250,6 +529,9 @@ function MonthView({
   onSelectDay,
   onStep,
   selectedEvents,
+  onAddSession,
+  onEditSession,
+  onDeleteSession,
 }: {
   grid: GridCell[];
   focusY: number;
@@ -259,6 +541,9 @@ function MonthView({
   onSelectDay: (cell: GridCell) => void;
   onStep: (dir: -1 | 1) => void;
   selectedEvents: CalendarEvent[];
+  onAddSession: (dayKey: string) => void;
+  onEditSession: (ev: CalendarEvent) => void;
+  onDeleteSession: (ev: CalendarEvent) => void;
 }) {
   const { colors } = useTheme();
   return (
@@ -314,7 +599,15 @@ function MonthView({
         ))}
       </SoftCard>
 
-      <SelectedDayList dayKey={selectedDay} events={selectedEvents} focusY={focusY} focusM0={focusM0} />
+      <SelectedDayList
+        dayKey={selectedDay}
+        events={selectedEvents}
+        focusY={focusY}
+        focusM0={focusM0}
+        onAddSession={onAddSession}
+        onEditSession={onEditSession}
+        onDeleteSession={onDeleteSession}
+      />
     </View>
   );
 }
@@ -391,11 +684,17 @@ function SelectedDayList({
   events,
   focusY,
   focusM0,
+  onAddSession,
+  onEditSession,
+  onDeleteSession,
 }: {
   dayKey: string;
   events: CalendarEvent[];
   focusY: number;
   focusM0: number;
+  onAddSession: (dayKey: string) => void;
+  onEditSession: (ev: CalendarEvent) => void;
+  onDeleteSession: (ev: CalendarEvent) => void;
 }) {
   const inFocusedMonth = isSameMonth(dayKey, focusY, focusM0);
   const today = dayKey === TODAY_KEY;
@@ -412,18 +711,61 @@ function SelectedDayList({
       </View>
 
       {events.length === 0 ? (
-        <CalendarEmpty
+        <EmptyStateCTA
+          icon="calendar"
           title={inFocusedMonth ? 'No events this day' : 'Nothing scheduled'}
-          body="Pick another day, or add a task, revision or focus session."
+          description="Pick another day, or log a focus session for this date."
+          actionLabel="Log a session"
+          onAction={() => onAddSession(dayKey)}
         />
       ) : (
         <View style={{ gap: 8 }}>
           {events.map((ev, i) => (
-            <EventRow key={ev.id} event={ev} index={i} />
+            <CalendarEventCard
+              key={ev.id}
+              event={ev}
+              index={i}
+              onEditSession={onEditSession}
+              onDeleteSession={onDeleteSession}
+            />
           ))}
+          <QuickAddRow label="Log a session" icon="timer" onPress={() => onAddSession(dayKey)} style={{ marginTop: 2 }} />
         </View>
       )}
     </View>
+  );
+}
+
+/* ================================================================== */
+/* Editable event card — tap-to-edit / long-press-to-delete sessions   */
+/* ================================================================== */
+
+function CalendarEventCard({
+  event,
+  index,
+  onEditSession,
+  onDeleteSession,
+}: {
+  event: CalendarEvent;
+  index: number;
+  onEditSession: (ev: CalendarEvent) => void;
+  onDeleteSession: (ev: CalendarEvent) => void;
+}) {
+  const isSession = event.id.startsWith('session_');
+  if (!isSession) {
+    return <EventRow event={event} index={index} />;
+  }
+  return (
+    <Pressable
+      onPress={() => onEditSession(event)}
+      onLongPress={() => onDeleteSession(event)}
+      delayLongPress={350}
+      accessibilityRole="button"
+      accessibilityLabel={`${event.title}. Tap to edit, long-press to delete.`}
+      style={({ pressed }) => ({ opacity: pressed ? interaction.pressOpacity : 1 })}
+    >
+      <EventRow event={event} index={index} />
+    </Pressable>
   );
 }
 
@@ -557,15 +899,40 @@ function WeekEventLine({ event }: { event: CalendarEvent }) {
 /* Agenda view                                                         */
 /* ================================================================== */
 
-function AgendaView({ sections }: { sections: ReturnType<typeof buildAgenda> }) {
+function AgendaView({
+  sections,
+  empty,
+  onAdd,
+  onEditSession,
+  onDeleteSession,
+}: {
+  sections: ReturnType<typeof buildAgenda>;
+  empty: boolean;
+  onAdd: () => void;
+  onEditSession: (ev: CalendarEvent) => void;
+  onDeleteSession: (ev: CalendarEvent) => void;
+}) {
   const { colors } = useTheme();
   if (sections.length === 0) {
-    return <CalendarEmpty title="No events match" body="Try a different filter — your study events will appear here." />;
+    return (
+      <EmptyStateCTA
+        icon="calendar"
+        title={empty ? 'Your calendar is clear' : 'No events match'}
+        description={
+          empty
+            ? 'Tasks, revisions, sessions and reflections show up here. Log your first focus session to begin.'
+            : 'Try a different filter — your study events will appear here.'
+        }
+        actionLabel={empty ? 'Log a session' : undefined}
+        onAction={empty ? onAdd : undefined}
+      />
+    );
   }
 
   let rowIndex = 0;
   return (
     <View>
+      <QuickAddRow label="Log a session" icon="timer" onPress={onAdd} style={{ marginBottom: 16 }} />
       {sections.map((section) => (
         <View key={section.key} style={{ marginBottom: 20 }}>
           <View className="flex-row items-center" style={{ gap: 8, marginBottom: 12 }}>
@@ -589,7 +956,13 @@ function AgendaView({ sections }: { sections: ReturnType<typeof buildAgenda> }) 
               ) : null}
               <View style={{ gap: 8 }}>
                 {dayGroup.events.map((ev) => (
-                  <EventRow key={ev.id} event={ev} index={rowIndex++} />
+                  <CalendarEventCard
+                    key={ev.id}
+                    event={ev}
+                    index={rowIndex++}
+                    onEditSession={onEditSession}
+                    onDeleteSession={onDeleteSession}
+                  />
                 ))}
               </View>
             </View>
@@ -597,26 +970,5 @@ function AgendaView({ sections }: { sections: ReturnType<typeof buildAgenda> }) 
         </View>
       ))}
     </View>
-  );
-}
-
-/* ================================================================== */
-/* Shared empty                                                        */
-/* ================================================================== */
-
-function CalendarEmpty({ title, body }: { title: string; body: string }) {
-  const { colors } = useTheme();
-  return (
-    <SoftCard variant="inset" radius={radii.card} padding={22}>
-      <View className="items-center" style={{ gap: 8 }}>
-        <Icon name="calendar" size={22} color={colors.muted} />
-        <AppText variant="subheading" weight="medium">
-          {title}
-        </AppText>
-        <AppText variant="body" color={colors.ash} style={{ textAlign: 'center', maxWidth: 260 }}>
-          {body}
-        </AppText>
-      </View>
-    </SoftCard>
   );
 }

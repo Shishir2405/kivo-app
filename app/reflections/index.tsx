@@ -9,7 +9,7 @@
  * failed request never crashes the app. Theme-aware via useTheme() + entrance.
  */
 import React, { useMemo, useState } from 'react';
-import { View, ScrollView, Pressable, RefreshControl } from 'react-native';
+import { View, ScrollView, Pressable, RefreshControl, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
@@ -21,12 +21,13 @@ import { Tag } from '@/components/ui/Tag';
 import { PillButton, TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { AddButton, QuickAddRow } from '@/components/ui/AddButton';
 import { Skeleton, SkeletonText } from '@/components/ui/Skeleton';
 
 import { radii, motion, interaction, pressOpacity } from '@/theme/tokens';
 import { useTheme } from '@/theme';
 import { TODAY } from '@/data/mock';
-import { useReflections } from '@/hooks/api';
+import { useReflections, useDeleteReflection } from '@/hooks/api';
 import type { Reflection } from '@/types/models';
 import {
   MOODS,
@@ -98,7 +99,17 @@ function SummaryCard({ reflections }: { reflections: Reflection[] }) {
 /* Entry row                                                           */
 /* ------------------------------------------------------------------ */
 
-function EntryRow({ reflection, onPress, index }: { reflection: Reflection; onPress: () => void; index: number }) {
+function EntryRow({
+  reflection,
+  onPress,
+  onLongPress,
+  index,
+}: {
+  reflection: Reflection;
+  onPress: () => void;
+  onLongPress: () => void;
+  index: number;
+}) {
   const { colors } = useTheme();
   const meta = moodMeta(reflection.mood);
   const journal = journalForDay(reflection.date);
@@ -111,8 +122,10 @@ function EntryRow({ reflection, onPress, index }: { reflection: Reflection; onPr
     >
       <Pressable
         onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={350}
         accessibilityRole="button"
-        accessibilityLabel={`Reflection for ${shortDate(reflection.date)}`}
+        accessibilityLabel={`Reflection for ${shortDate(reflection.date)}. Long-press to delete.`}
         style={({ pressed }) => ({
           opacity: pressOpacity({ pressed }, { solid: true }),
           transform: [{ scale: pressed ? interaction.pressScale : 1 }],
@@ -260,6 +273,26 @@ export default function ReflectionsScreen() {
   const [query, setQuery] = useState('');
 
   const { data, isLoading, isError, error, refetch, isFetching } = useReflections();
+  const deleteReflection = useDeleteReflection();
+
+  const confirmDelete = (r: Reflection) => {
+    if (deleteReflection.isPending) return;
+    Alert.alert(
+      'Delete reflection',
+      `Remove your entry for ${shortDate(r.date)}? This can’t be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () =>
+            deleteReflection.mutate(r.id, {
+              onError: (e) => Alert.alert('Couldn’t delete', e.message),
+            }),
+        },
+      ],
+    );
+  };
 
   const reflections = useMemo<Reflection[]>(
     () =>
@@ -285,7 +318,16 @@ export default function ReflectionsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
-        <AppHeader onBack={() => router.back()} />
+        <AppHeader
+          onBack={() => router.back()}
+          right={
+            <AddButton
+              onPress={() => router.push(`/reflections/${TODAY}`)}
+              icon="pen"
+              accessibilityLabel="Write today’s reflection"
+            />
+          }
+        />
       </View>
 
       <ScrollView
@@ -371,9 +413,24 @@ export default function ReflectionsScreen() {
               />
             ) : null}
 
+            {reflections.length > 0 && !todayHasEntry ? (
+              <QuickAddRow
+                label="Write today’s reflection"
+                icon="pen"
+                onPress={() => router.push(`/reflections/${TODAY}`)}
+                style={{ marginBottom: 12 }}
+              />
+            ) : null}
+
             {filtered.length > 0 ? (
               filtered.map((r, i) => (
-                <EntryRow key={r.id} reflection={r} onPress={() => router.push(`/reflections/${r.date}`)} index={i} />
+                <EntryRow
+                  key={r.id}
+                  reflection={r}
+                  onPress={() => router.push(`/reflections/${r.date}`)}
+                  onLongPress={() => confirmDelete(r)}
+                  index={i}
+                />
               ))
             ) : reflections.length === 0 ? (
               <CenterNote

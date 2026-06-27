@@ -5,14 +5,16 @@
  * `useResources()`. Warm-editorial + flat: a count eyebrow + serif title, a
  * search field, a flat-Chip type filter, and white Cards (hairline + one soft
  * shadow) — each leads with a rounded wash icon tile colored to its type.
- * Tapping a card opens the URL; a small star toggles a favorite locally. ONE
- * terracotta CTA. Loading / error / empty states come from the query flags so a
- * failed request never crashes. Fully theme-aware via useTheme() + entrance.
+ * Tapping a card opens the URL; long-press edits; a small star toggles favorite.
  *
- * Favoriting is a local-only optimistic override layered on the fetched list.
+ * Full CRUD: create (header "+", quick-add row, empty-state CTA), edit
+ * (long-press a card → the shared FormSheet), and delete (Alert confirm from
+ * the edit sheet). The star toggle PERSISTS via useToggleResourceFavorite().
+ * Loading / error / empty states come from the query flags so a failed request
+ * never crashes. Fully theme-aware via useTheme() + entrance.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, ScrollView, Pressable, Linking, RefreshControl } from 'react-native';
+import { View, ScrollView, Pressable, Linking, RefreshControl, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
@@ -26,10 +28,19 @@ import { TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Skeleton, SkeletonText } from '@/components/ui/Skeleton';
+import { FormSheet } from '@/components/ui/FormSheet';
+import { AddButton, QuickAddRow, EmptyStateCTA } from '@/components/ui/AddButton';
+import { Select, type SelectOption } from '@/components/ui/Select';
 
 import { radii, motion, interaction, pressOpacity, toneAt } from '@/theme/tokens';
 import { useTheme } from '@/theme';
-import { useResources } from '@/hooks/api';
+import {
+  useResources,
+  useCreateResource,
+  useUpdateResource,
+  useDeleteResource,
+  useToggleResourceFavorite,
+} from '@/hooks/api';
 import type { Resource, ResourceType } from '@/types/models';
 
 /* ------------------------------------------------------------------ */
@@ -56,6 +67,13 @@ const TYPE_ORDER: ResourceType[] = [
   'blog',
 ];
 
+/** Type options for the create / edit Select. */
+const TYPE_SELECT_OPTIONS: SelectOption<ResourceType>[] = TYPE_ORDER.map((t) => ({
+  label: TYPE_META[t].label,
+  value: t,
+  icon: TYPE_META[t].icon,
+}));
+
 type Filter = 'all' | ResourceType;
 
 /** Strip protocol / path down to a friendly host. */
@@ -65,19 +83,96 @@ function hostOf(url: string): string {
 }
 
 /* ------------------------------------------------------------------ */
+/* Validation — mirrors backend createResourceSchema                   */
+/* (resources.validator.ts): title req min1 max200, url req valid URL, */
+/* description optional max2000.                                        */
+/* ------------------------------------------------------------------ */
+
+const RESOURCE_LIMITS = {
+  TITLE_MAX: 200,
+  DESCRIPTION_MAX: 2000,
+  TOPIC_MAX: 200,
+  SOURCE_MAX: 200,
+} as const;
+
+/**
+ * Matches the backend `z.string().url()` semantics (requires a protocol).
+ * Uses the WHATWG URL parser when available and falls back to a regex so the
+ * check is reliable regardless of the Hermes URL polyfill.
+ */
+function isValidUrl(value: string): boolean {
+  if (!/^https?:\/\/[^\s.]+\.[^\s]{2,}$/i.test(value)) return false;
+  try {
+    // eslint-disable-next-line no-new
+    new URL(value);
+    return true;
+  } catch {
+    // URL ctor missing/incomplete — the regex above already vouched for it.
+    return true;
+  }
+}
+
+type ResourceFieldErrors = {
+  title?: string;
+  url?: string;
+  topic?: string;
+  source?: string;
+  description?: string;
+};
+
+/** Validate the resource form; returns a map of field → message. */
+function validateResource(values: {
+  title: string;
+  url: string;
+  topic: string;
+  source: string;
+  description: string;
+}): ResourceFieldErrors {
+  const errs: ResourceFieldErrors = {};
+  const title = values.title.trim();
+  const url = values.url.trim();
+  const topic = values.topic.trim();
+  const source = values.source.trim();
+  const description = values.description.trim();
+
+  if (!title) errs.title = 'Title is required';
+  else if (title.length > RESOURCE_LIMITS.TITLE_MAX)
+    errs.title = `Title must be at most ${RESOURCE_LIMITS.TITLE_MAX} characters`;
+
+  if (!url) errs.url = 'URL is required';
+  else if (!isValidUrl(url)) errs.url = 'Enter a valid URL (https://…)';
+
+  // Topic is sent as a free string (defaults to "General" when blank).
+  if (topic.length > RESOURCE_LIMITS.TOPIC_MAX)
+    errs.topic = `Topic must be at most ${RESOURCE_LIMITS.TOPIC_MAX} characters`;
+
+  if (source.length > RESOURCE_LIMITS.SOURCE_MAX)
+    errs.source = `Source must be at most ${RESOURCE_LIMITS.SOURCE_MAX} characters`;
+
+  if (description.length > RESOURCE_LIMITS.DESCRIPTION_MAX)
+    errs.description = `Description must be at most ${RESOURCE_LIMITS.DESCRIPTION_MAX} characters`;
+
+  return errs;
+}
+
+/* ------------------------------------------------------------------ */
 /* Resource card                                                       */
 /* ------------------------------------------------------------------ */
 
 function ResourceCard({
   resource,
   onOpen,
+  onEdit,
   onToggleFavorite,
+  favoritePending,
   toneIndex,
   index,
 }: {
   resource: Resource;
   onOpen: (r: Resource) => void;
-  onToggleFavorite: (id: string) => void;
+  onEdit: (r: Resource) => void;
+  onToggleFavorite: (r: Resource) => void;
+  favoritePending: boolean;
   toneIndex: number;
   index: number;
 }) {
@@ -93,8 +188,10 @@ function ResourceCard({
     >
       <Pressable
         onPress={() => onOpen(resource)}
+        onLongPress={() => onEdit(resource)}
+        delayLongPress={300}
         accessibilityRole="link"
-        accessibilityLabel={`Open ${resource.title}`}
+        accessibilityLabel={`Open ${resource.title}. Long-press to edit.`}
         style={({ pressed }) => ({
           opacity: pressOpacity({ pressed }, { solid: true }),
           transform: [{ scale: pressed ? interaction.pressScale : 1 }],
@@ -130,11 +227,12 @@ function ResourceCard({
                   {resource.title}
                 </AppText>
                 <Pressable
-                  onPress={() => onToggleFavorite(resource.id)}
+                  onPress={() => onToggleFavorite(resource)}
+                  disabled={favoritePending}
                   hitSlop={10}
                   accessibilityRole="button"
                   accessibilityLabel={resource.favorite ? 'Unstar' : 'Star'}
-                  style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+                  style={({ pressed }) => ({ opacity: pressOpacity({ pressed }, { disabled: favoritePending }) })}
                 >
                   <Icon
                     name="star"
@@ -170,6 +268,24 @@ function ResourceCard({
                 </AppText>
               </View>
             ) : null}
+            <View style={{ flex: 1 }} />
+            <Pressable
+              onPress={() => onEdit(resource)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${resource.title}`}
+              style={({ pressed }) => ({
+                opacity: pressOpacity({ pressed }),
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+              })}
+            >
+              <Icon name="pen" size={13} color={colors.muted} />
+              <AppText variant="caption" color={colors.muted}>
+                Edit
+              </AppText>
+            </Pressable>
           </View>
         </SoftCard>
       </Pressable>
@@ -276,16 +392,33 @@ export default function ResourcesScreen() {
 
   const { data, isLoading, isError, error, refetch, isFetching } = useResources();
 
-  // Local favorite overrides (id -> favorite) layered over fetched data.
-  const [favOverrides, setFavOverrides] = useState<Record<string, boolean>>({});
+  const createResource = useCreateResource();
+  const updateResource = useUpdateResource();
+  const deleteResource = useDeleteResource();
+  const toggleFav = useToggleResourceFavorite();
+
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
 
-  const resources = useMemo<Resource[]>(() => {
-    const list = Array.isArray(data) ? data.filter(Boolean) : [];
-    return list.map((r) => (r.id in favOverrides ? { ...r, favorite: favOverrides[r.id] } : r));
-  }, [data, favOverrides]);
+  // Create / edit sheet state. `editing` null ⇒ creating; otherwise editing it.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<Resource | null>(null);
+  const [fTitle, setFTitle] = useState('');
+  const [fUrl, setFUrl] = useState('');
+  const [fType, setFType] = useState<ResourceType>('article');
+  const [fTopic, setFTopic] = useState('');
+  const [fSource, setFSource] = useState('');
+  const [fDescription, setFDescription] = useState('');
+  const [formErr, setFormErr] = useState('');
+  const [fieldErrs, setFieldErrs] = useState<ResourceFieldErrors>({});
+  // Id whose star toggle is in flight, so we only disable that one card.
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const resources = useMemo<Resource[]>(
+    () => (Array.isArray(data) ? data.filter(Boolean) : []),
+    [data],
+  );
 
   const counts = useMemo(() => {
     const c: Record<Filter, number> = {
@@ -326,17 +459,143 @@ export default function ResourcesScreen() {
     });
   }, []);
 
+  // Persist the star via the dedicated PATCH hook (no more local-only override).
   const toggleFavorite = useCallback(
-    (id: string) => {
-      setFavOverrides((prev) => {
-        const current = prev[id];
-        const base = resources.find((r) => r.id === id)?.favorite ?? false;
-        const next = current === undefined ? !base : !current;
-        return { ...prev, [id]: next };
-      });
+    (r: Resource) => {
+      setTogglingId(r.id);
+      toggleFav.mutate(
+        { id: r.id, favorite: !r.favorite },
+        { onSettled: () => setTogglingId(null) },
+      );
     },
-    [resources],
+    [toggleFav],
   );
+
+  const resetSheet = useCallback(() => {
+    setEditing(null);
+    setFTitle('');
+    setFUrl('');
+    setFType('article');
+    setFTopic('');
+    setFSource('');
+    setFDescription('');
+    setFormErr('');
+    setFieldErrs({});
+    createResource.reset();
+    updateResource.reset();
+  }, [createResource, updateResource]);
+
+  const openCreate = useCallback(() => {
+    resetSheet();
+    setSheetOpen(true);
+  }, [resetSheet]);
+
+  const openEdit = useCallback((r: Resource) => {
+    setEditing(r);
+    setFTitle(r.title);
+    setFUrl(r.url);
+    setFType(r.type);
+    setFTopic(r.topic);
+    setFSource(r.source ?? '');
+    setFDescription(r.description ?? '');
+    setFormErr('');
+    setFieldErrs({});
+    createResource.reset();
+    updateResource.reset();
+    setSheetOpen(true);
+  }, [createResource, updateResource]);
+
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+  }, []);
+
+  const submitSheet = useCallback(() => {
+    const errs = validateResource({
+      title: fTitle,
+      url: fUrl,
+      topic: fTopic,
+      source: fSource,
+      description: fDescription,
+    });
+    if (Object.keys(errs).length > 0) {
+      setFieldErrs(errs);
+      return;
+    }
+    setFieldErrs({});
+    setFormErr('');
+
+    const title = fTitle.trim();
+    const url = fUrl.trim();
+    const topic = fTopic.trim() || 'General';
+    const source = fSource.trim();
+    const description = fDescription.trim();
+
+    if (editing) {
+      updateResource.mutate(
+        {
+          id: editing.id,
+          patch: {
+            title,
+            url,
+            type: fType,
+            topic,
+            source: source || undefined,
+            description: description || undefined,
+          },
+        },
+        {
+          onSuccess: () => {
+            setSheetOpen(false);
+            resetSheet();
+          },
+          onError: (e) => setFormErr(e.message),
+        },
+      );
+    } else {
+      createResource.mutate(
+        {
+          title,
+          url,
+          type: fType,
+          topic,
+          source: source || undefined,
+          description: description || undefined,
+        },
+        {
+          onSuccess: () => {
+            setSheetOpen(false);
+            resetSheet();
+          },
+          onError: (e) => setFormErr(e.message),
+        },
+      );
+    }
+  }, [fTitle, fUrl, fType, fTopic, fSource, fDescription, editing, updateResource, createResource, resetSheet]);
+
+  const confirmDelete = useCallback(() => {
+    if (!editing) return;
+    const target = editing;
+    Alert.alert(
+      'Delete resource?',
+      `"${target.title}" will be removed from your library.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteResource.mutate(target.id, {
+              onSuccess: () => {
+                setSheetOpen(false);
+                resetSheet();
+              },
+              onError: (e) => setFormErr(e.message),
+            });
+          },
+        },
+      ],
+    );
+  }, [editing, deleteResource, resetSheet]);
 
   const resetFilters = () => {
     setFilter('all');
@@ -358,7 +617,10 @@ export default function ResourcesScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
-        <AppHeader onBack={() => router.back()} />
+        <AppHeader
+          onBack={() => router.back()}
+          right={<AddButton onPress={openCreate} accessibilityLabel="Add a resource" />}
+        />
       </View>
 
       <ScrollView
@@ -466,16 +728,22 @@ export default function ResourcesScreen() {
         ) : isLoading ? (
           <LoadingBlock />
         ) : filtered.length === 0 ? (
-          <CenterNote
-            icon="book-open"
-            title={hasFilters ? 'Nothing matches' : 'No resources yet'}
-            body={
-              hasFilters
-                ? 'No saved links match this filter. Try a different type or clear the search.'
-                : 'Save your first link — a course sheet, a playlist, a deep-dive article.'
-            }
-            action={hasFilters ? <TextLink label="Clear filters" onPress={resetFilters} /> : undefined}
-          />
+          hasFilters ? (
+            <CenterNote
+              icon="book-open"
+              title="Nothing matches"
+              body="No saved links match this filter. Try a different type or clear the search."
+              action={<TextLink label="Clear filters" onPress={resetFilters} />}
+            />
+          ) : (
+            <EmptyStateCTA
+              icon="book-open"
+              title="No resources yet"
+              description="Save your first link — a course sheet, a playlist, a deep-dive article."
+              actionLabel="Add a resource"
+              onAction={openCreate}
+            />
+          )
         ) : (
           <>
             <AppText variant="caption" color={colors.muted} style={{ marginBottom: 10 }}>
@@ -486,14 +754,133 @@ export default function ResourcesScreen() {
                 key={r.id}
                 resource={r}
                 onOpen={openResource}
+                onEdit={openEdit}
                 onToggleFavorite={toggleFavorite}
+                favoritePending={togglingId === r.id}
                 toneIndex={i}
                 index={i}
               />
             ))}
+            {/* Inline quick-add at the foot of the list. */}
+            <QuickAddRow
+              onPress={openCreate}
+              label="Add a resource"
+              style={{ marginTop: 4 }}
+            />
           </>
         )}
       </ScrollView>
+
+      {/* Create / edit sheet */}
+      <FormSheet
+        visible={sheetOpen}
+        onClose={closeSheet}
+        onSubmit={submitSheet}
+        title={editing ? 'Edit resource' : 'New resource'}
+        subtitle={editing ? 'Update this saved link.' : 'Save a link to your library.'}
+        submitLabel={editing ? 'Save changes' : 'Add resource'}
+        pending={createResource.isPending || updateResource.isPending || deleteResource.isPending}
+        submitDisabled={
+          Object.keys(
+            validateResource({
+              title: fTitle,
+              url: fUrl,
+              topic: fTopic,
+              source: fSource,
+              description: fDescription,
+            }),
+          ).length > 0
+        }
+        error={formErr || createResource.error?.message || updateResource.error?.message || null}
+      >
+        <SoftInput
+          label="Title"
+          placeholder="e.g. Graphs — full playlist"
+          value={fTitle}
+          onChangeText={(v) => {
+            setFTitle(v);
+            if (fieldErrs.title) setFieldErrs((p) => ({ ...p, title: undefined }));
+          }}
+          autoCapitalize="sentences"
+          maxLength={RESOURCE_LIMITS.TITLE_MAX}
+          error={fieldErrs.title}
+        />
+        <SoftInput
+          label="Link URL"
+          placeholder="https://…"
+          value={fUrl}
+          onChangeText={(v) => {
+            setFUrl(v);
+            if (fieldErrs.url) setFieldErrs((p) => ({ ...p, url: undefined }));
+          }}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          leading={<Icon name="link" size={16} color={colors.muted} />}
+          error={fieldErrs.url}
+        />
+
+        <View>
+          <AppText variant="overline" uppercase weight="semibold" color={colors.muted} style={{ marginBottom: 8 }}>
+            Type
+          </AppText>
+          <Select<ResourceType>
+            options={TYPE_SELECT_OPTIONS}
+            value={fType}
+            onChange={setFType}
+            title="Choose a type"
+            placeholder="Choose a type"
+          />
+        </View>
+
+        <SoftInput
+          label="Topic"
+          placeholder="e.g. Graphs, System Design"
+          value={fTopic}
+          onChangeText={(v) => {
+            setFTopic(v);
+            if (fieldErrs.topic) setFieldErrs((p) => ({ ...p, topic: undefined }));
+          }}
+          autoCapitalize="words"
+          maxLength={RESOURCE_LIMITS.TOPIC_MAX}
+          leading={<Icon name="tag" size={16} color={colors.muted} />}
+          error={fieldErrs.topic}
+        />
+        <SoftInput
+          label="Source (optional)"
+          placeholder="e.g. takeUforward"
+          value={fSource}
+          onChangeText={(v) => {
+            setFSource(v);
+            if (fieldErrs.source) setFieldErrs((p) => ({ ...p, source: undefined }));
+          }}
+          autoCapitalize="words"
+          maxLength={RESOURCE_LIMITS.SOURCE_MAX}
+          error={fieldErrs.source}
+        />
+        <SoftInput
+          label="Description (optional)"
+          placeholder="A one-line note about this link…"
+          value={fDescription}
+          onChangeText={(v) => {
+            setFDescription(v);
+            if (fieldErrs.description) setFieldErrs((p) => ({ ...p, description: undefined }));
+          }}
+          autoCapitalize="sentences"
+          maxLength={RESOURCE_LIMITS.DESCRIPTION_MAX}
+          error={fieldErrs.description}
+        />
+
+        {editing ? (
+          <View style={{ alignItems: 'flex-start' }}>
+            <TextLink
+              label="Delete resource"
+              onPress={confirmDelete}
+              icon={<Icon name="trash" size={14} color={colors.danger} />}
+            />
+          </View>
+        ) : null}
+      </FormSheet>
     </View>
   );
 }

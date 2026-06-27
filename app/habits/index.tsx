@@ -21,12 +21,20 @@ import { Tag } from '@/components/ui/Tag';
 import { PillButton, TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { AddButton, QuickAddRow, EmptyStateCTA } from '@/components/ui/AddButton';
 import { ProgressRing } from '@/components/habits/ProgressRing';
+import { HabitFormSheet } from '@/components/habits/HabitFormSheet';
+import { SwipeRow, RowActionsSheet, type RowAction } from '@/components/tracker';
 import { Skeleton, SkeletonText } from '@/components/ui';
 
-import { radii, toneAt, motion } from '@/theme/tokens';
+import { radii, spacing, toneAt, motion } from '@/theme/tokens';
 import { useTheme } from '@/theme';
-import { useHabits } from '@/hooks/api';
+import {
+  useHabits,
+  useCompleteHabit,
+  useUncompleteHabit,
+  useDeleteHabit,
+} from '@/hooks/api';
 import type { Habit } from '@/types/models';
 
 /* ------------------------------------------------------------------ */
@@ -60,14 +68,25 @@ function WeekGrid({ history, accent, miss }: { history: boolean[]; accent: strin
 /* Habit card                                                          */
 /* ------------------------------------------------------------------ */
 
-function HabitCard({ habit, onToggle, toneIndex }: { habit: Habit; onToggle: (id: string) => void; toneIndex: number }) {
+function HabitCard({
+  habit,
+  onToggle,
+  onEdit,
+  toneIndex,
+}: {
+  habit: Habit;
+  onToggle: (id: string) => void;
+  onEdit?: (habit: Habit) => void;
+  toneIndex: number;
+}) {
   const { colors, toneStyle } = useTheme();
   const tone = toneAt(toneIndex);
   const ts = toneStyle(tone);
   const done = habit.completedToday;
+  const canEdit = !!onEdit;
 
   return (
-    <SoftCard radius={radii.cardLg} padding={14} style={{ marginBottom: 12 }}>
+    <SoftCard radius={radii.cardLg} padding={14}>
       {/* Top row: colored glyph tile + title/streak + flat complete toggle */}
       <View className="flex-row items-center" style={{ gap: 11, marginBottom: 12 }}>
         <View
@@ -82,7 +101,13 @@ function HabitCard({ habit, onToggle, toneIndex }: { habit: Habit; onToggle: (id
         >
           <Icon name={habit.emoji} size={16} color={ts.accent} />
         </View>
-        <View style={{ flex: 1 }}>
+        <Pressable
+          style={({ pressed }) => ({ flex: 1, opacity: canEdit && pressed ? 0.7 : 1 })}
+          disabled={!canEdit}
+          onPress={canEdit ? () => onEdit?.(habit) : undefined}
+          accessibilityRole={canEdit ? 'button' : undefined}
+          accessibilityLabel={canEdit ? `Edit ${habit.title}` : undefined}
+        >
           <AppText variant="subheading" weight="semibold" numberOfLines={1}>
             {habit.title}
           </AppText>
@@ -94,7 +119,7 @@ function HabitCard({ habit, onToggle, toneIndex }: { habit: Habit; onToggle: (id
               {habit.streak > 0 ? `${habit.streak} day streak` : 'Not done yet'}
             </AppText>
           </View>
-        </View>
+        </Pressable>
 
         {/* Flat 26px tile toggle — accent + check when done, hairline when not. */}
         <Pressable
@@ -235,8 +260,19 @@ export default function HabitsScreen() {
 
   const { data, isLoading, isError, error, refetch, isFetching } = useHabits();
 
+  const completeHabit = useCompleteHabit();
+  const uncompleteHabit = useUncompleteHabit();
+  const deleteHabit = useDeleteHabit();
+
   // Optimistic local toggles layered over fetched data.
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
+
+  // Create / edit sheet + long-press menu.
+  const [sheet, setSheet] = useState<{ open: boolean; habit: Habit | null }>({
+    open: false,
+    habit: null,
+  });
+  const [menu, setMenu] = useState<Habit | null>(null);
 
   const habits = useMemo<Habit[]>(() => {
     const list = Array.isArray(data) ? data.filter(Boolean) : [];
@@ -256,12 +292,37 @@ export default function HabitsScreen() {
   }, [data, toggles]);
 
   const toggleToday = useCallback((id: string) => {
+    const base = (Array.isArray(data) ? data : []).find((h) => h.id === id)?.completedToday ?? false;
     setToggles((prev) => {
-      const base = (Array.isArray(data) ? data : []).find((h) => h.id === id)?.completedToday ?? false;
       const current = prev[id] ?? base;
-      return { ...prev, [id]: !current };
+      const next = !current;
+      // Fire the real completion write; the optimistic flag keeps the UI snappy.
+      if (next) completeHabit.mutate(id);
+      else uncompleteHabit.mutate(id);
+      return { ...prev, [id]: next };
     });
-  }, [data]);
+  }, [data, completeHabit, uncompleteHabit]);
+
+  /* Create / edit / delete handlers. */
+  const openNewHabit = useCallback(() => setSheet({ open: true, habit: null }), []);
+  const openEditHabit = useCallback((habit: Habit) => setSheet({ open: true, habit }), []);
+  const closeSheet = useCallback(() => setSheet({ open: false, habit: null }), []);
+  const onDeleteHabit = useCallback((id: string) => deleteHabit.mutate(id), [deleteHabit]);
+
+  const menuActions = useMemo<RowAction[]>(() => {
+    if (!menu) return [];
+    const h = menu;
+    return [
+      { key: 'edit', label: 'Edit habit', icon: 'edit', onPress: () => openEditHabit(h) },
+      {
+        key: 'delete',
+        label: 'Delete habit',
+        icon: 'trash',
+        destructive: true,
+        onPress: () => onDeleteHabit(h.id),
+      },
+    ];
+  }, [menu, openEditHabit, onDeleteHabit]);
 
   const { doneToday, total, bestStreak, weekRate } = useMemo(() => {
     const totalCount = habits.length;
@@ -281,7 +342,10 @@ export default function HabitsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
-        <AppHeader onBack={() => router.back()} />
+        <AppHeader
+          onBack={() => router.back()}
+          right={<AddButton onPress={openNewHabit} accessibilityLabel="New habit" />}
+        />
       </View>
 
       <ScrollView
@@ -316,7 +380,7 @@ export default function HabitsScreen() {
             </AppText>
           </View>
           {!isError && !isLoading && habits.length > 0 ? (
-            <PillButton label="Add" size="sm" onPress={() => refetch()} icon={<Icon name="plus" size={15} color="white" />} />
+            <PillButton label="Add" size="sm" onPress={openNewHabit} icon={<Icon name="plus" size={15} color="white" />} />
           ) : null}
         </MotiView>
 
@@ -363,10 +427,12 @@ export default function HabitsScreen() {
             ))}
           </View>
         ) : habits.length === 0 ? (
-          <CenterNote
+          <EmptyStateCTA
             icon="repeat"
             title="No habits yet"
-            body="Add a routine and check it off each day to grow a streak. Consistency over intensity."
+            description="Add a routine and check it off each day to grow a streak. Consistency over intensity."
+            actionLabel="New habit"
+            onAction={openNewHabit}
           />
         ) : (
           <>
@@ -397,12 +463,39 @@ export default function HabitsScreen() {
                   delay: 120 + i * 50,
                 }}
               >
-                <HabitCard habit={habit} onToggle={toggleToday} toneIndex={i} />
+                <SwipeRow
+                  onDelete={() => onDeleteHabit(habit.id)}
+                  onLongPress={() => setMenu(habit)}
+                  style={{ marginBottom: 12 }}
+                >
+                  <HabitCard
+                    habit={habit}
+                    onToggle={toggleToday}
+                    onEdit={openEditHabit}
+                    toneIndex={i}
+                  />
+                </SwipeRow>
               </MotiView>
             ))}
+
+            <QuickAddRow
+              label="Add a habit"
+              icon="repeat"
+              onPress={openNewHabit}
+              style={{ marginTop: spacing.xs }}
+            />
           </>
         )}
       </ScrollView>
+
+      {/* Create / edit sheet + long-press actions menu. */}
+      <HabitFormSheet visible={sheet.open} habit={sheet.habit} onClose={closeSheet} />
+      <RowActionsSheet
+        visible={!!menu}
+        title={menu?.title}
+        actions={menuActions}
+        onClose={() => setMenu(null)}
+      />
     </View>
   );
 }

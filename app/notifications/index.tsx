@@ -26,7 +26,11 @@ import { Skeleton, SkeletonText } from '@/components/ui/Skeleton';
 
 import { useTheme, motion } from '@/theme';
 import { radii } from '@/theme/tokens';
-import { useNotifications } from '@/hooks/api';
+import {
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from '@/hooks/api';
 import type { AppNotification, NotificationType } from '@/types/models';
 import { NotificationRow, isToday } from '@/components/notifications/NotificationRow';
 
@@ -138,8 +142,11 @@ export default function NotificationsScreen() {
   const { colors } = useTheme();
 
   const { data, isLoading, isError, error, refetch, isFetching } = useNotifications();
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkAllNotificationsRead();
 
-  // Local read overrides layered over fetched data (read endpoint out of scope).
+  // Local read overrides layered over fetched data so the row updates instantly
+  // (optimistic) while the PATCH / read-all request settles in the background.
   const [readOverrides, setReadOverrides] = useState<Record<string, true>>({});
   const [allRead, setAllRead] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
@@ -151,9 +158,33 @@ export default function NotificationsScreen() {
 
   const unreadTotal = useMemo(() => items.filter((n) => !n.read).length, [items]);
 
-  const markRead = useCallback((id: string) => {
-    setReadOverrides((prev) => ({ ...prev, [id]: true }));
-  }, []);
+  // Optimistically mark read, then PATCH /notifications/:id/read. On failure we
+  // roll the override back (it can never crash the inbox).
+  const markRead = useCallback(
+    (id: string) => {
+      const target = items.find((n) => n.id === id);
+      if (!target || target.read) return; // already read — skip the network call
+      setReadOverrides((prev) => ({ ...prev, [id]: true }));
+      markReadMutation.mutate(id, {
+        onError: () => {
+          setReadOverrides((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        },
+      });
+    },
+    [items, markReadMutation],
+  );
+
+  const markAllRead = useCallback(() => {
+    if (unreadTotal === 0) return;
+    setAllRead(true);
+    markAllReadMutation.mutate(undefined, {
+      onError: () => setAllRead(false),
+    });
+  }, [unreadTotal, markAllReadMutation]);
 
   const onRowPress = useCallback(
     (id: string) => {
@@ -232,7 +263,13 @@ export default function NotificationsScreen() {
               <AppText variant="caption" color={colors.muted}>
                 {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
               </AppText>
-              <TextLink label="Mark all read" onPress={() => setAllRead(true)} size="sm" disabled={unreadTotal === 0} muted />
+              <TextLink
+                label={markAllReadMutation.isPending ? 'Marking…' : 'Mark all read'}
+                onPress={markAllRead}
+                size="sm"
+                disabled={unreadTotal === 0 || markAllReadMutation.isPending}
+                muted
+              />
             </View>
 
             {isEmpty ? (

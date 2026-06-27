@@ -37,6 +37,8 @@ export type TaskCardProps = {
   task: Task;
   onToggle: (id: string, next: boolean) => void;
   onToggleChecklistItem?: (taskId: string, itemId: string, next: boolean) => void;
+  /** Tap-to-edit. When set, a tap (or long-press) on the row opens the editor. */
+  onEdit?: (task: Task) => void;
   /**
    * Position in the list — rotates the soft wash so a stack of open tasks looks
    * intentionally colorful. Completed rows fall back to plain white (quiet).
@@ -55,13 +57,17 @@ export type TaskCardProps = {
  * - If the task has a checklist or notes, the row expands (animated) to reveal
  *   sub-step checkboxes + notes behind a thin wash-tinted divider.
  */
-export function TaskCard({ task, onToggle, onToggleChecklistItem, index = 0 }: TaskCardProps) {
+export function TaskCard({ task, onToggle, onToggleChecklistItem, onEdit, index = 0 }: TaskCardProps) {
   const { colors, toneStyle } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const checklist = task.checklist ?? [];
   const hasChecklist = checklist.length > 0;
   const hasDetail = hasChecklist || !!task.notes;
+  // Tap behaviour: a tap edits when there's no detail to expand; long-press
+  // always edits (so detail rows keep tap=expand but still reach the editor).
+  const canEdit = !!onEdit;
+  const tappable = hasDetail || canEdit;
   const doneCount = useMemo(() => checklist.filter((c) => c.done).length, [checklist]);
 
   const due = task.dueDate ? dueLabel(task.dueDate) : null;
@@ -80,9 +86,13 @@ export function TaskCard({ task, onToggle, onToggleChecklistItem, index = 0 }: T
         />
 
         <Pressable
-          style={({ pressed }) => ({ flex: 1, opacity: hasDetail ? pressOpacity({ pressed }) : 1 })}
-          disabled={!hasDetail}
-          onPress={() => setExpanded((e) => !e)}
+          style={({ pressed }) => ({ flex: 1, opacity: tappable ? pressOpacity({ pressed }) : 1 })}
+          disabled={!tappable}
+          onPress={() => {
+            if (hasDetail) setExpanded((e) => !e);
+            else if (canEdit) onEdit?.(task);
+          }}
+          accessibilityHint={canEdit && !hasDetail ? 'Opens the editor' : undefined}
         >
           <View className="flex-row items-start" style={{ gap: spacing.sm }}>
             <View style={{ flex: 1 }}>

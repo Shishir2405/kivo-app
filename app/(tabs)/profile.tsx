@@ -10,7 +10,7 @@
  * Fully light + dark via useTheme(); entrance motion on each block.
  */
 import React, { useState } from 'react';
-import { View, ScrollView } from 'react-native';
+import { View, ScrollView, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
@@ -97,11 +97,18 @@ export default function ProfileScreen() {
         {/* ---------- Top bar ---------- */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <GrayMark size={20} />
-          <TextLink
-            label="Settings"
-            onPress={() => router.push('/settings')}
-            icon={<Icon name="settings" size={16} color="muted" weight="light" />}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
+            <TextLink
+              label="Edit profile"
+              onPress={() => router.push('/settings/profile')}
+              icon={<Icon name="user" size={16} color="muted" weight="light" />}
+            />
+            <TextLink
+              label="Settings"
+              onPress={() => router.push('/settings')}
+              icon={<Icon name="settings" size={16} color="muted" weight="light" />}
+            />
+          </View>
         </View>
 
         {/* ---------- Identity ---------- */}
@@ -116,7 +123,12 @@ export default function ProfileScreen() {
           />
         ) : a ? (
           <Enter>
-            <View style={{ alignItems: 'center', gap: spacing.sm }}>
+            <Pressable
+              onPress={() => router.push('/settings/profile')}
+              accessibilityRole="button"
+              accessibilityLabel="Edit profile"
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, alignItems: 'center', gap: spacing.sm })}
+            >
               {/* Avatar well */}
               <View
                 style={{
@@ -180,7 +192,7 @@ export default function ProfileScreen() {
                   </AppText>
                 </View>
               </View>
-            </View>
+            </Pressable>
           </Enter>
         ) : null}
 
@@ -241,7 +253,7 @@ export default function ProfileScreen() {
             <SectionLabel title="Toolkit" />
             <Card padding={0} style={{ paddingHorizontal: spacing.lg }}>
               <MenuRow icon="chart" title="Weekly analytics" onPress={() => router.push('/analytics')} />
-              <MenuRow icon="user" title="Edit profile" onPress={() => router.push('/settings')} />
+              <MenuRow icon="user" title="Edit profile" onPress={() => router.push('/settings/profile')} />
               <MenuRow icon="bell" title="Notifications" onPress={() => router.push('/notifications')} />
               <MenuRow icon="trophy" title="Achievements" onPress={() => router.push('/achievements')} />
               <MenuRow icon="book" title="Reflections" onPress={() => router.push('/reflections')} />

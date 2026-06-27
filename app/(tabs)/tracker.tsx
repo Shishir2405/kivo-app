@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/SoftCard';
 import { Tag } from '@/components/ui/Tag';
 import { Icon } from '@/components/ui/Icon';
 import { SegmentedTabs, type SegmentedOption } from '@/components/ui/SegmentedTabs';
+import { AddButton, QuickAddRow, EmptyStateCTA } from '@/components/ui/AddButton';
 import {
   FocusTimer,
   TaskCard,
@@ -24,9 +25,20 @@ import {
   LoadingState,
   ErrorState,
   StatTile,
+  TaskFormSheet,
+  SwipeRow,
+  RowActionsSheet,
+  type RowAction,
   type PlanBlock,
 } from '@/components/tracker';
-import { useTasks, useHabits, useStudySessions } from '@/hooks/api';
+import { HabitFormSheet } from '@/components/habits/HabitFormSheet';
+import {
+  useTasks,
+  useHabits,
+  useStudySessions,
+  useDeleteTask,
+  useDeleteHabit,
+} from '@/hooks/api';
 import { queryKeys } from '@/hooks/api/keys';
 import { requestData, type ApiError } from '@/services/api';
 import { spacing, motion } from '@/theme/tokens';
@@ -265,8 +277,22 @@ export default function TrackerScreen() {
   const toggleTask = useToggleTask();
   const completeHabit = useCompleteHabit();
   const logSession = useLogStudySession();
+  const deleteTask = useDeleteTask();
+  const deleteHabit = useDeleteHabit();
 
   const [taskFilter, setTaskFilter] = useState<TaskFilter>('open');
+
+  /* ---- Create / edit sheet + long-press menu state ---- */
+  const [taskSheet, setTaskSheet] = useState<{ open: boolean; task: Task | null }>({
+    open: false,
+    task: null,
+  });
+  const [habitSheet, setHabitSheet] = useState<{ open: boolean; habit: Habit | null }>({
+    open: false,
+    habit: null,
+  });
+  const [taskMenu, setTaskMenu] = useState<Task | null>(null);
+  const [habitMenu, setHabitMenu] = useState<Habit | null>(null);
 
   /* ---- Normalized data ---- */
   const tasks = useMemo<Task[]>(
@@ -336,6 +362,62 @@ export default function TrackerScreen() {
     [logSession],
   );
 
+  /* ---- Create / edit / delete handlers ---- */
+  const openNewTask = useCallback(() => setTaskSheet({ open: true, task: null }), []);
+  const openEditTask = useCallback(
+    (task: Task) => setTaskSheet({ open: true, task }),
+    [],
+  );
+  const closeTaskSheet = useCallback(() => setTaskSheet({ open: false, task: null }), []);
+  const onDeleteTask = useCallback(
+    (id: string) => deleteTask.mutate(id),
+    [deleteTask],
+  );
+
+  const openNewHabit = useCallback(() => setHabitSheet({ open: true, habit: null }), []);
+  const openEditHabit = useCallback(
+    (habit: Habit) => setHabitSheet({ open: true, habit }),
+    [],
+  );
+  const closeHabitSheet = useCallback(
+    () => setHabitSheet({ open: false, habit: null }),
+    [],
+  );
+  const onDeleteHabit = useCallback(
+    (id: string) => deleteHabit.mutate(id),
+    [deleteHabit],
+  );
+
+  const taskMenuActions = useMemo<RowAction[]>(() => {
+    if (!taskMenu) return [];
+    const t = taskMenu;
+    return [
+      { key: 'edit', label: 'Edit task', icon: 'edit', onPress: () => openEditTask(t) },
+      {
+        key: 'delete',
+        label: 'Delete task',
+        icon: 'trash',
+        destructive: true,
+        onPress: () => onDeleteTask(t.id),
+      },
+    ];
+  }, [taskMenu, openEditTask, onDeleteTask]);
+
+  const habitMenuActions = useMemo<RowAction[]>(() => {
+    if (!habitMenu) return [];
+    const h = habitMenu;
+    return [
+      { key: 'edit', label: 'Edit habit', icon: 'edit', onPress: () => openEditHabit(h) },
+      {
+        key: 'delete',
+        label: 'Delete habit',
+        icon: 'trash',
+        destructive: true,
+        onPress: () => onDeleteHabit(h.id),
+      },
+    ];
+  }, [habitMenu, openEditHabit, onDeleteHabit]);
+
   const refreshing =
     tasksQuery.isFetching || habitsQuery.isFetching || sessionsQuery.isFetching;
   const onRefresh = useCallback(() => {
@@ -364,14 +446,17 @@ export default function TrackerScreen() {
         <AppHeader
           title="Tracker"
           right={
-            streak > 0 ? (
-              <Tag
-                label={`${streak}-day streak`}
-                tone="warm"
-                size="sm"
-                icon={<Icon name="flame" size={11} color="rust" weight="fill" />}
-              />
-            ) : undefined
+            <View className="flex-row items-center" style={{ gap: spacing.sm }}>
+              {streak > 0 ? (
+                <Tag
+                  label={`${streak}-day streak`}
+                  tone="warm"
+                  size="sm"
+                  icon={<Icon name="flame" size={11} color="rust" weight="fill" />}
+                />
+              ) : null}
+              <AddButton onPress={openNewTask} accessibilityLabel="New task" />
+            </View>
           }
         />
         <AppText
@@ -464,27 +549,54 @@ export default function TrackerScreen() {
                 message={tasksQuery.error?.message}
                 onRetry={() => void tasksQuery.refetch()}
               />
-            ) : visibleTasks.length > 0 ? (
-              <MotiView
-                key={taskFilter}
-                from={{ opacity: 0, translateY: 6 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: 'timing', duration: motion.duration.micro }}
-              >
-                {visibleTasks.map((task, i) => (
-                  <TaskCard key={task.id} task={task} onToggle={onToggleTask} index={i} />
-                ))}
-              </MotiView>
-            ) : (
-              <EmptyState
-                icon={taskFilter === 'done' ? 'check-circle' : 'badge-check'}
-                title={taskFilter === 'done' ? 'Nothing finished yet' : 'All clear'}
-                body={
-                  taskFilter === 'done'
-                    ? 'Complete a task and it lands here.'
-                    : 'No open tasks right now.'
-                }
+            ) : tasks.length === 0 ? (
+              <EmptyStateCTA
+                icon="check-square"
+                title="No tasks yet"
+                description="Plan your day — add your first task to get going."
+                actionLabel="New task"
+                onAction={openNewTask}
               />
+            ) : visibleTasks.length > 0 ? (
+              <>
+                {/* Quick-add inline at the top of the list. */}
+                <QuickAddRow
+                  label="Add a task"
+                  onPress={openNewTask}
+                  style={{ marginBottom: spacing.sm }}
+                />
+                {visibleTasks.map((task, i) => (
+                  <SwipeRow
+                    key={task.id}
+                    onDelete={() => onDeleteTask(task.id)}
+                    onLongPress={() => setTaskMenu(task)}
+                  >
+                    <TaskCard
+                      task={task}
+                      onToggle={onToggleTask}
+                      onEdit={openEditTask}
+                      index={i}
+                    />
+                  </SwipeRow>
+                ))}
+              </>
+            ) : (
+              <>
+                <QuickAddRow
+                  label="Add a task"
+                  onPress={openNewTask}
+                  style={{ marginBottom: spacing.sm }}
+                />
+                <EmptyState
+                  icon={taskFilter === 'done' ? 'check-circle' : 'badge-check'}
+                  title={taskFilter === 'done' ? 'Nothing finished yet' : 'All clear'}
+                  body={
+                    taskFilter === 'done'
+                      ? 'Complete a task and it lands here.'
+                      : 'No open tasks right now.'
+                  }
+                />
+              </>
             )}
           </View>
         </MotiView>
@@ -495,7 +607,11 @@ export default function TrackerScreen() {
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: motion.duration.transition, delay: 240 }}
         >
-          <SectionHeader eyebrow="Build momentum" title="Habits" />
+          <SectionHeader
+            eyebrow="Build momentum"
+            title="Habits"
+            trailing={<AddButton onPress={openNewHabit} size={30} accessibilityLabel="New habit" />}
+          />
           {habitsQuery.isLoading ? (
             <LoadingState label="Loading habits" />
           ) : habitsQuery.isError ? (
@@ -504,17 +620,62 @@ export default function TrackerScreen() {
               onRetry={() => void habitsQuery.refetch()}
             />
           ) : habits.length > 0 ? (
-            habits.map((habit, i) => (
-              <HabitCard key={habit.id} habit={habit} onToggleToday={onToggleHabit} index={i} />
-            ))
+            <>
+              {habits.map((habit, i) => (
+                <SwipeRow
+                  key={habit.id}
+                  onDelete={() => onDeleteHabit(habit.id)}
+                  onLongPress={() => setHabitMenu(habit)}
+                >
+                  <HabitCard
+                    habit={habit}
+                    onToggleToday={onToggleHabit}
+                    onEdit={openEditHabit}
+                    index={i}
+                  />
+                </SwipeRow>
+              ))}
+              <QuickAddRow
+                label="Add a habit"
+                icon="repeat"
+                onPress={openNewHabit}
+                style={{ marginTop: spacing.xs }}
+              />
+            </>
           ) : (
-            <EmptyState
+            <EmptyStateCTA
               icon="repeat"
               title="No habits yet"
-              body="Pick one habit to repeat daily and watch the streak grow."
+              description="Pick one habit to repeat daily and watch the streak grow."
+              actionLabel="New habit"
+              onAction={openNewHabit}
             />
           )}
         </MotiView>
+
+        {/* ---------- Create / edit sheets + long-press menus ---------- */}
+        <TaskFormSheet
+          visible={taskSheet.open}
+          task={taskSheet.task}
+          onClose={closeTaskSheet}
+        />
+        <HabitFormSheet
+          visible={habitSheet.open}
+          habit={habitSheet.habit}
+          onClose={closeHabitSheet}
+        />
+        <RowActionsSheet
+          visible={!!taskMenu}
+          title={taskMenu?.title}
+          actions={taskMenuActions}
+          onClose={() => setTaskMenu(null)}
+        />
+        <RowActionsSheet
+          visible={!!habitMenu}
+          title={habitMenu?.title}
+          actions={habitMenuActions}
+          onClose={() => setHabitMenu(null)}
+        />
       </ScrollView>
     </View>
   );

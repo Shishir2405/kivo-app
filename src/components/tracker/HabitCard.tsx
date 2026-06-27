@@ -13,6 +13,8 @@ const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 export type HabitCardProps = {
   habit: Habit;
   onToggleToday: (id: string, next: boolean) => void;
+  /** Tap-the-title to edit. When set, tapping the row's text opens the editor. */
+  onEdit?: (habit: Habit) => void;
   /**
    * Position in the list — rotates the soft wash so the habit stack reads as an
    * intentionally colorful set, each habit with its own calm voice.
@@ -29,10 +31,11 @@ export type HabitCardProps = {
  * days, a matching hairline outline for misses, accent ring on today. No
  * neumorphism, no emoji — calm-but-colorful.
  */
-export function HabitCard({ habit, onToggleToday, index = 0 }: HabitCardProps) {
+export function HabitCard({ habit, onToggleToday, onEdit, index = 0 }: HabitCardProps) {
   const { colors, toneStyle } = useTheme();
   const completedThisWeek = habit.weekHistory.filter(Boolean).length;
   const done = habit.completedToday;
+  const canEdit = !!onEdit;
 
   const tone = toneAt(index);
   const ts = toneStyle(tone);
@@ -40,7 +43,13 @@ export function HabitCard({ habit, onToggleToday, index = 0 }: HabitCardProps) {
   return (
     <Card tone={tone} padding={spacing.md} style={{ marginBottom: spacing.sm }}>
       <View className="flex-row items-center" style={{ gap: spacing.md }}>
-        <View style={{ flex: 1 }}>
+        <Pressable
+          style={({ pressed }) => ({ flex: 1, opacity: canEdit ? pressOpacity({ pressed }) : 1 })}
+          disabled={!canEdit}
+          onPress={canEdit ? () => onEdit?.(habit) : undefined}
+          accessibilityRole={canEdit ? 'button' : undefined}
+          accessibilityLabel={canEdit ? `Edit ${habit.title}` : undefined}
+        >
           <AppText variant="body" weight="medium" color={colors.ink} numberOfLines={1}>
             {habit.title}
           </AppText>
@@ -57,7 +66,7 @@ export function HabitCard({ habit, onToggleToday, index = 0 }: HabitCardProps) {
               {completedThisWeek}/{habit.targetPerWeek} this week
             </AppText>
           </View>
-        </View>
+        </Pressable>
 
         {/* Flat circular complete toggle. */}
         <Pressable

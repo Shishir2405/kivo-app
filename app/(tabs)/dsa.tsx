@@ -7,15 +7,19 @@ import { MotiView } from 'moti';
 import { AppText } from '@/components/ui/Typography';
 import { GrayMark } from '@/components/ui/AppHeader';
 import { SegmentedTabs, type SegmentedOption } from '@/components/ui/SegmentedTabs';
+import { Select } from '@/components/ui/Select';
+import { SoftInput } from '@/components/ui/SoftInput';
 import { Icon } from '@/components/ui/Icon';
+import { AddButton, QuickAddRow, EmptyStateCTA } from '@/components/ui/AddButton';
+import { FormSheet } from '@/components/ui/FormSheet';
 import { TopicCard } from '@/components/dsa/TopicCard';
 import { InfoTile } from '@/components/dsa/InfoTile';
 import { SectionHeading } from '@/components/dsa/SectionHeading';
 import { ListSkeleton, ErrorState, EmptyState } from '@/components/dsa/StateViews';
-import { useDsaTopics } from '@/hooks/api';
+import { useDsaTopics, useCreateDsaTopic } from '@/hooks/api';
 import { motion } from '@/theme/tokens';
 import { useTheme } from '@/theme';
-import type { DsaTopic } from '@/types/models';
+import type { Difficulty, DsaTopic } from '@/types/models';
 
 /* ================================================================== */
 /* Topic filter (segmented control)                                    */
@@ -30,6 +34,12 @@ const TOPIC_FILTERS: SegmentedOption<TopicFilter>[] = [
 ];
 
 const MASTERED_THRESHOLD = 80;
+
+const DIFFICULTY_OPTIONS: { label: string; value: Difficulty }[] = [
+  { label: 'Easy', value: 'EASY' },
+  { label: 'Medium', value: 'MEDIUM' },
+  { label: 'Hard', value: 'HARD' },
+];
 
 function topicScore(t: DsaTopic): number {
   const score = t.mastery ?? t.progress ?? 0;
@@ -47,6 +57,61 @@ export default function DsaScreen() {
 
   const { data, isLoading, isError, error, refetch, isRefetching } = useDsaTopics();
   const [filter, setFilter] = useState<TopicFilter>('all');
+
+  // ---- Create-topic sheet ----
+  const createTopic = useCreateDsaTopic();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newDifficulty, setNewDifficulty] = useState<Difficulty>('MEDIUM');
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createAttempted, setCreateAttempted] = useState(false);
+
+  // Backend dsa-topic validator: name required, max 120; description max 2000.
+  const TITLE_MAX = 120;
+  const DESC_MAX = 2000;
+  const trimmedTitle = newTitle.trim();
+  // Required-empty message is held back until a submit attempt; the length cap
+  // surfaces immediately as the user types past it.
+  const titleError =
+    trimmedTitle.length === 0
+      ? createAttempted
+        ? 'Give the topic a name.'
+        : undefined
+      : trimmedTitle.length > TITLE_MAX
+      ? `Title must be at most ${TITLE_MAX} characters.`
+      : undefined;
+  const descError =
+    newDescription.trim().length > DESC_MAX ? `Description must be at most ${DESC_MAX} characters.` : undefined;
+  const createValid = trimmedTitle.length > 0 && trimmedTitle.length <= TITLE_MAX && !descError;
+
+  const openCreate = () => {
+    setNewTitle('');
+    setNewDescription('');
+    setNewDifficulty('MEDIUM');
+    setCreateError(null);
+    setCreateAttempted(false);
+    setCreateOpen(true);
+  };
+
+  const submitCreate = () => {
+    if (!createValid) {
+      setCreateAttempted(true);
+      return;
+    }
+    setCreateError(null);
+    createTopic.mutate(
+      {
+        title: trimmedTitle,
+        description: newDescription.trim() || undefined,
+        difficulty: newDifficulty,
+      },
+      {
+        onSuccess: () => setCreateOpen(false),
+        onError: (e) => setCreateError(e.message),
+      },
+    );
+  };
 
   const topics = useMemo<DsaTopic[]>(() => data ?? [], [data]);
 
@@ -92,17 +157,22 @@ export default function DsaScreen() {
           transition={{ type: 'timing', duration: motion.duration.transition }}
           style={{ marginBottom: 16 }}
         >
-          <AppText variant="body" color={colors.muted} weight="medium">
-            DSA Mode
-          </AppText>
-          <AppText variant="headingLg" display style={{ marginTop: 2 }}>
-            Topics
-          </AppText>
-          <AppText variant="body" color={colors.ash} style={{ marginTop: 4 }}>
-            {topics.length > 0
-              ? `${summary.totalSolved} of ${summary.totalProblems} problems solved`
-              : 'Your data-structures & algorithms practice'}
-          </AppText>
+          <View className="flex-row items-start justify-between" style={{ gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <AppText variant="body" color={colors.muted} weight="medium">
+                DSA Mode
+              </AppText>
+              <AppText variant="headingLg" display style={{ marginTop: 2 }}>
+                Topics
+              </AppText>
+              <AppText variant="body" color={colors.ash} style={{ marginTop: 4 }}>
+                {topics.length > 0
+                  ? `${summary.totalSolved} of ${summary.totalProblems} problems solved`
+                  : 'Your data-structures & algorithms practice'}
+              </AppText>
+            </View>
+            <AddButton onPress={openCreate} accessibilityLabel="New topic" />
+          </View>
         </MotiView>
 
         {/* ---------- Summary stats (data washes) ---------- */}
@@ -171,10 +241,12 @@ export default function DsaScreen() {
             title="Couldn't load topics"
           />
         ) : topics.length === 0 ? (
-          <EmptyState
+          <EmptyStateCTA
             icon="layers"
             title="No topics yet"
-            body="Topics you track will show up here, with progress and mastery for each."
+            description="Add your first topic to start tracking progress and mastery."
+            actionLabel="New topic"
+            onAction={openCreate}
           />
         ) : filteredTopics.length === 0 ? (
           <EmptyState
@@ -188,6 +260,7 @@ export default function DsaScreen() {
           />
         ) : (
           <View style={{ gap: 10 }}>
+            <QuickAddRow label="Add a topic" onPress={openCreate} />
             {filteredTopics.map((topic, i) => (
               <TopicCard
                 key={topic.id}
@@ -209,6 +282,48 @@ export default function DsaScreen() {
           </View>
         ) : null}
       </ScrollView>
+
+      {/* Create-topic sheet */}
+      <FormSheet
+        visible={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={submitCreate}
+        title="New topic"
+        subtitle="Track a new data-structure or algorithm area"
+        pending={createTopic.isPending}
+        submitDisabled={!createValid}
+        submitLabel="Create topic"
+        error={createTopic.error?.message ?? null}
+      >
+        <SoftInput
+          label="Title"
+          placeholder="e.g. Binary Search"
+          value={newTitle}
+          onChangeText={(t) => {
+            setNewTitle(t);
+            if (createError) setCreateError(null);
+          }}
+          error={titleError}
+        />
+        <SoftInput
+          label="Description"
+          placeholder="What this topic covers (optional)"
+          value={newDescription}
+          onChangeText={(t) => {
+            setNewDescription(t);
+            if (createError) setCreateError(null);
+          }}
+          multiline
+          error={descError}
+          style={{ minHeight: 72, textAlignVertical: 'top', paddingTop: 4 }}
+        />
+        <Select
+          label="Difficulty"
+          options={DIFFICULTY_OPTIONS}
+          value={newDifficulty}
+          onChange={setNewDifficulty}
+        />
+      </FormSheet>
     </View>
   );
 }

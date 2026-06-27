@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
+import { View, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MotiView } from 'moti';
@@ -27,8 +27,13 @@ import {
   STATUS_TONE,
   formatShortDate,
 } from '@/components/dsa/dsaMeta';
-import { useDsaProblems, useDsaTopics } from '@/hooks/api';
-import { motion, pressOpacity } from '@/theme/tokens';
+import {
+  useDsaProblems,
+  useDsaTopics,
+  useUpdateProblem,
+  useDeleteProblem,
+} from '@/hooks/api';
+import { motion, pressOpacity, radii } from '@/theme/tokens';
 import { useTheme } from '@/theme';
 import type { Problem, ProblemStatus } from '@/types/models';
 
@@ -47,10 +52,7 @@ type Journal = {
 
 function seedJournal(problem: Problem): Journal {
   return {
-    // problem.approach is surfaced in the dedicated dark Approach card above the
-    // journal, so the editable "Initial approach" entry starts as a clean
-    // capture surface (matches the design's coding-journal).
-    approach: '',
+    approach: problem.approach ?? '',
     mistakes: '',
     optimal: '',
     interviewTip: '',
@@ -92,8 +94,13 @@ export default function ProblemDetailScreen() {
     [topicsQuery.data, problem],
   );
 
+  const updateProblem = useUpdateProblem();
+  const deleteProblem = useDeleteProblem();
+
   const [status, setStatus] = useState<ProblemStatus>('TODO');
   const [bookmarked, setBookmarked] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savedFlash, setSavedFlash] = useState(false);
   const [journal, setJournal] = useState<Journal>({
     approach: '',
     mistakes: '',
@@ -113,11 +120,110 @@ export default function ProblemDetailScreen() {
   }, [problem?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function patchJournal(key: keyof Journal) {
-    return (next: string) => setJournal((j) => ({ ...j, [key]: next }));
+    return (next: string) => {
+      setJournal((j) => ({ ...j, [key]: next }));
+      if (saveError) setSaveError(null);
+    };
   }
+
+  // Compose the journal's free-text fields into the persisted `notes` blob so
+  // mistakes / optimal / interview-tip survive a round-trip (the Problem model
+  // has no dedicated columns for them).
+  function composeNotes(j: Journal): string {
+    const parts: string[] = [];
+    if (j.mistakes.trim()) parts.push(`Mistakes:\n${j.mistakes.trim()}`);
+    if (j.optimal.trim()) parts.push(`Optimal:\n${j.optimal.trim()}`);
+    if (j.interviewTip.trim()) parts.push(`Interview tip:\n${j.interviewTip.trim()}`);
+    return parts.join('\n\n');
+  }
+
+  /* ---- Per-field validation (mirrors the dsa-problem backend validator) ---- */
+  // approach max 5000; the composed notes blob max 5000; time/space max 60 each.
+  const APPROACH_MAX = 5000;
+  const NOTES_MAX = 5000;
+  const COMPLEXITY_MAX = 60;
+  const approachError =
+    journal.approach.trim().length > APPROACH_MAX
+      ? `Keep the approach under ${APPROACH_MAX.toLocaleString()} characters.`
+      : undefined;
+  // mistakes / optimal / interview-tip all flow into the single `notes` blob.
+  const composedNotesLen = composeNotes(journal).length;
+  const notesError =
+    composedNotesLen > NOTES_MAX
+      ? `The journal notes total ${composedNotesLen.toLocaleString()} — keep them under ${NOTES_MAX.toLocaleString()} characters.`
+      : undefined;
+  const timeError =
+    journal.timeComplexity.trim().length > COMPLEXITY_MAX
+      ? `Must be at most ${COMPLEXITY_MAX} characters.`
+      : undefined;
+  const spaceError =
+    journal.spaceComplexity.trim().length > COMPLEXITY_MAX
+      ? `Must be at most ${COMPLEXITY_MAX} characters.`
+      : undefined;
+  const journalValid = !approachError && !notesError && !timeError && !spaceError;
 
   const handleBack = () => {
     if (router.canGoBack()) router.back();
+  };
+
+  // Persist a status change immediately (also surfaced by the Mark-solved CTA).
+  const applyStatus = (next: ProblemStatus) => {
+    setStatus(next);
+    if (!problem) return;
+    updateProblem.mutate(
+      { id: problem.id, patch: { status: next } },
+      { onError: (e) => Alert.alert('Couldn’t update status', e.message) },
+    );
+  };
+
+  // Persist the coding-journal fields + status.
+  const onSaveJournal = () => {
+    if (!problem) return;
+    if (!journalValid) {
+      setSaveError('Fix the highlighted fields before saving.');
+      return;
+    }
+    setSaveError(null);
+    updateProblem.mutate(
+      {
+        id: problem.id,
+        patch: {
+          status,
+          approach: journal.approach.trim() || undefined,
+          notes: composeNotes(journal) || undefined,
+          timeComplexity: journal.timeComplexity.trim() || undefined,
+          spaceComplexity: journal.spaceComplexity.trim() || undefined,
+          bookmarked,
+        },
+      },
+      {
+        onSuccess: () => {
+          setSavedFlash(true);
+          setTimeout(() => setSavedFlash(false), 1600);
+        },
+        onError: (e) => setSaveError(e.message),
+      },
+    );
+  };
+
+  const onDelete = () => {
+    if (!problem || deleteProblem.isPending) return;
+    Alert.alert(
+      'Delete problem',
+      `Remove “${problem.title}”? This can’t be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () =>
+            deleteProblem.mutate(problem.id, {
+              onSuccess: () => handleBack(),
+              onError: (e) => Alert.alert('Couldn’t delete', e.message),
+            }),
+        },
+      ],
+    );
   };
 
   /* ---- Loading ---- */
@@ -194,19 +300,35 @@ export default function ProblemDetailScreen() {
           title={problem.title}
           onBack={handleBack}
           trailing={
-            <Pressable
-              onPress={() => setBookmarked((b) => !b)}
-              hitSlop={10}
-              accessibilityLabel="Bookmark problem"
-              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
-            >
-              <Icon
-                name="bookmark"
-                size={20}
-                color={bookmarked ? 'primary' : 'muted'}
-                weight={bookmarked ? 'fill' : 'light'}
-              />
-            </Pressable>
+            <View className="flex-row items-center" style={{ gap: 14 }}>
+              <Pressable
+                onPress={onDelete}
+                hitSlop={10}
+                disabled={deleteProblem.isPending}
+                accessibilityRole="button"
+                accessibilityLabel="Delete problem"
+                style={({ pressed }) => ({ opacity: deleteProblem.isPending ? 0.4 : pressOpacity({ pressed }) })}
+              >
+                {deleteProblem.isPending ? (
+                  <ActivityIndicator size="small" color={colors.muted} />
+                ) : (
+                  <Icon name="trash" size={19} color="danger" />
+                )}
+              </Pressable>
+              <Pressable
+                onPress={() => setBookmarked((b) => !b)}
+                hitSlop={10}
+                accessibilityLabel="Bookmark problem"
+                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+              >
+                <Icon
+                  name="bookmark"
+                  size={20}
+                  color={bookmarked ? 'primary' : 'muted'}
+                  weight={bookmarked ? 'fill' : 'light'}
+                />
+              </Pressable>
+            </View>
           }
           style={{ marginBottom: 20 }}
         />
@@ -277,7 +399,7 @@ export default function ProblemDetailScreen() {
         <SegmentedTabs
           options={STATUS_OPTIONS}
           value={status}
-          onChange={setStatus}
+          onChange={applyStatus}
           height={40}
           style={{ marginBottom: 24 }}
         />
@@ -297,8 +419,13 @@ export default function ProblemDetailScreen() {
           body={journal.approach}
           onChangeBody={patchJournal('approach')}
           placeholder="How did you crack it? Name the pattern."
-          style={{ marginBottom: 18 }}
+          style={{ marginBottom: approachError ? 6 : 18 }}
         />
+        {approachError ? (
+          <AppText variant="caption" color={colors.danger} style={{ marginBottom: 18 }}>
+            {approachError}
+          </AppText>
+        ) : null}
         <JournalField
           key="journal-mistakes"
           icon="alert"
@@ -327,8 +454,13 @@ export default function ProblemDetailScreen() {
           body={journal.interviewTip}
           onChangeBody={patchJournal('interviewTip')}
           placeholder="What to mention out loud — trade-offs, follow-ups, the name-drop."
-          style={{ marginBottom: 24 }}
+          style={{ marginBottom: notesError ? 6 : 24 }}
         />
+        {notesError ? (
+          <AppText variant="caption" color={colors.danger} style={{ marginBottom: 24 }}>
+            {notesError}
+          </AppText>
+        ) : null}
 
         {/* ---------- Complexity ---------- */}
         <SectionHeading icon="activity" title="Complexity" />
@@ -342,6 +474,7 @@ export default function ProblemDetailScreen() {
               placeholder="O(n)"
               autoCapitalize="none"
               autoCorrect={false}
+              error={timeError}
             />
           </View>
           <View style={{ flex: 1 }}>
@@ -353,6 +486,7 @@ export default function ProblemDetailScreen() {
               placeholder="O(1)"
               autoCapitalize="none"
               autoCorrect={false}
+              error={spaceError}
             />
           </View>
         </View>
@@ -382,19 +516,48 @@ export default function ProblemDetailScreen() {
           </>
         ) : null}
 
-        {/* ---------- Actions: ONE filled Ink CTA + a text link ---------- */}
+        {/* ---------- Save error ---------- */}
+        {saveError ? (
+          <View
+            style={{
+              marginBottom: 14,
+              paddingVertical: 10,
+              paddingHorizontal: 14,
+              borderRadius: radii.input,
+              backgroundColor: colors.dangerWash,
+              borderWidth: 1,
+              borderColor: colors.danger,
+            }}
+          >
+            <AppText variant="caption" color={colors.danger}>
+              {saveError}
+            </AppText>
+          </View>
+        ) : null}
+
+        {/* ---------- Actions: save journal + mark solved ---------- */}
         <View className="flex-row items-center" style={{ gap: 16 }}>
           <PillButton
-            label="Mark solved"
+            label={savedFlash ? 'Saved' : 'Save journal'}
             variant="black"
             size="md"
-            onPress={() => setStatus('SOLVED')}
+            disabled={updateProblem.isPending || !journalValid}
+            onPress={onSaveJournal}
+            icon={
+              savedFlash ? (
+                <Icon name="check" size={15} color={colors.inkInverted} />
+              ) : undefined
+            }
           />
-          <TextLink
-            label="Schedule review"
-            onPress={() => {}}
-            icon={<Icon name="calendar-check" size={15} color="ink" />}
-          />
+          {updateProblem.isPending ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <TextLink
+              label="Mark solved"
+              onPress={() => applyStatus('SOLVED')}
+              icon={<Icon name="check-circle" size={15} color="ink" />}
+            />
+          )}
         </View>
       </ScrollView>
     </View>

@@ -28,7 +28,13 @@ import {
   type RecallGrade,
   type UpcomingGroup,
 } from '@/components/revisions/revisionUtils';
-import { useRevisions, useReviewRevision, useProfile } from '@/hooks/api';
+import {
+  useRevisions,
+  useReviewRevision,
+  useSnoozeRevision,
+  useSkipRevision,
+  useProfile,
+} from '@/hooks/api';
 import { fonts, motion } from '@/theme/tokens';
 import { useTheme } from '@/theme';
 import type { Revision } from '@/types/models';
@@ -331,12 +337,17 @@ export default function RevisionsScreen() {
   const { data, isLoading, isError, error, refetch, isFetching } = useRevisions();
   const profile = useProfile();
   const reviewMutation = useReviewRevision();
+  const snoozeMutation = useSnoozeRevision();
+  const skipMutation = useSkipRevision();
 
   const [view, setView] = useState<QueueView>('due');
   // Revisions cleared locally (reviewed / snoozed / skipped) drop out at once.
   const [cleared, setCleared] = useState<Record<string, true>>({});
   // The id currently being reviewed against the backend (for a pending label).
   const [pendingId, setPendingId] = useState<string | null>(null);
+  // A transient banner if a snooze / skip request fails (the card stays cleared
+  // optimistically; on failure we restore it and surface the reason).
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const revisions = useMemo<Revision[]>(
     () => (Array.isArray(data) ? data.filter((r) => r && !cleared[r.id]) : []),
@@ -366,16 +377,46 @@ export default function RevisionsScreen() {
     [reviewMutation],
   );
 
-  const handleSnooze = useCallback((id: string) => {
-    setCleared((prev) => ({ ...prev, [id]: true }));
-  }, []);
+  // Optimistically clear the card, then fire the mutation. On failure restore it
+  // and surface the reason; the action never crashes the queue.
+  const clearWithMutation = useCallback(
+    (
+      id: string,
+      mutate: (
+        id: string,
+        opts: { onError: (e: { message: string }) => void },
+      ) => void,
+      failMsg: string,
+    ) => {
+      setActionError(null);
+      setCleared((prev) => ({ ...prev, [id]: true }));
+      mutate(id, {
+        onError: (e) => {
+          setCleared((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+          setActionError(e.message || failMsg);
+        },
+      });
+    },
+    [],
+  );
 
-  const handleSkip = useCallback((id: string) => {
-    setCleared((prev) => ({ ...prev, [id]: true }));
-  }, []);
+  const handleSnooze = useCallback(
+    (id: string) => clearWithMutation(id, snoozeMutation.mutate, 'Couldn’t snooze this revision'),
+    [clearWithMutation, snoozeMutation.mutate],
+  );
+
+  const handleSkip = useCallback(
+    (id: string) => clearWithMutation(id, skipMutation.mutate, 'Couldn’t skip this revision'),
+    [clearWithMutation, skipMutation.mutate],
+  );
 
   const onRefresh = useCallback(() => {
     setCleared({});
+    setActionError(null);
     void refetch();
   }, [refetch]);
 
@@ -445,6 +486,30 @@ export default function RevisionsScreen() {
             style={{ marginBottom: 22 }}
           />
         </MotiView>
+
+        {/* ----- Transient snooze / skip error ----- */}
+        {actionError ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              paddingVertical: 10,
+              paddingHorizontal: 14,
+              borderRadius: 14,
+              backgroundColor: colors.dangerWash,
+              borderWidth: 1,
+              borderColor: colors.danger,
+              marginBottom: 16,
+            }}
+          >
+            <Icon name="alert" size={15} color="danger" />
+            <AppText variant="caption" color={colors.danger} style={{ flex: 1 }}>
+              {actionError}
+            </AppText>
+            <TextLink label="Dismiss" muted size="sm" onPress={() => setActionError(null)} />
+          </View>
+        ) : null}
 
         {/* ================= STATES ================= */}
         {isError ? (

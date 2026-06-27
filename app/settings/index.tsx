@@ -9,11 +9,12 @@
  * state. Sign out runs the REAL auth-store logout. Reminders fire from REAL
  * actions elsewhere (e.g. revision snooze), so there's no test-notification CTA.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { AppText } from '@/components/ui/Typography';
 import { TextLink } from '@/components/ui/PillButton';
@@ -22,6 +23,7 @@ import { Select } from '@/components/ui/Select';
 import { Stepper } from '@/components/ui/Stepper';
 import { Icon } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { MenuRow } from '@/components/profile';
 
 import {
   SectionHeader,
@@ -40,7 +42,15 @@ import {
   cancelAllReminders,
 } from '@/services/notifications';
 import { useAuthStore } from '@/store/useAuthStore';
-import type { AppLanguage } from '@/types/models';
+import {
+  useUpdatePreferences,
+  useUpdateNotificationPreferences,
+} from '@/hooks/api';
+import type {
+  AppLanguage,
+  AppPreferences,
+  NotificationPreferences,
+} from '@/types/models';
 
 /* ------------------------------------------------------------------ */
 /* Option lists                                                        */
@@ -86,12 +96,24 @@ function Enter({ delay = 0, children }: { delay?: number; children: React.ReactN
 /* Screen                                                              */
 /* ------------------------------------------------------------------ */
 
+/** Convert a whole-hour string ("22") into the "HH:MM" the API expects. */
+function hourToHHMM(hour: string): string {
+  const h = Math.max(0, Math.min(23, parseInt(hour, 10) || 0));
+  return `${String(h).padStart(2, '0')}:00`;
+}
+
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const qc = useQueryClient();
 
   const account = useAccount();
   const logout = useAuthStore((s) => s.logout);
+
+  const updatePrefs = useUpdatePreferences();
+  const updateNotif = useUpdateNotificationPreferences();
 
   // Theme preference is driven by the live ThemeProvider so toggling it here
   // re-skins the whole app instantly (and persists via the UI store).
@@ -110,6 +132,11 @@ export default function SettingsScreen() {
   const [quietEnd, setQuietEnd] = useState('7');
   const [seeded, setSeeded] = useState(false);
 
+  // Save-on-change status surfaced quietly under the screen title.
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const a = account.data;
     if (!a || seeded) return;
@@ -124,11 +151,77 @@ export default function SettingsScreen() {
     setSeeded(true);
   }, [account.data, seeded]);
 
+  useEffect(() => {
+    return () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, []);
+
+  // Debounce timer for rapid-fire controls (steppers) so we PATCH once they settle.
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flashSaved = useCallback(() => {
+    setSaveState('saved');
+    setSaveError(null);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSaveState('idle'), 1600);
+  }, []);
+
+  // Persist a slice of app preferences (PATCH /users/me/preferences).
+  const savePrefs = useCallback(
+    (patch: Partial<AppPreferences>) => {
+      setSaveState('saving');
+      updatePrefs.mutate(patch, {
+        onSuccess: () => {
+          void qc.invalidateQueries({ queryKey: ['account', 'me'] });
+          flashSaved();
+        },
+        onError: (e) => {
+          setSaveState('error');
+          setSaveError(e.message);
+        },
+      });
+    },
+    [updatePrefs, qc, flashSaved],
+  );
+
+  // Persist a slice of notification preferences (PATCH .../notification-preferences).
+  const saveNotif = useCallback(
+    (patch: Partial<NotificationPreferences>) => {
+      setSaveState('saving');
+      updateNotif.mutate(patch, {
+        onSuccess: () => {
+          void qc.invalidateQueries({ queryKey: ['account', 'me'] });
+          flashSaved();
+        },
+        onError: (e) => {
+          setSaveState('error');
+          setSaveError(e.message);
+        },
+      });
+    },
+    [updateNotif, qc, flashSaved],
+  );
+
+  // Debounced preference save — used by the steppers (goal / focus length) so a
+  // run of taps PATCHes once the value settles rather than on every increment.
+  const savePrefsDebounced = useCallback(
+    (patch: Partial<AppPreferences>) => {
+      setSaveState('saving');
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(() => savePrefs(patch), 600);
+    },
+    [savePrefs],
+  );
+
   // Enabling a reminder toggle first asks for OS permission; denial keeps it off.
+  // On grant it updates local state, runs an optional persister, and saves.
   const enableWithPermission = useCallback(
-    async (set: (v: boolean) => void, next: boolean) => {
+    async (set: (v: boolean) => void, next: boolean, persist?: (v: boolean) => void) => {
       if (!next) {
         set(false);
+        persist?.(false);
         return;
       }
       const granted = await requestNotificationPermissions();
@@ -140,6 +233,7 @@ export default function SettingsScreen() {
         return;
       }
       set(true);
+      persist?.(true);
     },
     [],
   );
@@ -179,6 +273,31 @@ export default function SettingsScreen() {
             <AppText variant="headingLg" display weight="medium">
               Tune Kivo to you
             </AppText>
+            {/* Save-on-change status — quiet, never blocks the UI. */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 18, marginTop: 4 }}>
+              {saveState === 'saving' ? (
+                <>
+                  <Icon name="refresh" size={13} color="muted" />
+                  <AppText variant="caption" color={colors.muted}>
+                    Saving…
+                  </AppText>
+                </>
+              ) : saveState === 'saved' ? (
+                <>
+                  <Icon name="check" size={13} color="success" />
+                  <AppText variant="caption" color={colors.success}>
+                    Saved
+                  </AppText>
+                </>
+              ) : saveState === 'error' ? (
+                <>
+                  <Icon name="alert" size={13} color="danger" />
+                  <AppText variant="caption" color={colors.danger} numberOfLines={1} style={{ flex: 1 }}>
+                    {saveError ?? 'Couldn’t save — tap to retry'}
+                  </AppText>
+                </>
+              ) : null}
+            </View>
           </View>
         </Enter>
 
@@ -211,7 +330,11 @@ export default function SettingsScreen() {
             title="Revision reminders"
             subtitle="When spaced reviews are due"
             value={revisionReminders}
-            onValueChange={(v) => void enableWithPermission(setRevisionReminders, v)}
+            onValueChange={(v) =>
+              void enableWithPermission(setRevisionReminders, v, (next) =>
+                saveNotif({ revisionReminders: next }),
+              )
+            }
           />
           <RowDivider />
           <ToggleRow
@@ -219,7 +342,11 @@ export default function SettingsScreen() {
             title="Streak alerts"
             subtitle="Protect your streak before midnight"
             value={streakAlerts}
-            onValueChange={(v) => void enableWithPermission(setStreakAlerts, v)}
+            onValueChange={(v) =>
+              void enableWithPermission(setStreakAlerts, v, (next) =>
+                saveNotif({ streakAlerts: next }),
+              )
+            }
           />
           <RowDivider />
           <ToggleRow
@@ -227,7 +354,11 @@ export default function SettingsScreen() {
             title="Weekly report"
             subtitle="Your Sunday productivity recap"
             value={weeklyReport}
-            onValueChange={(v) => void enableWithPermission(setWeeklyReport, v)}
+            onValueChange={(v) =>
+              void enableWithPermission(setWeeklyReport, v, (next) =>
+                saveNotif({ weeklyReport: next }),
+              )
+            }
           />
         </SectionCard>
         </Enter>
@@ -246,35 +377,48 @@ export default function SettingsScreen() {
             onValueChange={(v) => {
               setQuietHours(v);
               if (v) void cancelAllReminders();
+              saveNotif({
+                quietHours: v,
+                quietStart: hourToHHMM(quietStart),
+                quietEnd: hourToHHMM(quietEnd),
+              });
             }}
           />
           <RowDivider />
-          <View
-            style={{
-              flexDirection: 'row',
-              gap: spacing.md,
-              padding: spacing.md,
-              opacity: quietHours ? 1 : 0.45,
-            }}
-          >
-            <Select
-              label="From"
-              title="Quiet hours start"
-              options={HOUR_OPTIONS}
-              value={quietStart}
-              onChange={setQuietStart}
-              disabled={!quietHours}
-              style={{ flex: 1 }}
-            />
-            <Select
-              label="To"
-              title="Quiet hours end"
-              options={HOUR_OPTIONS}
-              value={quietEnd}
-              onChange={setQuietEnd}
-              disabled={!quietHours}
-              style={{ flex: 1 }}
-            />
+          <View style={{ padding: spacing.md, opacity: quietHours ? 1 : 0.45 }}>
+            <View style={{ flexDirection: 'row', gap: spacing.md }}>
+              <Select
+                label="From"
+                title="Quiet hours start"
+                options={HOUR_OPTIONS}
+                value={quietStart}
+                onChange={(v) => {
+                  // hourToHHMM clamps to 0–23, so the API never sees an out-of-range hour.
+                  setQuietStart(v);
+                  saveNotif({ quietStart: hourToHHMM(v) });
+                }}
+                disabled={!quietHours}
+                style={{ flex: 1 }}
+              />
+              <Select
+                label="To"
+                title="Quiet hours end"
+                options={HOUR_OPTIONS}
+                value={quietEnd}
+                onChange={(v) => {
+                  setQuietEnd(v);
+                  saveNotif({ quietEnd: hourToHHMM(v) });
+                }}
+                disabled={!quietHours}
+                style={{ flex: 1 }}
+              />
+            </View>
+            {/* Backend is lenient on start vs end; this is a non-blocking UX hint. */}
+            {quietHours && quietStart === quietEnd ? (
+              <AppText variant="caption" color={colors.danger} style={{ marginTop: spacing.sm }}>
+                Start and end are the same — pick different hours for a real quiet window.
+              </AppText>
+            ) : null}
           </View>
         </SectionCard>
         </Enter>
@@ -286,7 +430,14 @@ export default function SettingsScreen() {
         <SectionHeader title="Appearance" />
         <SectionCard>
           <ControlRow icon="sun" title="Theme" subtitle="Auto follows your device" align="block">
-            <SegmentedTabs options={THEME_OPTIONS} value={theme} onChange={setTheme} />
+            <SegmentedTabs
+              options={THEME_OPTIONS}
+              value={theme}
+              onChange={(v) => {
+                setTheme(v); // persists locally via the ThemeProvider/store
+                savePrefs({ theme: v });
+              }}
+            />
           </ControlRow>
           <RowDivider />
           <ControlRow icon="globe" title="Language" align="center">
@@ -294,7 +445,10 @@ export default function SettingsScreen() {
               title="Language"
               options={LANGUAGE_OPTIONS}
               value={language}
-              onChange={setLanguage}
+              onChange={(v) => {
+                setLanguage(v);
+                savePrefs({ language: v });
+              }}
               style={{ width: 150 }}
             />
           </ControlRow>
@@ -308,11 +462,30 @@ export default function SettingsScreen() {
         <SectionHeader title="Study" />
         <SectionCard>
           <ControlRow icon="target" title="Daily goal" subtitle="Problems to solve each day" align="center">
-            <Stepper value={dailyGoal} onChange={setDailyGoal} min={1} max={20} suffix="/ day" />
+            <Stepper
+              value={dailyGoal}
+              onChange={(v) => {
+                setDailyGoal(v);
+                savePrefsDebounced({ dailyGoal: v });
+              }}
+              min={1}
+              max={20}
+              suffix="/ day"
+            />
           </ControlRow>
           <RowDivider />
           <ControlRow icon="timer" title="Focus length" subtitle="Default deep-work block" align="center">
-            <Stepper value={focusMinutes} onChange={setFocusMinutes} min={5} max={90} step={5} suffix="min" />
+            <Stepper
+              value={focusMinutes}
+              onChange={(v) => {
+                setFocusMinutes(v);
+                savePrefsDebounced({ focusDuration: v });
+              }}
+              min={5}
+              max={90}
+              step={5}
+              suffix="min"
+            />
           </ControlRow>
         </SectionCard>
         </Enter>
@@ -322,6 +495,21 @@ export default function SettingsScreen() {
         {/* ============================================================ */}
         <Enter delay={300}>
         <SectionHeader title="Account" />
+        <SectionCard padding={0}>
+          <View style={{ paddingHorizontal: spacing.md }}>
+            <MenuRow
+              icon="user"
+              title="Edit profile"
+              onPress={() => router.push('/settings/profile')}
+            />
+            <MenuRow
+              icon="bell"
+              title="Notifications"
+              onPress={() => router.push('/notifications')}
+              last
+            />
+          </View>
+        </SectionCard>
         <View style={{ alignItems: 'center', gap: spacing.md, marginTop: spacing.xs }}>
           <TextLink
             label="Sign out"
