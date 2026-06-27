@@ -98,7 +98,7 @@ export default function RegisterScreen() {
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(auth)/welcome');
+    else router.replace('/(auth)/login');
   };
 
   // Memoized once so each MotiView keeps a STABLE prop reference across

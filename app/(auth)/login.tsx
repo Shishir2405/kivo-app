@@ -44,8 +44,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * Log in — matches the HTML "Log in" mockup, wired to the REAL auth store.
  *
  * Terracotta ring badge, serif "Welcome back" heading, email + password fields,
- * a right-aligned "Forgot password?" link, the single terracotta CTA, an "or"
- * divider, Continue with Google, and a "New here? Create account" footer.
+ * the single terracotta CTA, an "or" divider, Continue with Google, and a
+ * "New here? Create account" footer.
  * Dark-aware via useTheme() with a staggered entrance. Validation shows inline
  * field errors; an auth failure shows inline form error text. The store's
  * `login` NEVER throws, so submit can't crash — on success we replace to (tabs).
@@ -87,7 +87,7 @@ export default function LoginScreen() {
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(auth)/welcome');
+    else router.replace('/(auth)/onboarding');
   };
 
   // Memoized once so each MotiView keeps a STABLE prop reference across
@@ -209,15 +209,6 @@ export default function LoginScreen() {
                   </Pressable>
                 }
               />
-              <View style={{ alignSelf: 'flex-end' }}>
-                <TextLink
-                  label="Forgot password?"
-                  size="sm"
-                  onPress={() => {
-                    /* reset flow not yet wired */
-                  }}
-                />
-              </View>
             </View>
 
             {formError ? (

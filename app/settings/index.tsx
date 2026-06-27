@@ -153,7 +153,7 @@ export default function SettingsScreen() {
         onPress: () => {
           void (async () => {
             await logout();
-            router.replace('/(auth)/welcome');
+            router.replace('/(auth)/login');
           })();
         },
       },

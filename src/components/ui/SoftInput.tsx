@@ -1,4 +1,4 @@
-import React, { useState, forwardRef } from 'react';
+import React, { forwardRef } from 'react';
 import {
   TextInput,
   View,
@@ -16,35 +16,41 @@ export type SoftInputProps = TextInputProps & {
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
   containerStyle?: StyleProp<ViewStyle>;
-  /** @deprecated focus already accents in terracotta; kept for back-compat. */
+  /** @deprecated kept for back-compat; focus no longer re-styles via state. */
   accent?: boolean;
 };
 
 /**
- * Kivo text field — calm & flat. On the canvas-tinted fill it carries a 1px
- * hairline that on FOCUS deepens to TERRACOTTA + a soft terracotta focus ring
- * (the HTML's `box-shadow 0 0 0 4px rgba(196,106,61,.1)`), and danger on error.
- * Radius 12, Figtree text, muted placeholder. Theme-aware via useTheme().
+ * Kivo text field — calm & flat. 1px hairline (danger on error), radius 12,
+ * Figtree text, muted placeholder, theme-aware.
+ *
+ * CRITICAL: this field intentionally keeps NO React `focused` state. Setting
+ * state in onFocus re-rendered the field, and on Android that re-render BLURRED
+ * the freshly-focused native TextInput — so focus bounced across the whole form
+ * (Name→Email→Password→…) and you could never type. The border is therefore
+ * static. Any future focus accent MUST be done WITHOUT a React re-render of this
+ * component (e.g. Reanimated useAnimatedStyle driven on the UI thread).
  */
 export const SoftInput = forwardRef<TextInput, SoftInputProps>(function SoftInput(
-  { label, error, leading, trailing, containerStyle, accent: _accent, style, onFocus, onBlur, ...rest },
+  {
+    label,
+    error,
+    leading,
+    trailing,
+    containerStyle,
+    accent: _accent,
+    style,
+    onChangeText,
+    onFocus,
+    onBlur,
+    // Drop any incoming autoComplete so our autofill-disable (below) always wins.
+    autoComplete: _autoComplete,
+    ...rest
+  },
   ref,
 ) {
   const { colors } = useTheme();
-  const [focused, setFocused] = useState(false);
-
-  const borderColor = error ? colors.danger : focused ? colors.primary : colors.hairline;
-  // The terracotta focus glow (only while focused, no error).
-  const ring =
-    focused && !error
-      ? {
-          shadowColor: colors.primary,
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.18,
-          shadowRadius: 6,
-          elevation: 0,
-        }
-      : null;
+  const borderColor = error ? colors.danger : colors.hairline;
 
   return (
     <View style={containerStyle}>
@@ -62,33 +68,28 @@ export const SoftInput = forwardRef<TextInput, SoftInputProps>(function SoftInpu
       ) : null}
 
       <View
-        style={[
-          {
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: componentPadding.input.x,
-            minHeight: componentPadding.input.minHeight,
-            gap: 8,
-            borderRadius: radii.input,
-            backgroundColor: colors.surface,
-            borderWidth: focused || error ? 1.5 : 1,
-            borderColor,
-          },
-          ring,
-        ]}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: componentPadding.input.x,
+          minHeight: componentPadding.input.minHeight,
+          gap: 8,
+          borderRadius: radii.input,
+          backgroundColor: colors.surface,
+          borderWidth: error ? 1.5 : 1,
+          borderColor,
+        }}
       >
         {leading}
         <TextInput
           ref={ref}
           placeholderTextColor={colors.muted}
-          onFocus={(e) => {
-            setFocused(true);
-            onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setFocused(false);
-            onBlur?.(e);
-          }}
+          // Hard-disable Android autofill (it can hijack focus across a form).
+          importantForAutofill="no"
+          autoComplete="off"
+          onChangeText={onChangeText}
+          onFocus={onFocus}
+          onBlur={onBlur}
           style={[
             {
               flex: 1,

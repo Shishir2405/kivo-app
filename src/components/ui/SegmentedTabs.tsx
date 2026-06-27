@@ -1,8 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, View, Text, type StyleProp, type ViewStyle } from 'react-native';
-import { MotiView } from 'moti';
 import { Icon, type IconName } from './Icon';
-import { fonts, motion } from '@/theme/tokens';
+import { fonts } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeContext';
 
 export type SegmentedOption<T extends string> = {
@@ -23,14 +22,12 @@ export type SegmentedTabsProps<T extends string> = {
 };
 
 /**
- * Kivo segmented control — a soft track holding a raised pill that SPRINGS
- * under the active segment (the HTML's `transition: left .42s
- * cubic-bezier(.34,1.56,.64,1)` overshoot). Active label = ink; inactive =
- * muted. Theme-aware.
+ * Kivo segmented control — a soft track holding the segments. The ACTIVE segment
+ * gets its own raised surface pill (active label = ink, inactive = muted).
  *
- * Layout is MEASURED: we read the track width via onLayout and size each
- * segment in px, then slide the pill with a numeric translateX, so it never
- * desyncs from layout.
+ * No width-measurement / sliding layer: each segment is `flex: 1` and the active
+ * one simply renders its own background, so it can never desync, overlap, or cram
+ * (the old measured-slide approach was the source of the "not correct" toggle).
  */
 export function SegmentedTabs<T extends string>({
   options,
@@ -42,24 +39,21 @@ export function SegmentedTabs<T extends string>({
   style,
 }: SegmentedTabsProps<T>) {
   const { colors, isDark } = useTheme();
-  const count = Math.max(1, options.length);
   const activeIndex = useMemo(
     () => Math.max(0, options.findIndex((o) => o.value === value)),
     [options, value],
   );
   const pad = 3;
-  const [trackW, setTrackW] = useState(0);
-  const segW = trackW > 0 ? (trackW - pad * 2) / count : 0;
 
   return (
     <View style={[fullWidth ? { alignSelf: 'stretch' } : { alignSelf: 'flex-start' }, style]}>
       <View
-        onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
         style={{
           height,
           flexDirection: 'row',
+          alignItems: 'stretch',
           padding: pad,
-          position: 'relative',
+          gap: 2,
           opacity: disabled ? 0.45 : 1,
           backgroundColor: colors.surfaceAlt,
           borderRadius: height / 2,
@@ -67,31 +61,8 @@ export function SegmentedTabs<T extends string>({
           borderColor: colors.hairline,
         }}
       >
-        {/* Sliding raised pill — measured px width + spring translateX. */}
-        {segW > 0 ? (
-          <MotiView
-            animate={{ translateX: pad + activeIndex * segW }}
-            transition={motion.springSnappy}
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: pad,
-              bottom: pad,
-              left: 0,
-              width: segW,
-              borderRadius: (height - pad * 2) / 2,
-              backgroundColor: colors.surface,
-              shadowColor: colors.shadowTint,
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: isDark ? 0.4 : 0.1,
-              shadowRadius: 3,
-              elevation: 2,
-            }}
-          />
-        ) : null}
-
-        {options.map((opt) => {
-          const active = opt.value === value;
+        {options.map((opt, i) => {
+          const active = i === activeIndex;
           return (
             <Pressable
               key={opt.value}
@@ -101,11 +72,19 @@ export function SegmentedTabs<T extends string>({
               accessibilityState={{ selected: active }}
               style={({ pressed }) => ({
                 flex: 1,
+                minWidth: 0,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 5,
-                zIndex: 1,
+                borderRadius: (height - pad * 2) / 2,
+                backgroundColor: active ? colors.surface : 'transparent',
+                // One soft lift on the active pill.
+                shadowColor: active ? colors.shadowTint : 'transparent',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: active ? (isDark ? 0.4 : 0.1) : 0,
+                shadowRadius: 3,
+                elevation: active ? 2 : 0,
                 opacity: pressed && !active ? 0.6 : 1,
               })}
             >

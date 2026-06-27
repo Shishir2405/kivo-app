@@ -60,11 +60,53 @@ export function useProfile(): ApiQueryResult<UserProfile> {
   });
 }
 
+/**
+ * The backend GET /dashboard returns a NESTED payload
+ * ({ welcome, todayOverview, quickStats, ... }), but the Dashboard screen wants
+ * a FLAT `DashboardData` (it reads e.g. `data.quote.text` directly). Map it here
+ * with a SAFE DEFAULT for every field so a missing/renamed backend field can
+ * never crash the dashboard.
+ */
+interface BackendDashboard {
+  welcome?: { greeting?: string; currentStreak?: number; dailyQuote?: string };
+  todayOverview?: {
+    pendingRevisionsCount?: number;
+    todaysTasks?: unknown[];
+    dailyGoals?: {
+      studyMinutesDone?: number;
+      problemsGoal?: number;
+      problemsDone?: number;
+    };
+  };
+  quickStats?: { studyHoursToday?: number; problemsSolved?: number };
+}
+
+function mapDashboard(raw: BackendDashboard | null | undefined): DashboardData {
+  const w = raw?.welcome ?? {};
+  const to = raw?.todayOverview ?? {};
+  const goals = to.dailyGoals ?? {};
+  const qs = raw?.quickStats ?? {};
+  return {
+    greeting: w.greeting ?? 'Welcome',
+    solvedToday: qs.problemsSolved ?? goals.problemsDone ?? 0,
+    dailyGoal: goals.problemsGoal ?? 5,
+    streak: w.currentStreak ?? 0,
+    revisionsDueToday: to.pendingRevisionsCount ?? 0,
+    openTasks: Array.isArray(to.todaysTasks) ? to.todaysTasks.length : 0,
+    focusMinutesToday: goals.studyMinutesDone ?? Math.round((qs.studyHoursToday ?? 0) * 60),
+    continueTopics: [],
+    quote: { text: w.dailyQuote ?? 'Small steps, every day.', author: '' },
+  };
+}
+
 export function useDashboard(): ApiQueryResult<DashboardData> {
   const enabled = useIsAuthed();
   return useQuery<DashboardData, ApiError>({
     queryKey: queryKeys.dashboard,
-    queryFn: () => requestData<DashboardData>({ url: '/dashboard', method: 'GET' }),
+    queryFn: async () => {
+      const raw = await requestData<BackendDashboard>({ url: '/dashboard', method: 'GET' });
+      return mapDashboard(raw);
+    },
     enabled,
   });
 }

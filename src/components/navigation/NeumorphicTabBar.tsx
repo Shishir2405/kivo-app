@@ -1,22 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
-import { fonts, motion } from '@/theme/tokens';
+import { fonts, radii } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeContext';
 import { Icon, type IconName } from '@/components/ui/Icon';
 
 /**
  * Kivo floating-dock bottom nav.
  *
- * A floating surface pill (hairline + one soft shadow) with a TERRACOTTA-WASH
- * indicator that SPRING-slides under the active tab (the HTML dock's overshoot
- * pill). The active icon/label go terracotta, inactive are muted. Geometry is
- * measured (onLayout) so the indicator translateX is exact. Fully theme-aware:
- * in dark it becomes a translucent warm-dark dock. (Filename kept for the
- * existing import.)
+ * A floating surface pill (hairline + one soft shadow). Five tabs are evenly
+ * distributed (each `flex: 1`), icon stacked over a small label. The ACTIVE tab
+ * gets a terracotta-wash rounded pill behind it + terracotta icon/label;
+ * inactive are muted. Fully theme-aware. No width-measurement / sliding layer —
+ * the active pill is just the focused tab's own background, so the layout can
+ * never desync or cram.
  */
 type TabRouteName = 'index' | 'dsa' | 'revisions' | 'tracker' | 'profile';
 
@@ -28,43 +27,27 @@ const TABS: { name: TabRouteName; label: string; icon: IconName }[] = [
   { name: 'profile', label: 'Profile', icon: 'user' },
 ];
 
-const PAD = 6;
-
 export function NeumorphicTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { colors, shadow } = useTheme();
-  const [dockW, setDockW] = useState(0);
-  const count = TABS.length;
-  const tabW = dockW > 0 ? (dockW - PAD * 2) / count : 0;
-
-  const activeIndex = Math.max(
-    0,
-    TABS.findIndex((t) => {
-      const r = state.routes.find((rt) => rt.name === t.name);
-      return r ? state.routes.findIndex((x) => x.key === r.key) === state.index : false;
-    }),
-  );
-
-  // Active accents follow the HTML: terracotta for the active tab.
-  const activeColor = colors.primary;
-  const indicatorBg = colors.primaryWash;
 
   return (
     <View
       style={{
         paddingHorizontal: 14,
-        paddingTop: 8,
+        paddingTop: 6,
         paddingBottom: Math.max(insets.bottom, 10),
         backgroundColor: 'transparent',
       }}
     >
       <View
-        onLayout={(e) => setDockW(e.nativeEvent.layout.width)}
         style={[
           {
             flexDirection: 'row',
-            position: 'relative',
-            padding: PAD,
+            alignSelf: 'stretch',
+            alignItems: 'stretch',
+            padding: 6,
+            gap: 2,
             backgroundColor: colors.surface,
             borderRadius: 999,
             borderWidth: 1,
@@ -73,24 +56,6 @@ export function NeumorphicTabBar({ state, navigation }: BottomTabBarProps) {
           shadow,
         ]}
       >
-        {/* Sliding terracotta-wash indicator (spring overshoot). */}
-        {tabW > 0 ? (
-          <MotiView
-            animate={{ translateX: PAD + activeIndex * tabW }}
-            transition={motion.springSnappy}
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: PAD,
-              bottom: PAD,
-              left: 0,
-              width: tabW,
-              borderRadius: 999,
-              backgroundColor: indicatorBg,
-            }}
-          />
-        ) : null}
-
         {TABS.map((tab) => {
           const route = state.routes.find((r) => r.name === tab.name);
           if (!route) return null;
@@ -106,6 +71,8 @@ export function NeumorphicTabBar({ state, navigation }: BottomTabBarProps) {
             if (!focused && !ev.defaultPrevented) navigation.navigate(route.name);
           };
 
+          const tint = focused ? colors.primary : colors.muted;
+
           return (
             <Pressable
               key={route.key}
@@ -114,26 +81,27 @@ export function NeumorphicTabBar({ state, navigation }: BottomTabBarProps) {
               accessibilityRole="button"
               accessibilityState={focused ? { selected: true } : {}}
               accessibilityLabel={tab.label}
-              hitSlop={4}
-              style={({ pressed }) => [
-                { flex: 1, height: 46, alignItems: 'center', justifyContent: 'center', gap: 3, zIndex: 1 },
-                pressed && { opacity: 0.6 },
-              ]}
+              style={({ pressed }) => ({
+                flex: 1,
+                minWidth: 0,
+                paddingVertical: 7,
+                borderRadius: radii.pill,
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 3,
+                backgroundColor: focused ? colors.primaryWash : 'transparent',
+                opacity: pressed && !focused ? 0.6 : 1,
+              })}
             >
-              <Icon
-                name={tab.icon}
-                size={20}
-                color={focused ? activeColor : colors.muted}
-                weight={focused ? 'regular' : 'regular'}
-              />
+              <Icon name={tab.icon} size={20} color={tint} />
               <Text
-                style={{
-                  fontFamily: fonts.sansSemibold,
-                  fontSize: 9.5,
-                  letterSpacing: -0.1,
-                  color: focused ? activeColor : colors.muted,
-                }}
                 numberOfLines={1}
+                style={{
+                  fontFamily: focused ? fonts.sansSemibold : fonts.sansMedium,
+                  fontSize: 10,
+                  letterSpacing: -0.1,
+                  color: tint,
+                }}
               >
                 {tab.label}
               </Text>
