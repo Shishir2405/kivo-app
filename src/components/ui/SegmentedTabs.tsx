@@ -31,7 +31,7 @@ export function SegmentedTabs<T extends string>({
   value,
   onChange,
   disabled,
-  height = 38,
+  height = 36,
   fullWidth = true,
   style,
 }: SegmentedTabsProps<T>) {
@@ -90,14 +90,15 @@ export function SegmentedTabs<T extends string>({
               onPress={() => onChange(opt.value)}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
-              style={{
+              style={({ pressed }) => ({
                 flex: 1,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 5,
                 borderRadius: (height - pad * 2) / 2,
-              }}
+                opacity: pressed && !active ? 0.6 : 1,
+              })}
             >
               {opt.icon ? (
                 <Icon name={opt.icon} size={15} color={active ? 'white' : 'graphite'} />

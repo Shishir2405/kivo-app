@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
-import { colors, fonts, radii } from '@/theme/tokens';
+import { colors, fonts, radii, interaction } from '@/theme/tokens';
 
 export type ChipProps = {
   label: string;
@@ -23,34 +23,40 @@ export function Chip({ label, selected, onPress, icon, disabled, style }: ChipPr
       disabled={disabled}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
-      style={[{ opacity: disabled ? 0.4 : 1 }, style]}
+      style={({ pressed }) => [{ opacity: disabled ? 0.4 : pressed ? 0.6 : 1 }, style]}
     >
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 5,
-          paddingVertical: 6,
-          paddingHorizontal: 12,
-          borderRadius: radii.pill,
-          backgroundColor: selected ? colors.ink : colors.white,
-          borderWidth: 1,
-          borderColor: selected ? colors.ink : colors.dove,
-        }}
-      >
-        {icon ? (
-          <Icon name={icon} size={13} color={selected ? 'white' : 'graphite'} />
-        ) : null}
-        <Text
+      {({ pressed, hovered }) => (
+        <View
           style={{
-            fontFamily: fonts.sansMedium,
-            fontSize: 13,
-            color: selected ? colors.white : colors.ash,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 5,
+            paddingVertical: 5,
+            paddingHorizontal: 11,
+            borderRadius: radii.pill,
+            backgroundColor: selected
+              ? colors.ink
+              : hovered && !pressed
+                ? interaction.hoverWash
+                : colors.white,
+            borderWidth: 1,
+            borderColor: selected ? colors.ink : pressed ? colors.ink : colors.dove,
           }}
         >
-          {label}
-        </Text>
-      </View>
+          {icon ? (
+            <Icon name={icon} size={13} color={selected ? 'white' : 'graphite'} />
+          ) : null}
+          <Text
+            style={{
+              fontFamily: fonts.sansMedium,
+              fontSize: 13,
+              color: selected ? colors.white : colors.ash,
+            }}
+          >
+            {label}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 }

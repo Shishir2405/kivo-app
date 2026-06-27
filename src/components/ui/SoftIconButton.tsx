@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors } from '@/theme/tokens';
+import { colors, interaction, pressOpacity } from '@/theme/tokens';
 
 export type SoftIconButtonProps = {
   children: React.ReactNode;
@@ -21,37 +21,39 @@ export type SoftIconButtonProps = {
 export function SoftIconButton({
   children,
   onPress,
-  size = 38,
+  size = 36,
   active = false,
   activeColor = colors.ink,
   style,
   accessibilityLabel,
 }: SoftIconButtonProps) {
-  const [pressed, setPressed] = useState(false);
-
   return (
     <Pressable
       onPress={onPress}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      style={[{ opacity: pressed ? 0.7 : 1 }, style]}
+      style={({ pressed }) => [{ opacity: pressOpacity({ pressed }, { solid: true }) }, style]}
     >
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: active ? activeColor : colors.white,
-          borderWidth: 1,
-          borderColor: active ? activeColor : colors.dove,
-        }}
-      >
-        {children}
-      </View>
+      {({ pressed, hovered }) => (
+        <View
+          style={{
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: active
+              ? activeColor
+              : hovered && !pressed
+                ? interaction.hoverWash
+                : colors.white,
+            borderWidth: 1,
+            borderColor: active ? activeColor : pressed ? colors.ink : colors.dove,
+          }}
+        >
+          {children}
+        </View>
+      )}
     </Pressable>
   );
 }

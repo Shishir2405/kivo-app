@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Pressable,
   Text,
@@ -7,7 +7,7 @@ import {
   type ViewStyle,
   type PressableProps,
 } from 'react-native';
-import { colors, fonts, radii } from '@/theme/tokens';
+import { colors, fonts, radii, pressOpacity } from '@/theme/tokens';
 
 export type PillVariant = 'yellow' | 'black' | 'ghost';
 
@@ -30,9 +30,9 @@ export type PillButtonProps = {
 
 // Compact Steep padding.
 const SIZES = {
-  sm: { py: 7, px: 14, font: 13 },
-  md: { py: 9, px: 18, font: 14 },
-  lg: { py: 11, px: 22, font: 14 },
+  sm: { py: 6, px: 13, font: 12 },
+  md: { py: 8, px: 16, font: 13 },
+  lg: { py: 10, px: 20, font: 14 },
 };
 
 /**
@@ -52,7 +52,6 @@ export function PillButton({
   size = 'md',
   style,
 }: PillButtonProps) {
-  const [pressed, setPressed] = useState(false);
   const s = SIZES[size];
 
   if (variant === 'ghost') {
@@ -63,13 +62,11 @@ export function PillButton({
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
-      style={[
+      style={({ pressed, hovered }) => [
         {
           borderRadius: radii.pill,
           backgroundColor: colors.ink,
-          opacity: disabled ? 0.4 : pressed ? 0.88 : 1,
+          opacity: pressOpacity({ pressed }, { disabled, solid: true }) * (hovered && !pressed ? 0.94 : 1),
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },
         style,
@@ -115,19 +112,16 @@ export function TextLink({
   muted,
   style,
 }: TextLinkProps) {
-  const [pressed, setPressed] = useState(false);
   const font = SIZES[size].font;
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
       hitSlop={8}
-      style={[
+      style={({ pressed }) => [
         {
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
-          opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
+          opacity: pressOpacity({ pressed }, { disabled }),
         },
         style,
       ]}

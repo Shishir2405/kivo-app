@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Pressable,
   Text,
@@ -7,7 +7,7 @@ import {
   type ViewStyle,
   type PressableProps,
 } from 'react-native';
-import { colors, fonts, radii } from '@/theme/tokens';
+import { colors, fonts, radii, pressOpacity } from '@/theme/tokens';
 
 export type SoftButtonVariant = 'neutral' | 'yellow' | 'carbon';
 
@@ -29,11 +29,11 @@ export type SoftButtonProps = {
   size?: 'sm' | 'md' | 'lg';
 };
 
-// Compact Steep padding — tight 8x16, small ~13–14 label.
+// Compact Steep padding — tight, small ~12–13 label.
 const PAD = {
-  sm: { py: 7, px: 14, font: 13 },
-  md: { py: 9, px: 18, font: 14 },
-  lg: { py: 11, px: 22, font: 14 },
+  sm: { py: 6, px: 13, font: 12 },
+  md: { py: 8, px: 16, font: 13 },
+  lg: { py: 10, px: 20, font: 14 },
 };
 
 /**
@@ -56,7 +56,6 @@ export function SoftButton({
   style,
   size = 'md',
 }: SoftButtonProps) {
-  const [pressed, setPressed] = useState(false);
   const pad = PAD[size];
   const isLink = variant === 'neutral';
 
@@ -65,13 +64,11 @@ export function SoftButton({
       <Pressable
         onPress={onPress}
         disabled={disabled}
-        onPressIn={() => setPressed(true)}
-        onPressOut={() => setPressed(false)}
         hitSlop={8}
-        style={[
+        style={({ pressed }) => [
           {
             alignSelf: fullWidth ? 'stretch' : 'flex-start',
-            opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
+            opacity: pressOpacity({ pressed }, { disabled }),
           },
           style,
         ]}
@@ -93,18 +90,16 @@ export function SoftButton({
     );
   }
 
-  // The single filled Ink pill.
+  // The single filled Ink pill. Hover (web): faint lift via opacity.
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
-      style={[
+      style={({ pressed, hovered }) => [
         {
           borderRadius: radius,
           backgroundColor: colors.ink,
-          opacity: disabled ? 0.4 : pressed ? 0.88 : 1,
+          opacity: pressOpacity({ pressed }, { disabled, solid: true }) * (hovered && !pressed ? 0.94 : 1),
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },
         style,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { Icon } from './Icon';
-import { colors, fonts } from '@/theme/tokens';
+import { colors, fonts, pressOpacity } from '@/theme/tokens';
 
 export type CheckboxProps = {
   checked: boolean;
@@ -31,43 +31,48 @@ export function Checkbox({
       disabled={disabled}
       accessibilityRole="checkbox"
       accessibilityState={{ checked, disabled }}
-      style={[
+      hitSlop={6}
+      style={({ pressed }) => [
         {
           flexDirection: 'row',
           alignItems: 'center',
           gap: 10,
-          opacity: disabled ? 0.4 : 1,
+          opacity: pressOpacity({ pressed }, { disabled, solid: true }),
           alignSelf: 'flex-start',
         },
         style,
       ]}
     >
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: 6,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: checked ? colors.ink : colors.white,
-          borderWidth: 1,
-          borderColor: checked ? colors.ink : colors.dove,
-        }}
-      >
-        {checked ? <Icon name="check" size={size * 0.7} color="white" weight="bold" /> : null}
-      </View>
-      {label ? (
-        <Text
-          style={{
-            fontFamily: fonts.sans,
-            fontSize: 14,
-            color: colors.ink,
-            flexShrink: 1,
-          }}
-        >
-          {label}
-        </Text>
-      ) : null}
+      {({ pressed }) => (
+        <>
+          <View
+            style={{
+              width: size,
+              height: size,
+              borderRadius: 6,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: checked ? colors.ink : colors.white,
+              borderWidth: 1,
+              borderColor: checked ? colors.ink : pressed ? colors.ink : colors.dove,
+            }}
+          >
+            {checked ? <Icon name="check" size={size * 0.7} color="white" weight="bold" /> : null}
+          </View>
+          {label ? (
+            <Text
+              style={{
+                fontFamily: fonts.sans,
+                fontSize: 13,
+                color: colors.ink,
+                flexShrink: 1,
+              }}
+            >
+              {label}
+            </Text>
+          ) : null}
+        </>
+      )}
     </Pressable>
   );
 }

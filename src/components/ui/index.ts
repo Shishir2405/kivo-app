@@ -16,6 +16,8 @@ export {
   CoolCard,
   type SoftCardProps,
   type CardProps,
+  type CardTone,
+  type ToneCardProps,
 } from './SoftCard';
 
 // Buttons — the single Ink filled pill + TextLink for secondary actions.

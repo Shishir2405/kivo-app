@@ -7,7 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { colors, fonts, radii } from '@/theme/tokens';
+import { colors, fonts, radii, componentPadding, interaction } from '@/theme/tokens';
 
 export type SoftInputProps = TextInputProps & {
   label?: string;
@@ -15,20 +15,27 @@ export type SoftInputProps = TextInputProps & {
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
   containerStyle?: StyleProp<ViewStyle>;
+  /** Focus border accents in Rust instead of Ink (for warm/data fields). */
+  accent?: boolean;
 };
 
 /**
- * Steep text field — small & flat. White fill, 1px Dove hairline (Ink on
- * focus, danger on error), radius ~13, small Inter text, Dove placeholder.
- * No neumorphic well.
+ * Steep text field — small & flat. White fill, 1px Dove hairline that on FOCUS
+ * deepens to Ink (or Rust with `accent`), danger on error; blurs back to Dove.
+ * Radius ~12, small Inter text, Dove placeholder. No neumorphic well.
  */
 export const SoftInput = forwardRef<TextInput, SoftInputProps>(function SoftInput(
-  { label, error, leading, trailing, containerStyle, style, onFocus, onBlur, ...rest },
+  { label, error, leading, trailing, containerStyle, accent, style, onFocus, onBlur, ...rest },
   ref,
 ) {
   const [focused, setFocused] = useState(false);
 
-  const borderColor = error ? colors.danger : focused ? colors.ink : colors.dove;
+  const focusColor = accent ? interaction.focusBorderAccent : interaction.focusBorder;
+  const borderColor = error
+    ? colors.danger
+    : focused
+      ? focusColor
+      : interaction.idleBorder;
 
   return (
     <View style={containerStyle}>
@@ -48,8 +55,8 @@ export const SoftInput = forwardRef<TextInput, SoftInputProps>(function SoftInpu
       <View
         className="flex-row items-center"
         style={{
-          paddingHorizontal: 12,
-          minHeight: 44,
+          paddingHorizontal: componentPadding.input.x,
+          minHeight: componentPadding.input.minHeight,
           gap: 8,
           borderRadius: radii.input,
           backgroundColor: colors.white,
@@ -73,9 +80,9 @@ export const SoftInput = forwardRef<TextInput, SoftInputProps>(function SoftInpu
             {
               flex: 1,
               fontFamily: fonts.sans,
-              fontSize: 14,
+              fontSize: 13,
               color: colors.ink,
-              paddingVertical: 10,
+              paddingVertical: componentPadding.input.y,
             },
             style,
           ]}

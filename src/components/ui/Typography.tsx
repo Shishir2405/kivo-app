@@ -50,12 +50,36 @@ function sansFamily(weight: Weight): string {
  * render Inter (clean sans, 400/500 only). Default color is Ink. Color is
  * punctuation — pass Ash/Graphite for muted/tertiary copy.
  */
+/**
+ * Defensively coerce children so a non-primitive value (e.g. an API error
+ * object {code, message, requestId} that slipped through a screen) can never
+ * throw "Objects are not valid as a React child" and white-screen the app.
+ */
+function coerceChild(children: React.ReactNode): React.ReactNode {
+  if (
+    children == null ||
+    typeof children === 'string' ||
+    typeof children === 'number' ||
+    typeof children === 'boolean' ||
+    Array.isArray(children) ||
+    React.isValidElement(children)
+  ) {
+    return children;
+  }
+  if (typeof children === 'object') {
+    const msg = (children as { message?: unknown }).message;
+    return typeof msg === 'string' ? msg : '';
+  }
+  return children;
+}
+
 export function AppText({
   variant = 'body',
   weight,
   color = colors.ink,
   display,
   style,
+  children,
   ...rest
 }: AppTextProps) {
   const isSerif = display ?? SERIF_VARIANTS.includes(variant);
@@ -76,7 +100,9 @@ export function AppText({
         style,
       ]}
       {...rest}
-    />
+    >
+      {coerceChild(children)}
+    </Text>
   );
 }
 

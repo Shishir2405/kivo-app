@@ -25,7 +25,8 @@ export function SoftToggle({ value, onValueChange, disabled }: SoftToggleProps) 
       disabled={disabled}
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
-      style={{ opacity: disabled ? 0.4 : 1 }}
+      hitSlop={6}
+      style={({ pressed }) => ({ opacity: disabled ? 0.4 : pressed ? 0.7 : 1 })}
     >
       <View
         style={{
