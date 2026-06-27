@@ -1,7 +1,6 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { SoftCard } from '@/components/ui/SoftCard';
-import { Neumorph } from '@/components/ui/Neumorph';
 import { AppText } from '@/components/ui/Typography';
 import { Tag } from '@/components/ui/Tag';
 import { Icon } from '@/components/ui/Icon';
@@ -23,52 +22,36 @@ export type ProblemRowProps = {
 };
 
 /**
- * A problem list row: an inset status-icon medallion, title + bookmark, a
- * difficulty + status mastery tag pair, a source label and a chevron. Every
- * glyph is rendered through the Icon system (no emoji).
+ * A flat Steep problem row: a small thin status glyph (Rust when solved), the
+ * title + an optional bookmark tick, a difficulty + status tag pair, an optional
+ * source label, and a chevron. Dove hairline + the one subtle shadow.
  */
 export function ProblemRow({ problem, onPress }: ProblemRowProps) {
   const statusColor = STATUS_COLOR[problem.status];
 
   return (
     <Pressable onPress={onPress}>
-      <SoftCard radius={22} intensity="sm" padding={14}>
-        <View className="flex-row items-center" style={{ gap: 12 }}>
-          {/* Status medallion */}
-          <Neumorph variant="inset" radius={14} intensity="sm">
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Icon
-                name={STATUS_ICON[problem.status]}
-                size={20}
-                color={statusColor}
-                strokeWidth={2.2}
-              />
-            </View>
-          </Neumorph>
+      <SoftCard radius={14} padding={12}>
+        <View className="flex-row items-center" style={{ gap: 10 }}>
+          {/* Status glyph */}
+          <Icon name={STATUS_ICON[problem.status]} size={17} color={statusColor} />
 
           <View style={{ flex: 1 }}>
             <View className="flex-row items-center" style={{ gap: 6 }}>
               <AppText
                 variant="body"
-                weight="semibold"
+                weight="medium"
                 numberOfLines={1}
                 style={{ flexShrink: 1 }}
               >
                 {problem.title}
               </AppText>
               {problem.bookmarked ? (
-                <Icon name="bookmark" size={15} color="highlighter" fill="highlighter" />
+                <Icon name="bookmark" size={13} color="rust" weight="fill" />
               ) : null}
             </View>
 
-            <View className="flex-row items-center" style={{ gap: 6, marginTop: 7 }}>
+            <View className="flex-row items-center flex-wrap" style={{ gap: 6, marginTop: 6 }}>
               <Tag
                 label={DIFFICULTY_LABEL[problem.difficulty]}
                 tone={DIFFICULTY_TONE[problem.difficulty]}
@@ -76,14 +59,14 @@ export function ProblemRow({ problem, onPress }: ProblemRowProps) {
               />
               <Tag label={STATUS_LABEL[problem.status]} tone={STATUS_TONE[problem.status]} size="sm" />
               {problem.source ? (
-                <AppText variant="caption" color={colors.textSubtle} style={{ fontSize: 11 }}>
+                <AppText variant="caption" color={colors.graphite} style={{ fontSize: 10.5 }}>
                   {problem.source}
                 </AppText>
               ) : null}
             </View>
           </View>
 
-          <Icon name="chevron-right" size={18} color="textSubtle" />
+          <Icon name="chevron-right" size={16} color="dove" />
         </View>
       </SoftCard>
     </Pressable>

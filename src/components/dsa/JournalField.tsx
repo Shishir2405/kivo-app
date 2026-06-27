@@ -7,7 +7,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors } from '@/theme/tokens';
 
 export type JournalFieldProps = {
-  /** Leading icon glyph for the field label (rendered via the Icon system). */
+  /** Leading icon glyph for the field label (small, thin). */
   icon: IconName;
   /** Field title, e.g. "Approach". */
   title: string;
@@ -15,29 +15,27 @@ export type JournalFieldProps = {
   body?: string;
   /** Placeholder shown when there is no body yet. */
   placeholder?: string;
-  /** Left rail accent color for the journal entry. */
+  /** Thin left-rail accent color (defaults to Rust — the key data stroke). */
   accent?: string;
   /**
-   * When set, the entry becomes an editable neumorphic SoftInput (multiline)
-   * driven by this change handler — the coding-journal capture mode.
+   * When set, the entry becomes an editable Steep input (multiline) driven by
+   * this change handler — the coding-journal capture mode.
    */
   onChangeBody?: (next: string) => void;
   style?: StyleProp<ViewStyle>;
 };
 
 /**
- * One coding-journal entry: an icon + title label and an inset well holding the
- * note body. A colored left rail ties it to the field's theme. Used for
- * approach / mistakes / optimal solution / edge cases on the problem screen.
- *
- * Read-only by default; pass `onChangeBody` to make it an editable SoftInput.
+ * One coding-journal entry: a small icon + title label and either a flat Fog
+ * well (read-only) or a Steep multiline input (editable). A thin Rust left rail
+ * ties it to the journal. No neumorphism, small type.
  */
 export function JournalField({
   icon,
   title,
   body,
   placeholder = 'Nothing captured yet.',
-  accent = colors.highlighter,
+  accent = colors.rust,
   onChangeBody,
   style,
 }: JournalFieldProps) {
@@ -46,17 +44,17 @@ export function JournalField({
 
   return (
     <View style={style}>
-      <View className="flex-row items-center" style={{ gap: 9, marginBottom: 10 }}>
+      <View className="flex-row items-center" style={{ gap: 8, marginBottom: 8 }}>
         <View
           style={{
-            width: 6,
-            height: 20,
-            borderRadius: 3,
+            width: 3,
+            height: 16,
+            borderRadius: 2,
             backgroundColor: accent,
           }}
         />
-        <Icon name={icon} size={18} color={accent} strokeWidth={2.4} />
-        <AppText variant="subheading" weight="bold" display style={{ fontSize: 17 }}>
+        <Icon name={icon} size={15} color="graphite" />
+        <AppText variant="subheading" weight="medium" display style={{ fontSize: 15 }}>
           {title}
         </AppText>
       </View>
@@ -68,14 +66,14 @@ export function JournalField({
           placeholder={placeholder}
           multiline
           textAlignVertical="top"
-          style={{ lineHeight: 23, minHeight: 84 }}
+          style={{ lineHeight: 20, minHeight: 76 }}
         />
       ) : (
-        <SoftCard variant="inset" radius={20} padding={16}>
+        <SoftCard variant="inset" radius={13} padding={14}>
           <AppText
             variant="body"
-            color={hasBody ? colors.carbon : colors.textSubtle}
-            style={{ lineHeight: 24, fontStyle: hasBody ? 'normal' : 'italic' }}
+            color={hasBody ? colors.ash : colors.dove}
+            style={{ lineHeight: 20, fontStyle: hasBody ? 'normal' : 'italic' }}
           >
             {hasBody ? body : placeholder}
           </AppText>

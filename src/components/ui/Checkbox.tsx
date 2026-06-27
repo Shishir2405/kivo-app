@@ -1,7 +1,5 @@
 import React from 'react';
 import { Pressable, View, Text, type StyleProp, type ViewStyle } from 'react-native';
-import { MotiView } from 'moti';
-import { Neumorph } from './Neumorph';
 import { Icon } from './Icon';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -16,49 +14,17 @@ export type CheckboxProps = {
 };
 
 /**
- * Custom neumorphic checkbox — never a native control.
- *
- * Unchecked: a small raised neumorphic tile. Checked: the tile presses in
- * (inset well) and a highlighter-yellow check Icon springs in. The whole row
- * is the press target when a label is provided.
+ * Steep checkbox — a simple small square. Unchecked: white with a Dove
+ * hairline. Checked: filled Ink with a white check. Flat, no neumorphism.
  */
 export function Checkbox({
   checked,
   onChange,
   label,
   disabled,
-  size = 26,
+  size = 20,
   style,
 }: CheckboxProps) {
-  const box = (
-    <Neumorph
-      variant={checked ? 'inset' : 'raised'}
-      radius={8}
-      intensity="sm"
-      surface={checked ? colors.carbon : colors.canvas}
-    >
-      <View
-        style={{
-          width: size,
-          height: size,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 8,
-        }}
-      >
-        <MotiView
-          animate={{
-            opacity: checked ? 1 : 0,
-            scale: checked ? 1 : 0.4,
-          }}
-          transition={{ type: 'spring', damping: 14, stiffness: 220 }}
-        >
-          <Icon name="check" size={size * 0.66} color="highlighter" strokeWidth={3} />
-        </MotiView>
-      </View>
-    </Neumorph>
-  );
-
   return (
     <Pressable
       onPress={() => !disabled && onChange(!checked)}
@@ -69,20 +35,33 @@ export function Checkbox({
         {
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 12,
-          opacity: disabled ? 0.5 : 1,
+          gap: 10,
+          opacity: disabled ? 0.4 : 1,
           alignSelf: 'flex-start',
         },
         style,
       ]}
     >
-      {box}
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 6,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: checked ? colors.ink : colors.white,
+          borderWidth: 1,
+          borderColor: checked ? colors.ink : colors.dove,
+        }}
+      >
+        {checked ? <Icon name="check" size={size * 0.7} color="white" weight="bold" /> : null}
+      </View>
       {label ? (
         <Text
           style={{
-            fontFamily: fonts.bodyMedium,
-            fontSize: 15,
-            color: colors.carbon,
+            fontFamily: fonts.sans,
+            fontSize: 14,
+            color: colors.ink,
             flexShrink: 1,
           }}
         >

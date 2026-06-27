@@ -1,36 +1,25 @@
 /**
- * Shared mapping helpers for the DSA surfaces — difficulty / status / accent
+ * Shared mapping helpers for the DSA surfaces — difficulty / status / mastery
  * tokens so every DSA screen labels things identically.
  *
- * ZERO EMOJI: every glyph here is an `IconName` from the curated registry,
- * rendered through `<Icon name={...} />`. No pictographs anywhere.
+ * STEEP: chrome is monochrome (ink / graphite / dove); Rust + the two washes
+ * (apricot / sky) are the only chromatic voices. Tags use the Steep `TagTone`
+ * set. Every glyph is an `IconName` from the curated registry — ZERO emoji.
  */
 import type { Difficulty, ProblemStatus } from '@/types/models';
 import type { TagTone } from '@/components/ui/Tag';
 import type { IconName } from '@/components/ui/Icon';
 import { colors } from '@/theme/tokens';
 
-/** Roadmap / topic accent token name -> concrete hex. */
-export type AccentName =
-  | 'highlighter'
-  | 'signal'
-  | 'peach'
-  | 'annotation'
-  | 'success';
+/* ------------------------------------------------------------------ */
+/* Difficulty                                                          */
+/* ------------------------------------------------------------------ */
 
-export const ACCENT_HEX: Record<AccentName, string> = {
-  highlighter: colors.highlighter,
-  signal: colors.signal,
-  peach: colors.peach,
-  annotation: colors.annotation,
-  success: colors.success,
-};
-
-/** Difficulty -> tag tone + display label. */
+/** Difficulty -> Steep tag tone. Easy=cool wash, Medium=neutral, Hard=rust. */
 export const DIFFICULTY_TONE: Record<Difficulty, TagTone> = {
-  EASY: 'success',
-  MEDIUM: 'signal',
-  HARD: 'annotation',
+  EASY: 'cool',
+  MEDIUM: 'neutral',
+  HARD: 'rust',
 };
 
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
@@ -39,19 +28,23 @@ export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   HARD: 'Hard',
 };
 
-/** Difficulty -> icon glyph (rendered with <Icon />). */
+/** Difficulty -> a small thin glyph (rendered with <Icon />). */
 export const DIFFICULTY_ICON: Record<Difficulty, IconName> = {
   EASY: 'circle',
   MEDIUM: 'activity',
   HARD: 'flame',
 };
 
-/** Problem status -> mastery tag tone, label and a small icon glyph. */
+/* ------------------------------------------------------------------ */
+/* Problem status                                                      */
+/* ------------------------------------------------------------------ */
+
+/** Problem status -> Steep tag tone. */
 export const STATUS_TONE: Record<ProblemStatus, TagTone> = {
   TODO: 'neutral',
-  ATTEMPTED: 'peach',
-  SOLVED: 'signal',
-  MASTERED: 'success',
+  ATTEMPTED: 'warm',
+  SOLVED: 'cool',
+  MASTERED: 'ink',
 };
 
 export const STATUS_LABEL: Record<ProblemStatus, string> = {
@@ -61,7 +54,7 @@ export const STATUS_LABEL: Record<ProblemStatus, string> = {
   MASTERED: 'Mastered',
 };
 
-/** Problem status -> icon glyph (rendered with <Icon />), never a pictograph. */
+/** Problem status -> a small thin glyph, never a pictograph. */
 export const STATUS_ICON: Record<ProblemStatus, IconName> = {
   TODO: 'circle',
   ATTEMPTED: 'repeat',
@@ -69,13 +62,20 @@ export const STATUS_ICON: Record<ProblemStatus, IconName> = {
   MASTERED: 'crown',
 };
 
-/** Problem status -> ink color for the status glyph / accent. */
+/**
+ * Problem status -> a monochrome/Rust stroke color for the status glyph.
+ * Chrome stays graphite/ink; solved+mastered earn the Rust accent.
+ */
 export const STATUS_COLOR: Record<ProblemStatus, string> = {
-  TODO: colors.textSubtle,
-  ATTEMPTED: colors.peach,
-  SOLVED: colors.signal,
-  MASTERED: colors.success,
+  TODO: colors.dove,
+  ATTEMPTED: colors.graphite,
+  SOLVED: colors.rust,
+  MASTERED: colors.ink,
 };
+
+/* ------------------------------------------------------------------ */
+/* Confidence (spaced-repetition revision history)                     */
+/* ------------------------------------------------------------------ */
 
 /** Confidence (1..5) -> a short label for revision history rows. */
 export const CONFIDENCE_LABEL: Record<number, string> = {
@@ -86,14 +86,18 @@ export const CONFIDENCE_LABEL: Record<number, string> = {
   5: 'Strong',
 };
 
-/** Confidence (1..5) -> tag tone (ramps shaky -> strong). */
+/** Confidence (1..5) -> Steep tag tone (shaky=rust -> strong=ink). */
 export const CONFIDENCE_TONE: Record<number, TagTone> = {
-  1: 'annotation',
-  2: 'annotation',
-  3: 'peach',
-  4: 'signal',
-  5: 'success',
+  1: 'rust',
+  2: 'warm',
+  3: 'neutral',
+  4: 'cool',
+  5: 'ink',
 };
+
+/* ------------------------------------------------------------------ */
+/* Date / minute formatting                                            */
+/* ------------------------------------------------------------------ */
 
 /** Format an ISO "YYYY-MM-DD" into a compact human label like "Jun 20". */
 export function formatShortDate(iso?: string): string {
@@ -136,19 +140,28 @@ export type MasteryMeta = {
   label: string;
   tone: TagTone;
   icon: IconName;
+  /** Stroke color for the mastery glyph — monochrome, Rust for the top band. */
   color: string;
 };
 
 /**
  * Map a 0–100 mastery/progress score onto a labelled band with a tone, icon
- * and accent color — used for the mastery Tag/Chip on topic surfaces.
+ * and stroke color — used for the mastery Tag on topic surfaces.
  */
 export function masteryMeta(score: number): MasteryMeta {
   if (score >= 80)
-    return { label: 'Mastering', tone: 'success', icon: 'crown', color: colors.success };
+    return { label: 'Mastering', tone: 'ink', icon: 'crown', color: colors.ink };
   if (score >= 55)
-    return { label: 'Confident', tone: 'signal', icon: 'trending-up', color: colors.signal };
+    return { label: 'Confident', tone: 'cool', icon: 'trending-up', color: colors.rust };
   if (score >= 30)
-    return { label: 'In progress', tone: 'peach', icon: 'activity', color: colors.peach };
-  return { label: 'Just started', tone: 'neutral', icon: 'rocket', color: colors.textMuted };
+    return { label: 'In progress', tone: 'warm', icon: 'activity', color: colors.graphite };
+  return { label: 'Just started', tone: 'neutral', icon: 'rocket', color: colors.graphite };
+}
+
+/**
+ * Progress-bar fill color from a 0–100 score: Rust once you're past the
+ * halfway mark (the key-data accent), else Ink. Rust used sparingly.
+ */
+export function progressColor(score: number): string {
+  return score >= 50 ? colors.rust : colors.ink;
 }

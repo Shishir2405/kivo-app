@@ -4,23 +4,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import KivoMark from '../../../assets/brand/kivo-mark.svg';
 import { MARK_ASPECT } from '@/components/brand/BrandLogo';
-import { Neumorph } from './Neumorph';
 import { Icon } from './Icon';
 import { AppText } from './Typography';
-import { colors } from '@/theme/tokens';
 
 /**
- * GrayMark — the small, quiet Kivo brand watermark.
+ * GrayMark — the small, quiet Kivo brand watermark near the status bar.
  *
- * The redesigned mark bakes its highlighter-yellow fill into the SVG, so we
- * can't recolor individual paths from props. To read as a MUTED / gray brand
- * watermark (per the "a little bit gray logo at the top near the time" request)
- * we render it at a low opacity over the canvas — it whispers the brand without
- * competing with the screen's content or its full-color lockup elsewhere.
+ * Rendered at a low opacity so it whispers the brand without competing with
+ * content. The only brand asset Steep keeps.
  */
 export function GrayMark({
-  size = 24,
-  opacity = 0.5,
+  size = 20,
+  opacity = 0.45,
   style,
 }: {
   size?: number;
@@ -40,37 +35,39 @@ export function GrayMark({
 }
 
 export type AppHeaderProps = {
-  /** Optional centered/inline title (Poppins, via AppText). */
+  /** Optional title. Renders as a small editorial serif heading. */
   title?: string;
-  /** Optional trailing action slot (e.g. a SoftIconButton). */
+  /** Optional trailing action slot (prefer a TextLink). */
   right?: React.ReactNode;
-  /** When provided, renders a neumorphic back button that calls this. */
+  /** When provided, renders a flat back affordance that calls this. */
   onBack?: () => void;
-  /** Mark height in px (~22–26 reads as a subtle watermark). */
+  /** Mark height in px. */
   markSize?: number;
   /** Override the muted opacity of the gray mark. */
   markOpacity?: number;
+  /** Hide the gray brand mark entirely (default shows it). */
+  hideMark?: boolean;
   /** Add the safe-area top inset as padding so it sits under the status bar. */
   withInset?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
 /**
- * AppHeader — a thin, consistent top bar that respects the status-bar safe area
- * and carries a SMALL, muted/gray Kivo mark up near the system clock.
+ * AppHeader — a thin, refined Steep top bar. Respects the status-bar safe area.
  *
- * Layout: [ back? + gray mark + title? ] ............................ [ right? ]
+ * Layout: [ back? + gray mark? + title? ] ......................... [ right? ]
  *
- * It is intentionally subtle and non-intrusive. Screens that already own a rich
- * title block can drop in <GrayMark /> directly instead of this whole bar; this
- * component is for the common "back / title / action" pattern.
+ * Small and quiet. Back is a flat chevron (no neumorphic button). The title is
+ * an editorial serif headingSm. Screens with a rich title block can drop in
+ * <GrayMark /> directly instead.
  */
 export function AppHeader({
   title,
   right,
   onBack,
-  markSize = 24,
-  markOpacity = 0.5,
+  markSize = 20,
+  markOpacity = 0.45,
+  hideMark = false,
   withInset = true,
   style,
 }: AppHeaderProps) {
@@ -80,36 +77,32 @@ export function AppHeader({
     <View
       style={[
         {
-          paddingTop: withInset ? insets.top + 6 : 6,
+          paddingTop: withInset ? insets.top + 4 : 4,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          minHeight: 44,
+          minHeight: 40,
         },
         style,
       ]}
     >
-      {/* Leading cluster: optional back, the gray mark, optional title. */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
         {onBack ? (
           <Pressable
             onPress={onBack}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            hitSlop={8}
+            hitSlop={10}
+            style={{ marginLeft: -4 }}
           >
-            <Neumorph variant="raised" radius={22} intensity="sm" surface={colors.canvas}>
-              <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="chevron-left" size={22} color="carbon" />
-              </View>
-            </Neumorph>
+            <Icon name="chevron-left" size={22} color="ink" />
           </Pressable>
         ) : null}
 
-        <GrayMark size={markSize} opacity={markOpacity} />
+        {!hideMark ? <GrayMark size={markSize} opacity={markOpacity} /> : null}
 
         {title ? (
-          <AppText variant="body" weight="bold" numberOfLines={1} style={{ fontSize: 16, flexShrink: 1 }}>
+          <AppText variant="headingSm" display numberOfLines={1} style={{ flexShrink: 1 }}>
             {title}
           </AppText>
         ) : null}

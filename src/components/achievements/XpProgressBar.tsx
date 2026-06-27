@@ -1,61 +1,46 @@
+/**
+ * XpProgressBar — a flat Steep progress meter.
+ *
+ * A Fog track with a 1px Dove hairline and a thin Ink fill. No neumorphism, no
+ * gloss. Used for the level-progress bar on the achievements hero.
+ */
 import React from 'react';
 import { View } from 'react-native';
-import { MotiView } from 'moti';
-import { Neumorph } from '@/components/ui/Neumorph';
+
 import { colors } from '@/theme/tokens';
 
 export type XpProgressBarProps = {
   /** 0–1 fill ratio. */
   progress: number;
-  /** Fill color (defaults to highlighter-yellow). */
+  /** Fill color (defaults to Ink). */
   color?: string;
   /** Track height in px. */
   height?: number;
-  /** Mount-animation delay (ms). */
-  delay?: number;
 };
 
-/**
- * A neumorphic progress bar: an inset well carved into the surface holding an
- * animated accent fill. The fill grows from 0 to `progress` with a spring on
- * mount and carries a soft top highlight so it reads as a glossy filled track.
- */
-export function XpProgressBar({
-  progress,
-  color = colors.highlighter,
-  height = 14,
-  delay = 220,
-}: XpProgressBarProps) {
-  const clamped = Math.max(0, Math.min(1, progress));
-  const pct = `${clamped * 100}%` as const;
+export function XpProgressBar({ progress, color = colors.ink, height = 8 }: XpProgressBarProps) {
+  const pct = Math.max(0, Math.min(1, progress)) * 100;
 
   return (
-    <Neumorph variant="inset" radius={height / 2} intensity="sm">
-      <View style={{ height, borderRadius: height / 2, overflow: 'hidden' }}>
-        <MotiView
-          from={{ width: '0%' }}
-          animate={{ width: pct }}
-          transition={{ type: 'spring', damping: 20, stiffness: 120, delay }}
-          style={{
-            height,
-            borderRadius: height / 2,
-            backgroundColor: color,
-            justifyContent: 'flex-start',
-          }}
-        >
-          {/* Glossy top highlight on the fill. */}
-          <View
-            style={{
-              height: height * 0.42,
-              marginTop: 2,
-              marginHorizontal: 3,
-              borderRadius: height,
-              backgroundColor: 'rgba(255,255,255,0.35)',
-            }}
-          />
-        </MotiView>
-      </View>
-    </Neumorph>
+    <View
+      style={{
+        height,
+        borderRadius: 9999,
+        backgroundColor: colors.fog,
+        borderWidth: 1,
+        borderColor: colors.dove,
+        overflow: 'hidden',
+      }}
+    >
+      <View
+        style={{
+          height: '100%',
+          width: `${pct}%`,
+          borderRadius: 9999,
+          backgroundColor: color,
+        }}
+      />
+    </View>
   );
 }
 

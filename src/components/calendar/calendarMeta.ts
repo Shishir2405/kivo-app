@@ -10,6 +10,7 @@
  * compare/format the string parts directly.
  */
 import { colors } from '@/theme/tokens';
+import type { TagTone } from '@/components/ui/Tag';
 import type { CalendarEvent, CalendarEventType, IconName } from '@/types/models';
 
 export type Accent = CalendarEvent['accent'];
@@ -17,30 +18,42 @@ export type Accent = CalendarEvent['accent'];
 export const TODAY_KEY = '2026-06-26';
 
 /* ------------------------------------------------------------------ */
-/* Accent + type theming                                               */
+/* Accent + type theming (STEEP — color as punctuation)                */
 /* ------------------------------------------------------------------ */
 
-export const ACCENT_HEX: Record<Accent, string> = {
-  highlighter: colors.highlighter,
-  signal: colors.signal,
-  peach: colors.peach,
-  annotation: colors.annotation,
-  success: colors.success,
+/**
+ * A small accent dot color per legacy accent token. Chrome stays monochrome;
+ * Rust + the two washes are the only chromatic voices, so accents collapse onto
+ * Rust / Ink / Graphite rather than bright hues.
+ */
+export const ACCENT_DOT: Record<Accent, string> = {
+  highlighter: colors.ink,
+  signal: colors.rust,
+  peach: colors.rust,
+  annotation: colors.rust,
+  success: colors.graphite,
 };
 
-/** Soft tinted wash backgrounds for inset glyph wells (one per accent). */
+/** Back-compat alias (older imports used ACCENT_HEX). */
+export const ACCENT_HEX = ACCENT_DOT;
+
+/** A Steep wash background for an accent glyph well (apricot / sky / fog). */
 export const ACCENT_WASH: Record<Accent, string> = {
-  highlighter: '#f7f6c9',
-  signal: '#e1e8ff',
-  peach: '#ffe6dd',
-  annotation: '#ffe2e2',
-  success: '#dff5e8',
+  highlighter: colors.fog,
+  signal: colors.sky,
+  peach: colors.apricot,
+  annotation: colors.apricot,
+  success: colors.fog,
 };
 
-/** Ink that stays legible when laid on top of a solid accent fill. */
-export function accentInk(accent: Accent): string {
-  return accent === 'highlighter' ? colors.carbon : colors.paper;
-}
+/** Steep Tag tone per legacy accent token. */
+export const ACCENT_TONE: Record<Accent, TagTone> = {
+  highlighter: 'ink',
+  signal: 'cool',
+  peach: 'warm',
+  annotation: 'rust',
+  success: 'neutral',
+};
 
 export type EventTypeMeta = {
   label: string;

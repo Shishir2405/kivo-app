@@ -1,60 +1,55 @@
 import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
-import { Neumorph } from '@/components/ui/Neumorph';
 import { AppText } from '@/components/ui/Typography';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors, type ColorToken } from '@/theme/tokens';
 
 export type SectionHeadingProps = {
-  /** Leading icon glyph in an inset chip (rendered via the Icon system). */
+  /** Leading icon glyph (small, thin, monochrome). */
   icon: IconName;
   /** Small uppercase eyebrow above the title. */
   eyebrow?: string;
-  /** Section title. */
+  /** Section title (editorial serif). */
   title: string;
-  /** Optional trailing node (e.g. a counter or an add button). */
+  /** Optional trailing node (e.g. a counter or a text link). */
   trailing?: React.ReactNode;
-  /** Tint for the leading icon. */
+  /** Tint for the leading icon (defaults to graphite). */
   iconColor?: ColorToken | (string & {});
   style?: StyleProp<ViewStyle>;
 };
 
 /**
- * A consistent DSA section header: an inset icon chip, an optional uppercase
- * eyebrow, a display title, and an optional trailing slot. Replaces the
- * per-screen emoji+title labels with the shared Icon language.
+ * A flat Steep section header: a small thin icon, an optional uppercase
+ * eyebrow, a small serif title, and an optional trailing slot. No neumorphic
+ * chip — chrome is quiet, the title does the talking.
  */
 export function SectionHeading({
   icon,
   eyebrow,
   title,
   trailing,
-  iconColor = 'carbon',
+  iconColor = 'graphite',
   style,
 }: SectionHeadingProps) {
   return (
     <View
       className="flex-row items-center"
-      style={[{ gap: 12, marginBottom: 14 }, style]}
+      style={[{ gap: 8, marginBottom: 12 }, style]}
     >
-      <Neumorph variant="inset" radius={13} intensity="sm">
-        <View style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={icon} size={19} color={iconColor} strokeWidth={2.2} />
-        </View>
-      </Neumorph>
+      <Icon name={icon} size={16} color={iconColor} />
 
       <View style={{ flex: 1 }}>
         {eyebrow ? (
           <AppText
             variant="caption"
-            weight="semibold"
-            color={colors.textSubtle}
-            style={{ textTransform: 'uppercase', letterSpacing: 1.6, fontSize: 10.5 }}
+            weight="medium"
+            color={colors.graphite}
+            style={{ textTransform: 'uppercase', letterSpacing: 1, fontSize: 10.5 }}
           >
             {eyebrow}
           </AppText>
         ) : null}
-        <AppText variant="subheading" weight="bold" display style={{ marginTop: eyebrow ? 1 : 0 }}>
+        <AppText variant="headingSm" display style={{ marginTop: eyebrow ? 1 : 0 }}>
           {title}
         </AppText>
       </View>

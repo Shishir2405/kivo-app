@@ -1,9 +1,10 @@
 /**
- * Shared accent helpers for the Achievements feature.
+ * Accent helpers for the Achievements feature (Steep).
  *
- * `AchievementEntry.tone` is one of the five Aaply accent tokens. Each maps to
- * a strong "ink" hex (the saturated brand color) and a soft "wash" hex (the
- * pale tint used behind icon chips, matching the Tag component's palette).
+ * Color is punctuation. Earned badges use one of the two washes (Apricot / Sky)
+ * or Rust as the chromatic voice; everything else is monochrome. The five
+ * legacy tone tokens are remapped onto these Steep voices so existing callers
+ * keep working without introducing saturated UI color.
  */
 import { colors } from '@/theme/tokens';
 
@@ -14,25 +15,25 @@ export type Accent =
   | 'annotation'
   | 'success';
 
-/** Saturated brand ink per accent — used for glyphs, bars and emphasis. */
+/** Ink/stroke per accent (the figure color on a wash chip). */
 export const ACCENT_INK: Record<Accent, string> = {
-  highlighter: colors.highlighter,
-  signal: colors.signal,
-  peach: colors.peach,
-  annotation: colors.annotation,
-  success: colors.success,
+  highlighter: colors.ink,
+  signal: colors.ink,
+  peach: colors.rust,
+  annotation: colors.rust,
+  success: colors.ink,
 };
 
-/** Pale wash per accent — mirrors the Tag tones; reads on the gray canvas. */
+/** Wash fill per accent (the chip background). */
 export const ACCENT_WASH: Record<Accent, string> = {
-  highlighter: '#fbfbcf',
-  signal: '#e1e8ff',
-  peach: '#ffe6dd',
-  annotation: '#ffe2e2',
-  success: '#dff5e8',
+  highlighter: colors.apricot,
+  signal: colors.sky,
+  peach: colors.apricot,
+  annotation: colors.apricot,
+  success: colors.sky,
 };
 
-/** Ink that contrasts on top of a solid accent fill. */
-export function onAccentInk(accent: Accent): string {
-  return accent === 'highlighter' ? colors.carbon : colors.paper;
+/** Ink that contrasts on top of a solid accent fill (always white in Steep). */
+export function onAccentInk(_accent: Accent): string {
+  return colors.white;
 }

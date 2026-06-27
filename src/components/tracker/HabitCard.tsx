@@ -1,150 +1,116 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { MotiView } from 'moti';
-import { SoftCard } from '@/components/ui/SoftCard';
-import { Neumorph } from '@/components/ui/Neumorph';
+import { Card } from '@/components/ui/SoftCard';
 import { AppText } from '@/components/ui/Typography';
 import { Icon } from '@/components/ui/Icon';
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, spacing } from '@/theme/tokens';
 import type { Habit } from '@/types/models';
-
-const ACCENT_HEX: Record<Habit['accent'], string> = {
-  highlighter: colors.highlighter,
-  signal: colors.signal,
-  peach: colors.peach,
-  success: colors.success,
-};
 
 const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export type HabitCardProps = {
   habit: Habit;
-  onToggleToday: (id: string) => void;
+  onToggleToday: (id: string, next: boolean) => void;
 };
 
 /**
- * A habit card with a recessed Icon medallion (driven by the icon-name token in
- * the data — never an emoji), a streak/weekly-target summary, a custom round
- * neumorphic complete toggle, and a row of animated weekly completion dots.
+ * A flat Steep habit row.
+ *
+ * Title + a small streak line (a tiny Rust flame as the one warm punctuation),
+ * a flat circular complete toggle (Ink when done, Dove hairline when not), and a
+ * compact row of weekly completion squares — filled Ink for done days, a Dove
+ * hairline outline for misses, Rust ring on today. No neumorphism, no emoji.
  */
 export function HabitCard({ habit, onToggleToday }: HabitCardProps) {
-  const accentHex = ACCENT_HEX[habit.accent];
   const completedThisWeek = habit.weekHistory.filter(Boolean).length;
   const done = habit.completedToday;
 
   return (
-    <SoftCard radius={radii.card} intensity="md" padding={18} style={{ marginBottom: 14 }}>
-      <View className="flex-row items-center" style={{ gap: 14 }}>
-        {/* Icon medallion — tinted when completed today. */}
-        <Neumorph variant="inset" radius={20} intensity="sm">
-          <View
-            style={{
-              width: 54,
-              height: 54,
-              borderRadius: 16,
-              backgroundColor: done ? accentHex : 'transparent',
-            }}
-            className="items-center justify-center"
-          >
-            <Icon
-              name={habit.emoji}
-              size={24}
-              color={done ? 'carbon' : 'textMuted'}
-              strokeWidth={2.2}
-            />
-          </View>
-        </Neumorph>
-
+    <Card padding={spacing.md} style={{ marginBottom: spacing.sm }}>
+      <View className="flex-row items-center" style={{ gap: spacing.md }}>
         <View style={{ flex: 1 }}>
-          <AppText variant="body" weight="bold" color={colors.carbon}>
+          <AppText variant="body" weight="medium" color={colors.ink} numberOfLines={1}>
             {habit.title}
           </AppText>
           <View
             className="flex-row items-center"
-            style={{ gap: 6, marginTop: 5, flexWrap: 'wrap' }}
+            style={{ gap: 5, marginTop: 3, flexWrap: 'wrap' }}
           >
-            <Icon name="flame" size={14} color="peach" fill="peach" strokeWidth={0} />
-            <AppText variant="caption" weight="semibold" color={colors.carbon}>
-              {habit.streak} days
+            <Icon name="flame" size={12} color="rust" weight="fill" />
+            <AppText variant="caption" weight="medium" color={colors.ink}>
+              {habit.streak}-day streak
             </AppText>
-            <View
-              style={{
-                width: 3,
-                height: 3,
-                borderRadius: 2,
-                backgroundColor: colors.textSubtle,
-              }}
-            />
-            <AppText variant="caption" color={colors.textSubtle}>
+            <AppText variant="caption" color={colors.graphite}>
+              {' · '}
               {completedThisWeek}/{habit.targetPerWeek} this week
             </AppText>
           </View>
         </View>
 
-        {/* Custom round complete toggle: inset accent well when done. */}
+        {/* Flat circular complete toggle. */}
         <Pressable
-          onPress={() => onToggleToday(habit.id)}
+          onPress={() => onToggleToday(habit.id, !done)}
           accessibilityRole="button"
           accessibilityState={{ selected: done }}
           accessibilityLabel={`Mark ${habit.title} ${done ? 'incomplete' : 'complete'} for today`}
+          hitSlop={6}
         >
-          <Neumorph
-            variant={done ? 'inset' : 'raised'}
-            radius={23}
-            intensity="sm"
-            surface={done ? accentHex : colors.canvas}
+          <MotiView
+            animate={{ scale: done ? 1 : 0.96 }}
+            transition={{ type: 'timing', duration: 160 }}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: radii.pill,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: done ? colors.ink : colors.white,
+              borderWidth: 1,
+              borderColor: done ? colors.ink : colors.dove,
+            }}
           >
-            <View
-              style={{ width: 46, height: 46 }}
-              className="items-center justify-center"
-            >
-              <MotiView
-                animate={{ scale: done ? 1 : 0.9, opacity: done ? 1 : 0.7 }}
-                transition={{ type: 'spring', damping: 14, stiffness: 220 }}
-              >
-                <Icon
-                  name={done ? 'check' : 'plus'}
-                  size={22}
-                  color={done ? 'carbon' : 'textMuted'}
-                  strokeWidth={done ? 3 : 2.4}
-                />
-              </MotiView>
-            </View>
-          </Neumorph>
+            <Icon
+              name={done ? 'check' : 'plus'}
+              size={16}
+              color={done ? 'white' : 'graphite'}
+              weight={done ? 'bold' : 'regular'}
+            />
+          </MotiView>
         </Pressable>
       </View>
 
-      {/* Weekly completion dots, oldest -> newest (Mon..Sun). */}
+      {/* Weekly completion squares, oldest -> newest (Mon..Sun). */}
       <View
         className="flex-row items-center justify-between"
-        style={{ marginTop: 18 }}
+        style={{ marginTop: spacing.md }}
       >
         {habit.weekHistory.map((completed, i) => {
           const isToday = i === habit.weekHistory.length - 1;
           return (
-            <View key={i} className="items-center" style={{ gap: 7 }}>
-              <MotiView
-                animate={{ scale: completed ? 1 : 0.86 }}
-                transition={{ type: 'spring', damping: 15, stiffness: 200 }}
+            <View key={i} className="items-center" style={{ gap: 5 }}>
+              <View
                 style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 9,
-                  backgroundColor: completed ? accentHex : '#e4e4e4',
-                  borderWidth: isToday && !completed ? 2 : 0,
-                  borderColor: accentHex,
+                  width: 22,
+                  height: 22,
+                  borderRadius: 7,
+                  backgroundColor: completed ? colors.ink : colors.white,
+                  borderWidth: 1,
+                  borderColor: completed
+                    ? colors.ink
+                    : isToday
+                      ? colors.rust
+                      : colors.dove,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                {completed ? (
-                  <Icon name="check" size={14} color="carbon" strokeWidth={3} />
-                ) : null}
-              </MotiView>
+                {completed ? <Icon name="check" size={11} color="white" weight="bold" /> : null}
+              </View>
               <AppText
                 variant="caption"
-                weight={isToday ? 'bold' : 'regular'}
-                color={isToday ? colors.carbon : colors.textSubtle}
+                weight={isToday ? 'medium' : 'regular'}
+                color={isToday ? colors.ink : colors.dove}
                 style={{ fontSize: 10 }}
               >
                 {WEEK_LABELS[i]}
@@ -153,7 +119,7 @@ export function HabitCard({ habit, onToggleToday }: HabitCardProps) {
           );
         })}
       </View>
-    </SoftCard>
+    </Card>
   );
 }
 

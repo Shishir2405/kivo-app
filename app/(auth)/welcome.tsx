@@ -4,29 +4,28 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
 
-import { colors } from '@/theme/tokens';
-import { useAuthStore, useUiStore } from '@/store';
-import { mockProfile } from '@/data/mock';
-import { AppText } from '@/components/ui/Typography';
-import { BrandLogo } from '@/components/brand/BrandLogo';
-import { PillButton } from '@/components/ui/PillButton';
-import { Tag } from '@/components/ui/Tag';
-import { Neumorph } from '@/components/ui/Neumorph';
-import { DotGridBackground } from '@/components/ui/DotGridBackground';
-import { Icon } from '@/components/ui';
-import { AvatarStack, FeatureRow } from '@/components/auth';
+import KivoMark from '../../assets/brand/kivo-mark.svg';
+import { MARK_ASPECT } from '@/components/brand/BrandLogo';
+import { colors, spacing } from '@/theme/tokens';
+import { useUiStore } from '@/store';
+import { AppText, PillButton, TextLink, Icon } from '@/components/ui';
+
+/** Three short value lines — typography does the talking, no imagery. */
+const VALUE_POINTS = [
+  'Curated DSA roadmaps — Striver, Blind 75, NeetCode 150.',
+  'Spaced-repetition revisions so it actually sticks.',
+  'A daily streak that keeps you showing up.',
+] as const;
 
 /**
- * Welcome / hero — the first surface a new user lands on.
+ * Welcome — the first surface a new user lands on.
  *
- * Neumorphic graphite-mist canvas + dot grid texture, the Kivo lockup, a fully
- * typographic Poppins-700 headline (vector Icon accent, ZERO emoji), three
- * value-prop FeatureRows, a brand AvatarStack social-proof row, and the yellow
- * + black PillButton CTA pair.
+ * Steep & editorial (not a landing page): a quiet Kivo mark, a small serif
+ * headline, three short value lines, the single Ink CTA, and a text link to log
+ * in. Flat white canvas, tight spacing, color as punctuation.
  */
 export default function WelcomeScreen() {
   const router = useRouter();
-  const login = useAuthStore((s) => s.login);
   const setHasSeenWelcome = useUiStore((s) => s.setHasSeenWelcome);
 
   const handleGetStarted = () => {
@@ -39,181 +38,83 @@ export default function WelcomeScreen() {
     router.push('/(auth)/login');
   };
 
-  // Quick-peek shortcut: hop straight into the app with the mock profile.
-  const handleSkip = () => {
-    setHasSeenWelcome(true);
-    login({ user: mockProfile });
-    router.replace('/(tabs)');
-  };
-
-  return (
-    <DotGridBackground>
-      <HeroContent
-        onGetStarted={handleGetStarted}
-        onLogIn={handleLogIn}
-        onSkip={handleSkip}
-      />
-    </DotGridBackground>
-  );
-}
-
-const FEATURES = [
-  { icon: 'compass', label: 'Curated roadmaps — Striver, Blind 75, NeetCode 150', tone: 'signal' },
-  { icon: 'repeat', label: 'Spaced-repetition revisions so it actually sticks', tone: 'peach' },
-  { icon: 'flame', label: 'A streak that keeps you showing up every day', tone: 'annotation' },
-] as const;
-
-function HeroContent({
-  onGetStarted,
-  onLogIn,
-  onSkip,
-}: {
-  onGetStarted: () => void;
-  onLogIn: () => void;
-  onSkip: () => void;
-}) {
   const insets = useSafeAreaInsets();
 
   return (
     <View
       style={{
         flex: 1,
-        paddingTop: insets.top + 22,
-        paddingBottom: insets.bottom + 26,
-        paddingHorizontal: 28,
+        backgroundColor: colors.white,
+        paddingTop: insets.top + spacing.xl,
+        paddingBottom: insets.bottom + spacing.xl,
+        paddingHorizontal: spacing.xl,
       }}
     >
-      {/* Brand lockup */}
+      {/* Quiet brand mark */}
       <MotiView
-        from={{ opacity: 0, translateY: -8 }}
+        from={{ opacity: 0, translateY: -6 }}
         animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'timing', duration: 460 }}
-        className="flex-row items-center justify-between"
+        transition={{ type: 'timing', duration: 420 }}
       >
-        <BrandLogo variant="lockup" size={30} />
-        <Tag
-          label="DSA, daily"
-          tone="yellow"
-          size="sm"
-          icon={<Icon name="calendar-check" size={13} color="carbon" />}
-        />
+        <KivoMark width={26 * MARK_ASPECT} height={26} />
       </MotiView>
 
-      {/* Hero block */}
-      <View style={{ flex: 1, justifyContent: 'center', gap: 26 }}>
+      {/* Editorial headline + value points */}
+      <View style={{ flex: 1, justifyContent: 'center', gap: spacing.xxl }}>
         <MotiView
-          from={{ opacity: 0, translateY: 14 }}
+          from={{ opacity: 0, translateY: 12 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 520, delay: 120 }}
-          style={{ gap: 18 }}
+          transition={{ type: 'timing', duration: 480, delay: 100 }}
+          style={{ gap: spacing.md }}
         >
-          <View style={{ alignSelf: 'flex-start' }}>
-            <Tag
-              label="Your coding companion"
-              tone="neutral"
-              size="md"
-              icon={<Icon name="sparkles" size={13} color="textMuted" />}
-            />
-          </View>
-
-          {/* Fully typographic headline — vector Icon accent, no emoji. */}
-          <View style={{ gap: 6 }}>
-            <AppText variant="headingLg" weight="bold" display style={{ fontSize: 46, lineHeight: 50 }}>
-              Crack DSA
-            </AppText>
-            <AppText variant="headingLg" weight="bold" display style={{ fontSize: 46, lineHeight: 50 }}>
-              one problem
-            </AppText>
-            <View className="flex-row items-center" style={{ gap: 12 }}>
-              <AppText variant="headingLg" weight="bold" display style={{ fontSize: 46, lineHeight: 50 }}>
-                a day
-              </AppText>
-              <MotiView
-                from={{ opacity: 0, scale: 0.6, rotate: '-12deg' }}
-                animate={{ opacity: 1, scale: 1, rotate: '0deg' }}
-                transition={{ type: 'spring', damping: 12, stiffness: 170, delay: 320 }}
-              >
-                <Neumorph variant="raised" radius={16} intensity="md" surface={colors.highlighter}>
-                  <View
-                    style={{
-                      width: 52,
-                      height: 52,
-                      borderRadius: 16,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Icon name="flame" size={28} color="carbon" strokeWidth={2.2} />
-                  </View>
-                </Neumorph>
-              </MotiView>
-            </View>
-          </View>
-
-          <AppText
-            variant="subheading"
-            weight="regular"
-            color={colors.textMuted}
-            style={{ maxWidth: 330 }}
-          >
+          <AppText variant="display" display>
+            Crack DSA, one problem a day.
+          </AppText>
+          <AppText variant="subheading" weight="regular" color={colors.ash} style={{ maxWidth: 320 }}>
             Build the habit, land the offer. Kivo turns prep into a streak you
             never want to break.
           </AppText>
         </MotiView>
 
-        {/* Value props */}
         <MotiView
           from={{ opacity: 0, translateY: 12 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 520, delay: 240 }}
+          transition={{ type: 'timing', duration: 480, delay: 200 }}
+          style={{ gap: spacing.md }}
         >
-          <FeatureRow items={FEATURES.map((f) => ({ ...f }))} />
-        </MotiView>
-
-        {/* Social-proof avatar stack */}
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 520, delay: 340 }}
-        >
-          <AvatarStack overflow={9} />
+          {VALUE_POINTS.map((point) => (
+            <View key={point} className="flex-row items-start" style={{ gap: spacing.md }}>
+              <View style={{ paddingTop: 3 }}>
+                <Icon name="check" size={15} color="rust" />
+              </View>
+              <AppText variant="body" color={colors.ash} style={{ flex: 1 }}>
+                {point}
+              </AppText>
+            </View>
+          ))}
         </MotiView>
       </View>
 
-      {/* CTA pair — yellow primary stays FLAT, black companion below it */}
+      {/* Single Ink CTA + text link to log in */}
       <MotiView
-        from={{ opacity: 0, translateY: 18 }}
+        from={{ opacity: 0, translateY: 14 }}
         animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'timing', duration: 520, delay: 440 }}
-        style={{ gap: 12 }}
+        transition={{ type: 'timing', duration: 480, delay: 320 }}
+        style={{ gap: spacing.lg }}
       >
         <PillButton
           label="Get started"
-          variant="yellow"
-          size="lg"
-          fullWidth
-          onPress={onGetStarted}
-          trailingIcon={<Icon name="arrow-right" size={20} color="carbon" />}
-        />
-        <PillButton
-          label="Log in"
           variant="black"
           size="lg"
           fullWidth
-          onPress={onLogIn}
+          onPress={handleGetStarted}
+          trailingIcon={<Icon name="arrow-right" size={16} color="white" />}
         />
-
-        <View className="flex-row items-center justify-center" style={{ marginTop: 4, gap: 6 }}>
-          <AppText
-            variant="caption"
-            weight="medium"
-            color={colors.textSubtle}
-            onPress={onSkip}
-            suppressHighlighting
-          >
-            Just looking around? Skip for now
+        <View className="flex-row items-center justify-center" style={{ gap: spacing.xs }}>
+          <AppText variant="caption" color={colors.graphite}>
+            Already have an account?
           </AppText>
-          <Icon name="chevron-right" size={15} color="textSubtle" />
+          <TextLink label="Log in" size="sm" onPress={handleLogIn} />
         </View>
       </MotiView>
     </View>

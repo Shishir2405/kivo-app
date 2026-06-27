@@ -1,7 +1,6 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { MotiView } from 'moti';
-import { Neumorph } from './Neumorph';
 import { colors } from '@/theme/tokens';
 
 export type SoftToggleProps = {
@@ -11,14 +10,14 @@ export type SoftToggleProps = {
 };
 
 /**
- * A neumorphic switch. The track is an inset well; the thumb is a raised knob
- * that slides and the track tints highlighter-yellow when on.
+ * Steep switch — minimal & flat. The track is Ink when on, Dove-on-Fog when
+ * off; a small white thumb slides. No neumorphism, single soft thumb shadow.
  */
 export function SoftToggle({ value, onValueChange, disabled }: SoftToggleProps) {
-  const W = 56;
-  const H = 32;
-  const KNOB = 24;
-  const travel = W - KNOB - 4;
+  const W = 44;
+  const H = 26;
+  const KNOB = 20;
+  const travel = W - KNOB - 6;
 
   return (
     <Pressable
@@ -26,37 +25,35 @@ export function SoftToggle({ value, onValueChange, disabled }: SoftToggleProps) 
       disabled={disabled}
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
-      style={{ opacity: disabled ? 0.5 : 1 }}
+      style={{ opacity: disabled ? 0.4 : 1 }}
     >
-      <Neumorph variant="inset" radius={H / 2}>
-        <View
+      <View
+        style={{
+          width: W,
+          height: H,
+          borderRadius: H / 2,
+          justifyContent: 'center',
+          backgroundColor: value ? colors.ink : colors.fog,
+          borderWidth: 1,
+          borderColor: value ? colors.ink : colors.dove,
+        }}
+      >
+        <MotiView
+          animate={{ translateX: value ? travel : 3 }}
+          transition={{ type: 'timing', duration: 160 }}
           style={{
-            width: W,
-            height: H,
-            borderRadius: H / 2,
-            justifyContent: 'center',
-            backgroundColor: value ? colors.highlighter : '#e9e9e9',
+            width: KNOB,
+            height: KNOB,
+            borderRadius: KNOB / 2,
+            backgroundColor: colors.white,
+            shadowColor: '#17191c',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.15,
+            shadowRadius: 2,
+            elevation: 2,
           }}
-        >
-          <MotiView
-            animate={{ translateX: value ? travel : 2 }}
-            transition={{ type: 'timing', duration: 180 }}
-            style={{
-              width: KNOB,
-              height: KNOB,
-              borderRadius: KNOB / 2,
-              backgroundColor: colors.paper,
-              marginLeft: 2,
-              // single soft shadow on the knob
-              shadowColor: 'rgba(0,0,0,0.25)',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 1,
-              shadowRadius: 3,
-              elevation: 3,
-            }}
-          />
-        </View>
-      </Neumorph>
+        />
+      </View>
     </Pressable>
   );
 }

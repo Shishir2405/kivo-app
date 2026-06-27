@@ -1,7 +1,5 @@
 import React from 'react';
 import { Pressable, View, Text, type StyleProp, type ViewStyle } from 'react-native';
-import { MotiView } from 'moti';
-import { Neumorph } from './Neumorph';
 import { Icon, type IconName } from './Icon';
 import { colors, fonts, radii } from '@/theme/tokens';
 
@@ -15,11 +13,8 @@ export type ChipProps = {
 };
 
 /**
- * A selectable neumorphic chip.
- *
- * Idle: raised gray pill with muted ink. Selected: presses into an inset
- * highlighter-yellow well with carbon ink + a check-mark Icon — the same
- * soft-UI "pressed = active" language used across the kit.
+ * Steep chip — a small flat pill. Idle: white with a Dove hairline, Ash text.
+ * Selected: filled Ink with white text. No neumorphism.
  */
 export function Chip({ label, selected, onPress, icon, disabled, style }: ChipProps) {
   return (
@@ -28,46 +23,34 @@ export function Chip({ label, selected, onPress, icon, disabled, style }: ChipPr
       disabled={disabled}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
-      style={[{ opacity: disabled ? 0.5 : 1 }, style]}
+      style={[{ opacity: disabled ? 0.4 : 1 }, style]}
     >
-      <Neumorph
-        variant={selected ? 'inset' : 'raised'}
-        radius={radii.pill}
-        intensity="sm"
-        surface={selected ? colors.highlighter : colors.canvas}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 5,
+          paddingVertical: 6,
+          paddingHorizontal: 12,
+          borderRadius: radii.pill,
+          backgroundColor: selected ? colors.ink : colors.white,
+          borderWidth: 1,
+          borderColor: selected ? colors.ink : colors.dove,
+        }}
       >
-        <View
+        {icon ? (
+          <Icon name={icon} size={13} color={selected ? 'white' : 'graphite'} />
+        ) : null}
+        <Text
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 7,
-            paddingVertical: 10,
-            paddingHorizontal: 16,
-            borderRadius: radii.pill,
+            fontFamily: fonts.sansMedium,
+            fontSize: 13,
+            color: selected ? colors.white : colors.ash,
           }}
         >
-          {selected ? (
-            <MotiView
-              from={{ opacity: 0, scale: 0.4 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', damping: 14, stiffness: 220 }}
-            >
-              <Icon name="check" size={15} color="carbon" strokeWidth={3} />
-            </MotiView>
-          ) : icon ? (
-            <Icon name={icon} size={15} color="textMuted" strokeWidth={2} />
-          ) : null}
-          <Text
-            style={{
-              fontFamily: selected ? fonts.bodyBold : fonts.bodyMedium,
-              fontSize: 14,
-              color: selected ? colors.carbon : colors.textMuted,
-            }}
-          >
-            {label}
-          </Text>
-        </View>
-      </Neumorph>
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -102,7 +85,7 @@ export type ChipGroupProps<T extends string> =
 
 /**
  * A wrapping group of selectable chips. Single-select (default) toggles one
- * value; `multiple` toggles a set. Lays out as a flexible wrap of <Chip/>s.
+ * value; `multiple` toggles a set.
  */
 export function ChipGroup<T extends string>(props: ChipGroupProps<T>) {
   const { options, disabled, style } = props;
@@ -123,7 +106,7 @@ export function ChipGroup<T extends string>(props: ChipGroupProps<T>) {
   }
 
   return (
-    <View style={[{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, style]}>
+    <View style={[{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, style]}>
       {options.map((opt) => (
         <Chip
           key={opt.value}

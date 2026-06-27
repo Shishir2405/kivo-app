@@ -1,16 +1,13 @@
 /**
- * RatingControl — a 1–5 self-rating control for the reflections form.
+ * RatingControl — a 1–5 self-rating control for the reflections form (STEEP).
  *
- * NOT a radio group. Five neumorphic pips sit in one inset well; the selected
- * value and everything below it fill highlighter-yellow (a "fill-up" gauge),
- * with the active pip springing slightly larger. Tapping any pip sets the
- * rating. Reads as a tactile soft-UI gauge, consistent with the kit.
+ * NOT a radio group. Five flat segments sit in a row; the selected value and
+ * everything below it fill Ink (a "fill-up" gauge) on a Fog track with a Dove
+ * hairline. Tapping any segment sets the rating. Small, flat, no neumorphism.
  */
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { MotiView } from 'moti';
 
-import { Neumorph } from '@/components/ui/Neumorph';
 import { AppText } from '@/components/ui/Typography';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors } from '@/theme/tokens';
@@ -51,80 +48,71 @@ export function RatingControl({
   return (
     <View style={{ opacity: disabled ? 0.5 : 1 }}>
       {/* Label row */}
-      <View
-        className="flex-row items-center justify-between"
-        style={{ marginBottom: 10 }}
-      >
-        <View className="flex-row items-center" style={{ gap: 8 }}>
-          <Icon name={icon} size={16} color="carbon" strokeWidth={2.2} />
-          <AppText variant="body" weight="semibold">
+      <View className="flex-row items-center justify-between" style={{ marginBottom: 10 }}>
+        <View className="flex-row items-center" style={{ gap: 7 }}>
+          <Icon name={icon} size={16} color="graphite" />
+          <AppText variant="subheading" weight="medium">
             {label}
           </AppText>
         </View>
-        <View className="flex-row items-center" style={{ gap: 6 }}>
-          <AppText variant="subheading" display weight="bold">
+        <View className="flex-row items-baseline" style={{ gap: 5 }}>
+          <AppText variant="subheading" weight="medium" color={colors.ink}>
             {value}
           </AppText>
-          <AppText
-            variant="caption"
-            color={colors.textMuted}
-            style={{ fontSize: 12 }}
-          >
+          <AppText variant="caption" color={colors.graphite}>
             / 5 · {captions[value - 1]}
           </AppText>
         </View>
       </View>
 
-      {/* Pip well */}
-      <Neumorph variant="inset" radius={18}>
-        <View
-          className="flex-row items-center"
-          style={{ padding: 8, gap: 8 }}
-        >
-          {VALUES.map((v) => {
-            const filled = v <= value;
-            const active = v === value;
-            return (
-              <Pressable
-                key={v}
-                disabled={disabled}
-                onPress={() => onChange(v)}
-                accessibilityRole="adjustable"
-                accessibilityLabel={`${label} ${v} of 5`}
-                accessibilityState={{ selected: active }}
-                style={{ flex: 1 }}
-                hitSlop={6}
+      {/* Segment track */}
+      <View
+        className="flex-row items-center"
+        style={{
+          gap: 6,
+          padding: 4,
+          borderRadius: 12,
+          backgroundColor: colors.fog,
+          borderWidth: 1,
+          borderColor: colors.dove,
+        }}
+      >
+        {VALUES.map((v) => {
+          const filled = v <= value;
+          return (
+            <Pressable
+              key={v}
+              disabled={disabled}
+              onPress={() => onChange(v)}
+              accessibilityRole="adjustable"
+              accessibilityLabel={`${label} ${v} of 5`}
+              accessibilityState={{ selected: v === value }}
+              style={{ flex: 1 }}
+              hitSlop={6}
+            >
+              <View
+                style={{
+                  height: 32,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: filled ? colors.ink : colors.white,
+                  borderWidth: filled ? 0 : 1,
+                  borderColor: colors.dove,
+                }}
               >
-                <MotiView
-                  animate={{ scale: active ? 1.06 : 1 }}
-                  transition={{ type: 'spring', damping: 16, stiffness: 220 }}
+                <AppText
+                  variant="body"
+                  weight="medium"
+                  color={filled ? colors.white : colors.graphite}
                 >
-                  <View
-                    style={{
-                      height: 38,
-                      borderRadius: 12,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: filled
-                        ? colors.highlighter
-                        : '#e0e0e0',
-                    }}
-                  >
-                    <AppText
-                      variant="caption"
-                      weight={active ? 'bold' : 'medium'}
-                      color={filled ? colors.carbon : colors.textSubtle}
-                      style={{ fontSize: 14 }}
-                    >
-                      {v}
-                    </AppText>
-                  </View>
-                </MotiView>
-              </Pressable>
-            );
-          })}
-        </View>
-      </Neumorph>
+                  {v}
+                </AppText>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }

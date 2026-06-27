@@ -1,15 +1,19 @@
 import React from 'react';
 import { View, type ViewStyle, type StyleProp } from 'react-native';
-import { Shadow } from 'react-native-shadow-2';
-import { colors, type NeumorphIntensity, neumorph } from '@/theme/tokens';
+import { colors, shadow, type NeumorphIntensity } from '@/theme/tokens';
 
 export type NeumorphProps = {
   children?: React.ReactNode;
-  /** raised = pops out of the surface; inset = pressed into the surface. */
+  /**
+   * Legacy soft-UI variant — neutralised under Steep:
+   *  - 'raised' → a flat white surface with a 1px Dove hairline + ONE subtle shadow.
+   *  - 'inset' / 'flat' → a flat Fog surface with a 1px Dove hairline, no shadow.
+   */
   variant?: 'raised' | 'inset' | 'flat';
   radius?: number;
+  /** @deprecated Steep is flat; intensity is ignored. */
   intensity?: NeumorphIntensity;
-  /** Base surface color (defaults to the graphite-mist canvas). */
+  /** Base surface color (defaults to white for raised, Fog for inset). */
   surface?: string;
   style?: StyleProp<ViewStyle>;
   /** Inner padding applied to the content container. */
@@ -17,73 +21,42 @@ export type NeumorphProps = {
 };
 
 /**
- * Generic neumorphic (soft-UI) wrapper.
+ * STEEP no-op flat surface (formerly the neumorphic wrapper).
  *
- * "raised" stacks a dark shadow (bottom-right) under a light highlight
- * (top-left) using react-native-shadow-2 to fake the dual-light soft-UI look.
- * "inset" simulates a pressed-in well with two inset border highlights — RN
- * can't do true inner shadows cheaply, so we approximate with layered borders
- * + a subtly darker fill, which reads correctly on the gray canvas.
+ * Neumorphism is gone. This now renders a single FLAT View so that the ~50
+ * screens that still wrap content in <Neumorph> keep working — but they read as
+ * clean Steep surfaces: white/fog fill, a 1px Dove hairline, and (for 'raised')
+ * the one subtle shadow. No dual shadows, no puffy depth.
+ *
+ * Prefer <Card> for new code; this exists purely for back-compat.
  */
 export function Neumorph({
   children,
   variant = 'raised',
-  radius = 24,
-  intensity = 'md',
-  surface = colors.canvas,
+  radius = 18,
+  surface,
   style,
   padding,
 }: NeumorphProps) {
-  const i = neumorph.intensity[intensity];
+  const isRaised = variant === 'raised';
+  const bg = surface ?? (isRaised ? colors.white : colors.fog);
 
-  const content = (
+  return (
     <View
       style={[
         {
-          backgroundColor: surface,
+          backgroundColor: bg,
           borderRadius: radius,
+          borderWidth: 1,
+          borderColor: colors.dove,
           ...(padding != null ? { padding } : null),
         },
-        variant === 'inset' && {
-          borderTopWidth: 1.5,
-          borderLeftWidth: 1.5,
-          borderTopColor: 'rgba(174,174,192,0.35)',
-          borderLeftColor: 'rgba(174,174,192,0.35)',
-          borderBottomWidth: 1.5,
-          borderRightWidth: 1.5,
-          borderBottomColor: 'rgba(255,255,255,0.7)',
-          borderRightColor: 'rgba(255,255,255,0.7)',
-          backgroundColor: '#ececec',
-        },
+        isRaised ? shadow : null,
         style,
       ]}
     >
       {children}
     </View>
-  );
-
-  if (variant !== 'raised') {
-    return content;
-  }
-
-  // Raised: dark shadow under a light highlight.
-  return (
-    <Shadow
-      distance={i.distance}
-      startColor="rgba(255,255,255,0.95)"
-      offset={[-i.offset, -i.offset]}
-      style={{ borderRadius: radius }}
-      containerStyle={style as ViewStyle}
-    >
-      <Shadow
-        distance={i.distance}
-        startColor="rgba(174,174,192,0.5)"
-        offset={[i.offset, i.offset]}
-        style={{ borderRadius: radius }}
-      >
-        {content}
-      </Shadow>
-    </Shadow>
   );
 }
 

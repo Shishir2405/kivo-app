@@ -17,59 +17,57 @@ export type AppTextProps = TextProps & {
   variant?: Variant;
   weight?: Weight;
   color?: string;
-  /** Use the Poppins display family instead of Inter (auto for headings). */
+  /**
+   * Force the editorial SERIF (Fraunces). Heading/display variants use it by
+   * default; pass `display={false}` to render a heading in Inter instead, or
+   * `display` on a body variant for a small serif accent (use sparingly).
+   */
   display?: boolean;
   style?: StyleProp<TextStyle>;
 };
 
-const DISPLAY_VARIANTS: Variant[] = [
-  'display',
-  'headingLg',
-  'heading',
-  'headingSm',
-];
+/** Variants that render the editorial serif by default (titles/headlines). */
+const SERIF_VARIANTS: Variant[] = ['display', 'headingLg', 'heading'];
 
-function fontFor(display: boolean, weight: Weight): string {
-  if (display) {
-    if (weight === 'bold') return fonts.displayBold;
-    if (weight === 'semibold') return fonts.displaySemibold;
-    if (weight === 'medium') return fonts.displayMedium;
-    return fonts.display;
+function serifFamily(weight: Weight): string {
+  if (weight === 'semibold' || weight === 'bold') return fonts.serifSemibold;
+  if (weight === 'medium') return fonts.serifMedium;
+  return fonts.serif;
+}
+
+function sansFamily(weight: Weight): string {
+  // Inter only ships 400/500 in Steep — never heavy/childish.
+  if (weight === 'medium' || weight === 'semibold' || weight === 'bold') {
+    return fonts.sansMedium;
   }
-  switch (weight) {
-    case 'light':
-      return fonts.bodyLight;
-    case 'medium':
-      return fonts.bodyMedium;
-    case 'semibold':
-    case 'bold':
-      return fonts.bodyBold;
-    default:
-      return fonts.body;
-  }
+  return fonts.sans;
 }
 
 /**
- * Typed text component bound to the Aaply type scale + font families.
- * Heading variants default to Poppins; body variants to Inter.
+ * AppText — typed text bound to the Steep type scale + font families.
+ *
+ * Heading/display variants render Fraunces (editorial serif). Body variants
+ * render Inter (clean sans, 400/500 only). Default color is Ink. Color is
+ * punctuation — pass Ash/Graphite for muted/tertiary copy.
  */
 export function AppText({
   variant = 'body',
   weight,
-  color = colors.carbon,
+  color = colors.ink,
   display,
   style,
   ...rest
 }: AppTextProps) {
-  const isDisplay = display ?? DISPLAY_VARIANTS.includes(variant);
-  const w: Weight = weight ?? (isDisplay ? 'bold' : 'regular');
+  const isSerif = display ?? SERIF_VARIANTS.includes(variant);
+  // Serif headlines default to medium; sans body defaults to regular.
+  const w: Weight = weight ?? (isSerif ? 'medium' : variant === 'subheading' ? 'medium' : 'regular');
   const scale = typeScale[variant];
 
   return (
     <Text
       style={[
         {
-          fontFamily: fontFor(isDisplay, w),
+          fontFamily: isSerif ? serifFamily(w) : sansFamily(w),
           fontSize: scale.fontSize,
           lineHeight: scale.lineHeight,
           letterSpacing: scale.letterSpacing,

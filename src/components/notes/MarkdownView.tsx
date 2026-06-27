@@ -1,23 +1,23 @@
 /**
- * A tiny, dependency-free Markdown renderer tuned for the Kivo neumorphic look.
+ * A tiny, dependency-free Markdown renderer tuned for the STEEP look.
  *
- * Supports the subset the Notes mock actually uses:
+ * Editorial + flat: serif headings, Inter body, a Fog "code well" with a Dove
+ * hairline (no dark window chrome), a Rust rail on blockquotes/headings (the one
+ * warm key-data stroke), small compact spacing. Supports the subset the notes
+ * actually use:
  *  - `#` / `##` / `###` headings
- *  - fenced ``` code blocks (rendered in an inset "code well" with monospace)
- *  - `> ` blockquotes (accent rail + muted ink)
+ *  - fenced ``` code blocks
+ *  - `> ` blockquotes
  *  - `-` / `*` unordered and `1.` ordered lists
  *  - GFM tables (| a | b |)
  *  - paragraphs with inline **bold**, *italic* and `inline code`
  *
- * This is intentionally not a full CommonMark engine — just enough to make the
- * note bodies read beautifully without pulling in a markdown dependency.
+ * Intentionally not a full CommonMark engine — just enough to make note bodies
+ * read beautifully without a markdown dependency.
  */
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, type StyleProp, type ViewStyle } from 'react-native';
-import { Neumorph } from '@/components/ui/Neumorph';
 import { colors, fonts } from '@/theme/tokens';
-import type { Accent } from './notesMeta';
-import { ACCENT_HEX } from './notesMeta';
 
 const MONO = 'monospace';
 
@@ -159,7 +159,6 @@ type Span = { text: string; bold?: boolean; italic?: boolean; code?: boolean };
 
 function parseInline(text: string): Span[] {
   const spans: Span[] = [];
-  // Split on the three inline tokens, keeping the delimiters.
   const re = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
   let last = 0;
   let m: RegExpExecArray | null;
@@ -181,20 +180,18 @@ function parseInline(text: string): Span[] {
 
 function InlineText({
   text,
-  size = 15,
-  color = colors.carbon,
-  weight,
+  size = 13,
+  color = colors.ash,
   lineHeight,
 }: {
   text: string;
   size?: number;
   color?: string;
-  weight?: string;
   lineHeight?: number;
 }) {
   const spans = useMemo(() => parseInline(text), [text]);
   return (
-    <Text style={{ fontSize: size, lineHeight: lineHeight ?? size * 1.55, color }}>
+    <Text style={{ fontSize: size, lineHeight: lineHeight ?? size * 1.55, color, letterSpacing: -0.1 }}>
       {spans.map((s, idx) => {
         if (s.code) {
           return (
@@ -202,27 +199,22 @@ function InlineText({
               key={idx}
               style={{
                 fontFamily: MONO,
-                fontSize: size - 1.5,
-                color: colors.signal,
-                backgroundColor: '#e7ecfb',
+                fontSize: size - 1,
+                color: colors.rust,
               }}
             >
               {` ${s.text} `}
             </Text>
           );
         }
-        const fam = s.bold
-          ? fonts.bodyBold
-          : weight === 'medium'
-            ? fonts.bodyMedium
-            : fonts.body;
+        const fam = s.bold ? fonts.sansMedium : fonts.sans;
         return (
           <Text
             key={idx}
             style={{
               fontFamily: fam,
               fontStyle: s.italic ? 'italic' : 'normal',
-              color,
+              color: s.bold ? colors.ink : color,
             }}
           >
             {s.text}
@@ -234,70 +226,62 @@ function InlineText({
 }
 
 /* ------------------------------------------------------------------ */
-/* Code block — inset "code well"                                      */
+/* Code block — flat Fog well, Dove hairline                           */
 /* ------------------------------------------------------------------ */
 
 function CodeBlock({ lang, lines }: { lang: string; lines: string[] }) {
   return (
-    <View style={{ marginVertical: 8 }}>
-      <Neumorph variant="inset" radius={16}>
-        <View style={{ backgroundColor: '#1d1d24', borderRadius: 16, overflow: 'hidden' }}>
-          {/* Window chrome */}
-          <View
+    <View
+      style={{
+        marginVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.dove,
+        backgroundColor: colors.fog,
+        overflow: 'hidden',
+      }}
+    >
+      {lang ? (
+        <View
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.dove,
+          }}
+        >
+          <Text
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 14,
-              paddingVertical: 9,
-              borderBottomWidth: 1,
-              borderBottomColor: 'rgba(255,255,255,0.08)',
+              fontFamily: fonts.sansMedium,
+              fontSize: 10,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: colors.graphite,
             }}
           >
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              <Dot color="#ff5f57" />
-              <Dot color="#febc2e" />
-              <Dot color="#28c840" />
-            </View>
-            {lang ? (
-              <Text
-                style={{
-                  fontFamily: fonts.bodyMedium,
-                  fontSize: 11,
-                  letterSpacing: 1,
-                  textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.45)',
-                }}
-              >
-                {lang}
-              </Text>
-            ) : null}
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ paddingHorizontal: 16, paddingVertical: 12, minWidth: '100%' }}>
-              {lines.map((ln, idx) => (
-                <Text
-                  key={idx}
-                  style={{
-                    fontFamily: MONO,
-                    fontSize: 13,
-                    lineHeight: 20,
-                    color: '#e6e6e6',
-                  }}
-                >
-                  {ln.length ? ln : ' '}
-                </Text>
-              ))}
-            </View>
-          </ScrollView>
+            {lang}
+          </Text>
         </View>
-      </Neumorph>
+      ) : null}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={{ paddingHorizontal: 12, paddingVertical: 10, minWidth: '100%' }}>
+          {lines.map((ln, idx) => (
+            <Text
+              key={idx}
+              style={{
+                fontFamily: MONO,
+                fontSize: 12,
+                lineHeight: 19,
+                color: colors.ink,
+              }}
+            >
+              {ln.length ? ln : ' '}
+            </Text>
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
-}
-
-function Dot({ color }: { color: string }) {
-  return <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />;
 }
 
 /* ------------------------------------------------------------------ */
@@ -309,17 +293,17 @@ function Table({ header, rows }: { header: string[]; rows: string[][] }) {
     <View
       style={{
         marginVertical: 8,
-        borderRadius: 14,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.hairline,
+        borderColor: colors.dove,
         overflow: 'hidden',
-        backgroundColor: colors.paper,
+        backgroundColor: colors.white,
       }}
     >
-      <View style={{ flexDirection: 'row', backgroundColor: '#efefef' }}>
+      <View style={{ flexDirection: 'row', backgroundColor: colors.fog }}>
         {header.map((c, idx) => (
-          <View key={idx} style={{ flex: 1, padding: 10 }}>
-            <Text style={{ fontFamily: fonts.bodyBold, fontSize: 13, color: colors.carbon }}>
+          <View key={idx} style={{ flex: 1, padding: 9 }}>
+            <Text style={{ fontFamily: fonts.sansMedium, fontSize: 12, color: colors.ink }}>
               {c}
             </Text>
           </View>
@@ -331,12 +315,12 @@ function Table({ header, rows }: { header: string[]; rows: string[][] }) {
           style={{
             flexDirection: 'row',
             borderTopWidth: 1,
-            borderTopColor: colors.hairline,
+            borderTopColor: colors.fog,
           }}
         >
           {row.map((c, cIdx) => (
-            <View key={cIdx} style={{ flex: 1, padding: 10 }}>
-              <InlineText text={c} size={13} color={colors.textMuted} />
+            <View key={cIdx} style={{ flex: 1, padding: 9 }}>
+              <InlineText text={c} size={12} color={colors.ash} />
             </View>
           ))}
         </View>
@@ -351,27 +335,27 @@ function Table({ header, rows }: { header: string[]; rows: string[][] }) {
 
 export type MarkdownViewProps = {
   source: string;
-  /** Accent used for headings + blockquote rail. */
-  accent?: Accent;
+  /** Kept for back-compat; Steep always uses the single Rust rail. */
+  accent?: string;
   style?: StyleProp<ViewStyle>;
 };
 
 const HEADING = {
-  1: { size: 22, mt: 10, mb: 6 },
-  2: { size: 18, mt: 14, mb: 4 },
-  3: { size: 16, mt: 10, mb: 2 },
+  1: { size: 19, mt: 10, mb: 4 },
+  2: { size: 16, mt: 12, mb: 3 },
+  3: { size: 14, mt: 8, mb: 2 },
 } as const;
 
-export function MarkdownView({ source, accent = 'highlighter', style }: MarkdownViewProps) {
+export function MarkdownView({ source, style }: MarkdownViewProps) {
   const blocks = useMemo(() => parse(source), [source]);
-  const rail = ACCENT_HEX[accent] as string;
+  const rail = colors.rust;
 
   return (
     <View style={style}>
       {blocks.map((b, idx) => {
         switch (b.kind) {
           case 'space':
-            return <View key={idx} style={{ height: 8 }} />;
+            return <View key={idx} style={{ height: 6 }} />;
           case 'heading': {
             const h = HEADING[b.level];
             return (
@@ -386,22 +370,15 @@ export function MarkdownView({ source, accent = 'highlighter', style }: Markdown
                 }}
               >
                 {b.level <= 2 ? (
-                  <View
-                    style={{
-                      width: 4,
-                      height: h.size,
-                      borderRadius: 2,
-                      backgroundColor: rail,
-                    }}
-                  />
+                  <View style={{ width: 3, height: h.size, borderRadius: 2, backgroundColor: rail }} />
                 ) : null}
                 <Text
                   style={{
                     flex: 1,
-                    fontFamily: fonts.displayBold,
+                    fontFamily: b.level === 1 ? fonts.serifSemibold : fonts.serifMedium,
                     fontSize: h.size,
-                    letterSpacing: -0.4,
-                    color: colors.carbon,
+                    letterSpacing: -0.3,
+                    color: colors.ink,
                   }}
                 >
                   {b.text}
@@ -415,32 +392,21 @@ export function MarkdownView({ source, accent = 'highlighter', style }: Markdown
             return (
               <View
                 key={idx}
-                style={{
-                  flexDirection: 'row',
-                  gap: 12,
-                  marginVertical: 8,
-                  paddingVertical: 4,
-                }}
+                style={{ flexDirection: 'row', gap: 10, marginVertical: 6, paddingVertical: 2 }}
               >
-                <View style={{ width: 4, borderRadius: 2, backgroundColor: rail }} />
+                <View style={{ width: 3, borderRadius: 2, backgroundColor: rail }} />
                 <View style={{ flex: 1 }}>
-                  <InlineText text={b.text} size={15} color={colors.textMuted} />
+                  <InlineText text={b.text} size={13} color={colors.graphite} />
                 </View>
               </View>
             );
           case 'ul':
             return (
-              <View key={idx} style={{ marginVertical: 4, gap: 6 }}>
+              <View key={idx} style={{ marginVertical: 3, gap: 5 }}>
                 {b.items.map((it, j) => (
-                  <View key={j} style={{ flexDirection: 'row', gap: 10 }}>
+                  <View key={j} style={{ flexDirection: 'row', gap: 9 }}>
                     <View
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 3,
-                        marginTop: 9,
-                        backgroundColor: rail,
-                      }}
+                      style={{ width: 5, height: 5, borderRadius: 3, marginTop: 8, backgroundColor: rail }}
                     />
                     <View style={{ flex: 1 }}>
                       <InlineText text={it} />
@@ -451,16 +417,16 @@ export function MarkdownView({ source, accent = 'highlighter', style }: Markdown
             );
           case 'ol':
             return (
-              <View key={idx} style={{ marginVertical: 4, gap: 6 }}>
+              <View key={idx} style={{ marginVertical: 3, gap: 5 }}>
                 {b.items.map((it, j) => (
-                  <View key={j} style={{ flexDirection: 'row', gap: 10 }}>
+                  <View key={j} style={{ flexDirection: 'row', gap: 9 }}>
                     <Text
                       style={{
-                        fontFamily: fonts.bodyBold,
-                        fontSize: 14,
-                        lineHeight: 23,
-                        color: colors.carbon,
-                        minWidth: 16,
+                        fontFamily: fonts.sansMedium,
+                        fontSize: 13,
+                        lineHeight: 20,
+                        color: colors.rust,
+                        minWidth: 15,
                       }}
                     >
                       {j + 1}.
@@ -476,7 +442,7 @@ export function MarkdownView({ source, accent = 'highlighter', style }: Markdown
             return <Table key={idx} header={b.header} rows={b.rows} />;
           case 'p':
             return (
-              <View key={idx} style={{ marginVertical: 3 }}>
+              <View key={idx} style={{ marginVertical: 2 }}>
                 <InlineText text={b.text} />
               </View>
             );

@@ -1,142 +1,68 @@
 /**
- * Menu hub ("More").
+ * Menu hub ("More") — STEEP.
  *
- * A neumorphic grid of feature tiles that links to every stack route the
- * expansion adds. Premium, calm, and entirely composed from the Aaply kit —
- * SoftCard tiles on the graphite-mist canvas, vector Icons only, ZERO emoji.
- *
- * Tiles are grouped into "Workspace" (notes/resources/habits/reflections),
- * "Insights" (notifications/achievements/analytics/calendar) and "Tools"
- * (focus timer/settings) so the hub reads as an organised launcher rather than
- * an undifferentiated wall of buttons.
+ * A calm, editorial launcher to every stack route the expansion adds. Flat:
+ * grouped lists of compact rows (a small thin icon, a label + subline, a chevron)
+ * inside white Cards with a Dove hairline + one subtle shadow — not a puffy grid
+ * of tiles. Live counts are pulled from the data hooks (notifications / notes /
+ * revisions / achievements) and degrade to a neutral subline while loading or on
+ * error, so a failed request never crashes the screen.
  */
-import React, { useCallback } from 'react';
-import { View, ScrollView, Pressable, type ColorValue } from 'react-native';
+import React from 'react';
+import { View, ScrollView, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
-import { MotiView } from 'moti';
 
 import { AppText } from '@/components/ui/Typography';
 import { SoftCard } from '@/components/ui/SoftCard';
-import { Neumorph } from '@/components/ui/Neumorph';
-import { SoftIconButton } from '@/components/ui/SoftIconButton';
-import { Icon, type IconName } from '@/components/ui/Icon';
 import { Tag } from '@/components/ui/Tag';
-import { BrandLogo } from '@/components/brand/BrandLogo';
-import { GrayMark } from '@/components/ui/AppHeader';
+import { Icon, type IconName } from '@/components/ui/Icon';
+import { AppHeader } from '@/components/ui/AppHeader';
 
 import { colors, radii } from '@/theme/tokens';
-import {
-  mockNotifications,
-  mockRevisions,
-  mockNotes,
-  mockAchievementCatalog,
-} from '@/data/mock';
-
-/* ------------------------------------------------------------------ */
-/* Tile model                                                          */
-/* ------------------------------------------------------------------ */
-
-type Accent = 'highlighter' | 'signal' | 'peach' | 'annotation' | 'success';
-
-const ACCENT_HEX: Record<Accent, ColorValue> = {
-  highlighter: colors.highlighter,
-  signal: colors.signal,
-  peach: colors.peach,
-  annotation: colors.annotation,
-  success: colors.success,
-};
-
-/** Ink that reads on top of each accent chip. */
-function accentInk(accent: Accent): string {
-  return accent === 'highlighter' ? colors.carbon : colors.paper;
-}
+import { useNotifications, useNotes, useRevisions, useAchievements } from '@/hooks/api';
 
 type Tile = {
   key: string;
   label: string;
   sub: string;
   icon: IconName;
-  accent: Accent;
   href: Href;
-  /** Optional small count badge (e.g. unread notifications). */
+  /** Optional small count badge. */
   badge?: number;
 };
 
-type Group = {
-  title: string;
-  icon: IconName;
-  tiles: Tile[];
-};
+type Group = { title: string; tiles: Tile[] };
 
 /* ------------------------------------------------------------------ */
-/* Tile component                                                      */
+/* Row                                                                */
 /* ------------------------------------------------------------------ */
 
-function FeatureTile({ tile, onPress, index }: { tile: Tile; onPress: () => void; index: number }) {
-  const [pressed, setPressed] = React.useState(false);
+function FeatureRow({ tile, onPress, divider }: { tile: Tile; onPress: () => void; divider?: boolean }) {
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: 12 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: 'timing', duration: 320, delay: 60 + index * 45 }}
-      style={{ width: '47.5%', flexGrow: 1 }}
-    >
-      <Pressable
-        onPress={onPress}
-        onPressIn={() => setPressed(true)}
-        onPressOut={() => setPressed(false)}
-        accessibilityRole="button"
-        accessibilityLabel={tile.label}
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={tile.label}>
+      <View
+        className="flex-row items-center"
+        style={{
+          gap: 12,
+          paddingVertical: 12,
+          borderTopWidth: divider ? 1 : 0,
+          borderTopColor: colors.fog,
+        }}
       >
-        <SoftCard
-          variant={pressed ? 'inset' : 'raised'}
-          radius={radii.card}
-          intensity="md"
-          padding={16}
-          style={{ minHeight: 124 }}
-        >
-          <View className="flex-row items-start justify-between">
-            <Neumorph variant="inset" radius={14} intensity="sm" padding={10} surface={colors.canvas}>
-              <Icon name={tile.icon} size={22} color={tile.accent} strokeWidth={2.2} />
-            </Neumorph>
-            {tile.badge && tile.badge > 0 ? (
-              <View
-                style={{
-                  minWidth: 22,
-                  height: 22,
-                  paddingHorizontal: 6,
-                  borderRadius: 999,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: ACCENT_HEX[tile.accent],
-                }}
-              >
-                <AppText variant="caption" weight="bold" color={accentInk(tile.accent)} style={{ fontSize: 11 }}>
-                  {tile.badge}
-                </AppText>
-              </View>
-            ) : (
-              <Icon name="chevron-right" size={16} color="textSubtle" strokeWidth={2.2} />
-            )}
-          </View>
-
-          <View style={{ marginTop: 14 }}>
-            <AppText variant="body" weight="bold" numberOfLines={1}>
-              {tile.label}
-            </AppText>
-            <AppText
-              variant="caption"
-              color={colors.textMuted}
-              numberOfLines={1}
-              style={{ marginTop: 2, fontSize: 12 }}
-            >
-              {tile.sub}
-            </AppText>
-          </View>
-        </SoftCard>
-      </Pressable>
-    </MotiView>
+        <Icon name={tile.icon} size={18} color="graphite" />
+        <View style={{ flex: 1 }}>
+          <AppText variant="subheading" weight="medium" numberOfLines={1}>
+            {tile.label}
+          </AppText>
+          <AppText variant="caption" color={colors.graphite} numberOfLines={1} style={{ marginTop: 1 }}>
+            {tile.sub}
+          </AppText>
+        </View>
+        {tile.badge && tile.badge > 0 ? <Tag label={`${tile.badge}`} tone="rust" size="sm" /> : null}
+        <Icon name="chevron-right" size={15} color="dove" />
+      </View>
+    </Pressable>
   );
 }
 
@@ -148,193 +74,114 @@ export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const unread = mockNotifications.filter((n) => !n.read).length;
-  const dueRevisions = mockRevisions.filter((r) => r.dueToday).length;
-  const pinnedNotes = mockNotes.filter((n) => n.pinned && !n.archived).length;
-  const unlocked = mockAchievementCatalog.filter((a) => a.unlocked).length;
+  const notifications = useNotifications();
+  const notes = useNotes();
+  const revisions = useRevisions();
+  const achievements = useAchievements();
+
+  const unread = Array.isArray(notifications.data) ? notifications.data.filter((n) => !n.read).length : 0;
+  const noteCount = Array.isArray(notes.data) ? notes.data.filter((n) => !n.archived).length : 0;
+  const pinnedNotes = Array.isArray(notes.data) ? notes.data.filter((n) => n.pinned && !n.archived).length : 0;
+  const dueRevisions = Array.isArray(revisions.data) ? revisions.data.filter((r) => r.dueToday).length : 0;
+  const unlocked = Array.isArray(achievements.data) ? achievements.data.filter((a) => a.unlocked).length : 0;
+  const achievementsTotal = Array.isArray(achievements.data) ? achievements.data.length : 0;
 
   const groups: Group[] = [
     {
       title: 'Workspace',
-      icon: 'folder',
       tiles: [
         {
           key: 'notes',
           label: 'Notes',
-          sub: `${mockNotes.filter((n) => !n.archived).length} notes · ${pinnedNotes} pinned`,
+          sub: notes.isLoading ? 'Markdown notebook' : `${noteCount} notes · ${pinnedNotes} pinned`,
           icon: 'notebook-pen',
-          accent: 'highlighter',
           href: '/notes',
         },
-        {
-          key: 'resources',
-          label: 'Resources',
-          sub: 'Saved links & playlists',
-          icon: 'book-open',
-          accent: 'signal',
-          href: '/resources',
-        },
-        {
-          key: 'habits',
-          label: 'Habits',
-          sub: 'Daily routines & streaks',
-          icon: 'repeat',
-          accent: 'peach',
-          href: '/habits',
-        },
-        {
-          key: 'reflections',
-          label: 'Reflections',
-          sub: 'Daily journal',
-          icon: 'book',
-          accent: 'success',
-          href: '/reflections',
-        },
+        { key: 'resources', label: 'Resources', sub: 'Saved links & playlists', icon: 'book-open', href: '/resources' },
+        { key: 'habits', label: 'Habits', sub: 'Daily routines & streaks', icon: 'repeat', href: '/habits' },
+        { key: 'reflections', label: 'Reflections', sub: 'Daily journal', icon: 'book', href: '/reflections' },
       ],
     },
     {
       title: 'Insights',
-      icon: 'activity',
       tiles: [
         {
           key: 'notifications',
           label: 'Notifications',
-          sub: unread > 0 ? `${unread} unread` : 'All caught up',
+          sub: notifications.isLoading ? 'Activity inbox' : unread > 0 ? `${unread} unread` : 'All caught up',
           icon: 'bell',
-          accent: 'annotation',
           href: '/notifications',
           badge: unread,
         },
         {
           key: 'achievements',
           label: 'Achievements',
-          sub: `${unlocked} of ${mockAchievementCatalog.length} unlocked`,
+          sub: achievements.isLoading ? 'Badges & milestones' : `${unlocked} of ${achievementsTotal} unlocked`,
           icon: 'trophy',
-          accent: 'highlighter',
           href: '/achievements',
         },
-        {
-          key: 'analytics',
-          label: 'Analytics',
-          sub: 'Weekly reports & trends',
-          icon: 'chart',
-          accent: 'signal',
-          href: '/analytics',
-        },
+        { key: 'analytics', label: 'Analytics', sub: 'Weekly reports & trends', icon: 'chart', href: '/analytics' },
         {
           key: 'calendar',
           label: 'Calendar',
-          sub: `${dueRevisions} due today`,
+          sub: revisions.isLoading ? 'Plan your study days' : `${dueRevisions} due today`,
           icon: 'calendar',
-          accent: 'peach',
           href: '/calendar',
         },
       ],
     },
     {
       title: 'Tools',
-      icon: 'settings',
       tiles: [
-        {
-          key: 'focus',
-          label: 'Focus Timer',
-          sub: 'Deep-work sessions',
-          icon: 'timer',
-          accent: 'signal',
-          href: '/focus-timer',
-        },
-        {
-          key: 'settings',
-          label: 'Settings',
-          sub: 'Profile & preferences',
-          icon: 'settings',
-          accent: 'success',
-          href: '/settings',
-        },
+        { key: 'focus', label: 'Focus Timer', sub: 'Deep-work sessions', icon: 'timer', href: '/focus-timer' },
+        { key: 'settings', label: 'Settings', sub: 'Profile & preferences', icon: 'settings', href: '/settings' },
       ],
     },
   ];
 
-  const go = useCallback((href: Href) => () => router.push(href), [router]);
-
-  let tileIndex = 0;
-
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+    <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <View style={{ paddingHorizontal: 20 }}>
+        <AppHeader onBack={() => router.back()} />
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: insets.top + 8,
           paddingHorizontal: 20,
+          paddingTop: 8,
           paddingBottom: insets.bottom + 40,
         }}
       >
-        {/* ---------- Top bar ---------- */}
-        <View className="flex-row items-center justify-between">
-          <SoftIconButton size={44} accessibilityLabel="Go back" onPress={() => router.back()}>
-            <Icon name="chevron-left" size={22} color="carbon" />
-          </SoftIconButton>
-          <GrayMark size={24} />
-          <SoftIconButton size={44} accessibilityLabel="Notifications" onPress={go('/notifications')}>
-            <Icon name="bell" size={20} color="carbon" />
-          </SoftIconButton>
+        {/* Header */}
+        <View style={{ marginBottom: 18 }}>
+          <AppText variant="display" display weight="semibold">
+            More
+          </AppText>
+          <AppText variant="body" color={colors.ash} style={{ marginTop: 4 }}>
+            Everything, one tap away
+          </AppText>
         </View>
 
-        {/* ---------- Header ---------- */}
-        <MotiView
-          from={{ opacity: 0, translateY: 10 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 360 }}
-          style={{ marginTop: 18, marginBottom: 22 }}
-        >
-          <View className="flex-row items-center" style={{ gap: 7 }}>
-            <Icon name="layers" size={14} color="peach" strokeWidth={2.25} />
+        {groups.map((group) => (
+          <View key={group.title} style={{ marginBottom: 20 }}>
             <AppText
               variant="caption"
-              weight="semibold"
-              color={colors.textSubtle}
-              style={{ textTransform: 'uppercase', letterSpacing: 2, fontSize: 11 }}
+              color={colors.graphite}
+              style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 }}
             >
-              Menu
+              {group.title}
             </AppText>
-          </View>
-          <AppText variant="heading" display weight="bold" style={{ marginTop: 6 }}>
-            Everything,{'\n'}one tap away
-          </AppText>
-        </MotiView>
-
-        {/* ---------- Groups ---------- */}
-        {groups.map((group) => (
-          <View key={group.title} style={{ marginBottom: 26 }}>
-            <View className="flex-row items-center" style={{ gap: 8, marginBottom: 14 }}>
-              <Icon name={group.icon} size={16} color="carbon" strokeWidth={2.2} />
-              <AppText
-                variant="caption"
-                weight="bold"
-                color={colors.textMuted}
-                style={{ textTransform: 'uppercase', letterSpacing: 1.5, fontSize: 12 }}
-              >
-                {group.title}
-              </AppText>
-              <View style={{ flex: 1, height: 1, backgroundColor: colors.hairline }} />
-              <Tag label={`${group.tiles.length}`} tone="neutral" size="sm" />
-            </View>
-
-            <View className="flex-row flex-wrap" style={{ gap: 12 }}>
-              {group.tiles.map((tile) => {
-                const idx = tileIndex++;
-                return (
-                  <FeatureTile key={tile.key} tile={tile} onPress={go(tile.href)} index={idx} />
-                );
-              })}
-            </View>
+            <SoftCard radius={radii.card} padding={12}>
+              {group.tiles.map((tile, i) => (
+                <FeatureRow key={tile.key} tile={tile} onPress={() => router.push(tile.href)} divider={i > 0} />
+              ))}
+            </SoftCard>
           </View>
         ))}
 
-        {/* ---------- Footer ---------- */}
-        <View className="items-center" style={{ marginTop: 6 }}>
-          <BrandLogo variant="lockup" size={15} color={colors.textSubtle} />
-          <AppText variant="caption" color={colors.textSubtle} style={{ marginTop: 8, fontSize: 11 }}>
+        <View className="items-center" style={{ marginTop: 4 }}>
+          <AppText variant="caption" color={colors.graphite}>
             Your study toolkit, all in one place.
           </AppText>
         </View>

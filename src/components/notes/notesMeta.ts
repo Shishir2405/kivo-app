@@ -1,37 +1,37 @@
 /**
- * Shared metadata + helpers for the Notes feature screens.
+ * Shared metadata + helpers for the Notes feature screens (STEEP).
  *
- * Keeps folder glyphs, accent color resolution and the lightweight date
- * formatting in one place so the list and the editor stay consistent. Pure /
- * deterministic — no Date.now at module scope (callers pass the day in).
+ * Keeps folder glyphs, accent → Steep-tone resolution and the lightweight date
+ * formatting in one place so the list and the editor stay consistent. Color is
+ * punctuation: the legacy per-note `accent` union is collapsed onto the Steep
+ * voices — the two washes (apricot / sky) and Rust — never bright/saturated.
+ * Pure / deterministic — no Date.now at module scope (callers pass the day in).
  */
-import type { ColorValue } from 'react-native';
 import { colors } from '@/theme/tokens';
+import type { TagTone } from '@/components/ui/Tag';
 import type { IconName, Note, NoteFolder } from '@/types/models';
 
 export type Accent = Note['accent'];
 
-/** Solid accent hex (for filled chips / glyphs). */
-export const ACCENT_HEX: Record<Accent, ColorValue> = {
-  highlighter: colors.highlighter,
-  signal: colors.signal,
-  peach: colors.peach,
-  annotation: colors.annotation,
-  success: colors.success,
+/**
+ * Resolve a legacy accent token to a Steep Tag tone. Chrome stays monochrome;
+ * the only chromatic chips are the two washes + Rust.
+ */
+export const ACCENT_TONE: Record<Accent, TagTone> = {
+  highlighter: 'ink',
+  signal: 'cool',
+  peach: 'warm',
+  annotation: 'rust',
+  success: 'neutral',
 };
 
-/** Ink that reads on top of each accent fill. */
-export function accentInk(accent: Accent): string {
-  return accent === 'highlighter' ? colors.carbon : colors.paper;
-}
-
-/** A soft tint background for an accent (matches the Tag tone wash language). */
+/** A soft Steep wash background for an accent (apricot / sky / fog). */
 export const ACCENT_WASH: Record<Accent, string> = {
-  highlighter: '#f7f7c2',
-  signal: '#e1e8ff',
-  peach: '#ffe6dd',
-  annotation: '#ffe2e2',
-  success: '#dff5e8',
+  highlighter: colors.fog,
+  signal: colors.sky,
+  peach: colors.apricot,
+  annotation: colors.apricot,
+  success: colors.fog,
 };
 
 /** All folders, in display order. */

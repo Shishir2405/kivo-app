@@ -1,92 +1,77 @@
 /**
- * Small presentational building blocks shared across the Settings screen.
+ * Settings building blocks (Steep).
  *
- * These compose the Aaply neumorphic kit (SoftCard / Neumorph / Icon / AppText)
- * into the repeating shapes the Settings screen needs: a section header, a
- * grouped card, a labelled toggle row, and a generic control row. ZERO emoji —
- * every glyph is a vector Icon.
+ * Flat white grouping cards (1px Dove hairline + the one subtle shadow), small
+ * compact rows, few small thin monochrome glyphs, serif section labels. No
+ * neumorphism, no saturated color, no oversized type. Export names are kept so
+ * the Settings screen keeps compiling.
  */
 import React from 'react';
-import { View, type ColorValue } from 'react-native';
-import { MotiView } from 'moti';
+import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/Typography';
-import { SoftCard } from '@/components/ui/SoftCard';
-import { Neumorph } from '@/components/ui/Neumorph';
+import { Card } from '@/components/ui/SoftCard';
 import { SoftToggle } from '@/components/ui/SoftToggle';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, spacing } from '@/theme/tokens';
 
+/** Legacy accent union — kept for the screen's row config; visually monochrome. */
 export type Accent = 'highlighter' | 'signal' | 'peach' | 'annotation' | 'success';
 
-export const ACCENT_HEX: Record<Accent, ColorValue> = {
-  highlighter: colors.highlighter,
-  signal: colors.signal,
-  peach: colors.peach,
-  annotation: colors.annotation,
-  success: colors.success,
+/** Legacy map — all glyphs are Graphite in Steep (color is reserved for data). */
+export const ACCENT_HEX: Record<Accent, string> = {
+  highlighter: colors.graphite,
+  signal: colors.graphite,
+  peach: colors.graphite,
+  annotation: colors.graphite,
+  success: colors.graphite,
 };
 
 /* ------------------------------------------------------------------ */
-/* Section header — uppercase eyebrow with an accent glyph + hairline   */
+/* Section header — small serif label + a hairline rule                 */
 /* ------------------------------------------------------------------ */
 
 export function SectionHeader({
-  icon,
   title,
-  accent = 'highlighter',
-  index = 0,
 }: {
-  icon: IconName;
+  icon?: IconName;
   title: string;
   accent?: Accent;
   index?: number;
 }) {
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: 8 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: 'timing', duration: 320, delay: 60 + index * 40 }}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 14 }}
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+        marginBottom: spacing.md,
+      }}
     >
-      <Icon name={icon} size={15} color={accent} strokeWidth={2.4} />
-      <AppText
-        variant="caption"
-        weight="bold"
-        color={colors.textMuted}
-        style={{ textTransform: 'uppercase', letterSpacing: 1.5, fontSize: 12 }}
-      >
+      <AppText variant="subheading" display weight="medium">
         {title}
       </AppText>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.hairline }} />
-    </MotiView>
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.dove }} />
+    </View>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Section card — a grouping SoftCard with a consistent inner rhythm    */
+/* Section card — a flat white grouping card                            */
 /* ------------------------------------------------------------------ */
 
 export function SectionCard({
   children,
-  index = 0,
-  padding = 6,
+  padding = spacing.xs,
 }: {
   children: React.ReactNode;
   index?: number;
   padding?: number;
 }) {
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: 12 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: 'timing', duration: 360, delay: 90 + index * 40 }}
-      style={{ marginBottom: 26 }}
-    >
-      <SoftCard radius={radii.card} padding={padding}>
-        {children}
-      </SoftCard>
-    </MotiView>
+    <Card radius={radii.card} padding={padding} style={{ marginBottom: spacing.xl }}>
+      {children}
+    </Card>
   );
 }
 
@@ -96,40 +81,50 @@ export function RowDivider() {
     <View
       style={{
         height: 1,
-        backgroundColor: colors.hairline,
-        marginLeft: 60,
-        marginRight: 14,
+        backgroundColor: colors.dove,
+        marginLeft: spacing.md + 34,
+        marginRight: spacing.md,
       }}
     />
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Leading glyph chip — inset neumorphic well tinted by accent          */
+/* Leading glyph chip — a small Fog well with a thin mono glyph          */
 /* ------------------------------------------------------------------ */
 
-export function GlyphChip({ icon, accent }: { icon: IconName; accent: Accent }) {
+export function GlyphChip({ icon }: { icon: IconName; accent?: Accent }) {
   return (
-    <Neumorph variant="inset" radius={12} intensity="sm" padding={9} surface={colors.canvas}>
-      <Icon name={icon} size={18} color={accent} strokeWidth={2.2} />
-    </Neumorph>
+    <View
+      style={{
+        width: 34,
+        height: 34,
+        borderRadius: 9999,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.fog,
+        borderWidth: 1,
+        borderColor: colors.dove,
+      }}
+    >
+      <Icon name={icon} size={16} color="graphite" weight="light" />
+    </View>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Toggle row — title + optional subtitle on the left, SoftToggle right */
+/* Toggle row                                                           */
 /* ------------------------------------------------------------------ */
 
 export function ToggleRow({
   icon,
-  accent,
   title,
   subtitle,
   value,
   onValueChange,
 }: {
   icon: IconName;
-  accent: Accent;
+  accent?: Accent;
   title: string;
   subtitle?: string;
   value: boolean;
@@ -140,18 +135,18 @@ export function ToggleRow({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
+        gap: spacing.md,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
       }}
     >
-      <GlyphChip icon={icon} accent={accent} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <AppText variant="body" weight="semibold" style={{ fontSize: 15 }} numberOfLines={1}>
+      <GlyphChip icon={icon} />
+      <View style={{ flex: 1, gap: 1 }}>
+        <AppText variant="subheading" weight="regular" numberOfLines={1}>
           {title}
         </AppText>
         {subtitle ? (
-          <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 12 }} numberOfLines={2}>
+          <AppText variant="caption" color={colors.graphite} numberOfLines={2}>
             {subtitle}
           </AppText>
         ) : null}
@@ -162,40 +157,42 @@ export function ToggleRow({
 }
 
 /* ------------------------------------------------------------------ */
-/* Control row — a glyph + label on the left, an arbitrary control right */
+/* Control row — glyph + label + an arbitrary control                   */
 /* ------------------------------------------------------------------ */
 
 export function ControlRow({
   icon,
-  accent,
   title,
   subtitle,
   children,
   align = 'center',
 }: {
   icon: IconName;
-  accent: Accent;
+  accent?: Accent;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
-  /** 'center' = inline control to the right; 'block' = control stacked below. */
   align?: 'center' | 'block';
 }) {
+  const Label = (
+    <View style={{ flex: 1, gap: 1 }}>
+      <AppText variant="subheading" weight="regular" numberOfLines={1}>
+        {title}
+      </AppText>
+      {subtitle ? (
+        <AppText variant="caption" color={colors.graphite} numberOfLines={2}>
+          {subtitle}
+        </AppText>
+      ) : null}
+    </View>
+  );
+
   if (align === 'block') {
     return (
-      <View style={{ paddingVertical: 14, paddingHorizontal: 14, gap: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <GlyphChip icon={icon} accent={accent} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <AppText variant="body" weight="semibold" style={{ fontSize: 15 }} numberOfLines={1}>
-              {title}
-            </AppText>
-            {subtitle ? (
-              <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 12 }} numberOfLines={2}>
-                {subtitle}
-              </AppText>
-            ) : null}
-          </View>
+      <View style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.md, gap: spacing.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+          <GlyphChip icon={icon} />
+          {Label}
         </View>
         {children}
       </View>
@@ -207,22 +204,13 @@ export function ControlRow({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
+        gap: spacing.md,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
       }}
     >
-      <GlyphChip icon={icon} accent={accent} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <AppText variant="body" weight="semibold" style={{ fontSize: 15 }} numberOfLines={1}>
-          {title}
-        </AppText>
-        {subtitle ? (
-          <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 12 }} numberOfLines={2}>
-            {subtitle}
-          </AppText>
-        ) : null}
-      </View>
+      <GlyphChip icon={icon} />
+      {Label}
       {children}
     </View>
   );

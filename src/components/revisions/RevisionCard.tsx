@@ -1,51 +1,51 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { AnimatePresence, MotiView } from 'moti';
 
 import { AppText } from '@/components/ui/Typography';
 import { SoftCard } from '@/components/ui/SoftCard';
-import { SoftButton } from '@/components/ui/SoftButton';
-import { Neumorph } from '@/components/ui/Neumorph';
+import { PillButton, TextLink } from '@/components/ui/PillButton';
 import { Tag } from '@/components/ui/Tag';
 import { Icon, SegmentedTabs, type SegmentedOption } from '@/components/ui';
-import { colors, fonts, radii } from '@/theme/tokens';
+import { colors, radii, fonts } from '@/theme/tokens';
 import type { Revision, Confidence } from '@/types/models';
 import {
   RECALL_GRADES,
   gradeMeta,
   nextReviewPreview,
-  type RecallGrade,
+  clampConfidence,
+  confidencePipColor,
+  confidenceLabel,
+  relativeDueLabel,
+  daysFromToday,
   DIFFICULTY_TONE,
   DIFFICULTY_LABEL,
-  confidenceColor,
-  confidenceLabel,
+  type RecallGrade,
 } from './revisionUtils';
 
 /* ------------------------------------------------------------------ */
-/* Confidence meter — 5 pips coloured by current confidence            */
+/* Confidence meter — 5 thin pips (Ink filled / Dove empty)            */
 /* ------------------------------------------------------------------ */
 
-function ConfidenceMeter({ level }: { level: Confidence }) {
-  const accent = confidenceColor(level);
+function ConfidenceMeter({ value }: { value: Confidence }) {
+  const level = clampConfidence(value);
+  const accent = confidencePipColor(level);
   return (
-    <View className="flex-row items-center" style={{ gap: 9 }}>
-      <View className="flex-row" style={{ gap: 4 }}>
-        {[1, 2, 3, 4, 5].map((pip) => {
-          const on = pip <= level;
-          return (
-            <MotiView
-              key={pip}
-              animate={{
-                backgroundColor: on ? accent : '#d7d7d7',
-                scale: on ? 1 : 0.82,
-              }}
-              transition={{ type: 'timing', duration: 240 }}
-              style={{ width: 18, height: 6, borderRadius: 3 }}
-            />
-          );
-        })}
+    <View className="flex-row items-center" style={{ gap: 8 }}>
+      <View className="flex-row" style={{ gap: 3 }}>
+        {[1, 2, 3, 4, 5].map((pip) => (
+          <View
+            key={pip}
+            style={{
+              width: 16,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: pip <= level ? accent : colors.dove,
+            }}
+          />
+        ))}
       </View>
-      <AppText variant="caption" weight="medium" color={colors.textMuted} style={{ fontSize: 11 }}>
+      <AppText variant="caption" color={colors.graphite}>
         {confidenceLabel(level)}
       </AppText>
     </View>
@@ -59,205 +59,120 @@ function ConfidenceMeter({ level }: { level: Confidence }) {
 const GRADE_SEGMENTS: SegmentedOption<RecallGrade>[] = RECALL_GRADES.map((m) => ({
   label: m.label,
   value: m.grade,
-  icon: m.icon,
 }));
 
 /* ------------------------------------------------------------------ */
-/* Due-today revision card                                             */
+/* Due revision card                                                   */
 /* ------------------------------------------------------------------ */
 
 export type RevisionCardProps = {
   revision: Revision;
   index?: number;
-  onComplete: (id: string, grade: RecallGrade) => void;
+  /** Whether a network review is in flight for this card. */
+  pending?: boolean;
+  onReview: (id: string, grade: RecallGrade) => void;
   onSnooze: (id: string) => void;
   onSkip: (id: string) => void;
 };
 
 /**
- * A single due-today revision.
- *
- * Tapping "Review" flips the card into rating mode, where a custom
- * `SegmentedTabs` segmented control (NOT a radio group) captures the recall
- * grade — a sliding highlighter-yellow pill telegraphs the next-review interval
- * live. "Save review" commits; Snooze pushes it a day; Skip drops it from the
- * queue. On commit the card plays a soft success flourish before it animates
- * out. All actions are local-state only.
+ * A single due revision (Steep). A flat white card with a 1px Dove hairline +
+ * the one subtle shadow. Tapping "Review" reveals a minimal segmented control
+ * to capture the recall grade — the next-review interval is telegraphed live.
+ * The ONE filled Ink pill commits; Snooze / Skip are text links.
  */
 export function RevisionCard({
   revision,
   index = 0,
-  onComplete,
+  pending = false,
+  onReview,
   onSnooze,
   onSkip,
 }: RevisionCardProps) {
-  const [mode, setMode] = useState<'idle' | 'rating' | 'done'>('idle');
+  const [rating, setRating] = useState(false);
   const [grade, setGrade] = useState<RecallGrade>('MEDIUM');
 
   const meta = gradeMeta(grade);
-
-  function commit() {
-    setMode('done');
-    // Let the success flourish breathe before the parent removes the card.
-    setTimeout(() => onComplete(revision.id, grade), 560);
-  }
+  const difficulty = revision.difficulty ?? 'MEDIUM';
+  const overdue = daysFromToday(revision.dueDate) < 0;
 
   return (
     <MotiView
-      from={{ opacity: 0, translateY: 14 }}
+      from={{ opacity: 0, translateY: 10 }}
       animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: 'timing', duration: 340, delay: index * 70 }}
-      style={{ marginBottom: 14 }}
+      transition={{ type: 'timing', duration: 300, delay: Math.min(index, 6) * 60 }}
+      style={{ marginBottom: 12 }}
     >
-      <SoftCard radius={radii.card} intensity="md" padding={18}>
-        {/* Top row: difficulty + interval meta */}
-        <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
-          <Tag
-            label={DIFFICULTY_LABEL[revision.difficulty]}
-            tone={DIFFICULTY_TONE[revision.difficulty]}
-            size="sm"
-          />
-          <View className="flex-row items-center" style={{ gap: 6 }}>
-            <Icon name="repeat" size={13} color="textSubtle" strokeWidth={2.2} />
-            <AppText variant="caption" color={colors.textSubtle} style={{ fontSize: 11 }}>
-              {revision.reviewCount}x reviewed · every {revision.intervalDays}d
+      <SoftCard radius={radii.card} padding={14}>
+        {/* Top row: difficulty + cadence meta */}
+        <View className="flex-row items-center justify-between" style={{ marginBottom: 10 }}>
+          <Tag label={DIFFICULTY_LABEL[difficulty]} tone={DIFFICULTY_TONE[difficulty]} size="sm" />
+          <View className="flex-row items-center" style={{ gap: 5 }}>
+            <Icon name="repeat" size={13} color="graphite" />
+            <AppText variant="caption" color={colors.graphite}>
+              {revision.reviewCount ?? 0}× · every {revision.intervalDays ?? 1}d
             </AppText>
           </View>
         </View>
 
         {/* Title + topic */}
-        <View className="flex-row items-start" style={{ gap: 12 }}>
-          <Neumorph variant="raised" radius={14} intensity="sm">
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Icon name="brain" size={22} color="carbon" strokeWidth={2.1} />
-            </View>
-          </Neumorph>
-          <View style={{ flex: 1 }}>
-            <AppText variant="subheading" weight="bold" color={colors.carbon} numberOfLines={2}>
-              {revision.problemTitle}
+        <AppText variant="subheading" weight="medium" color={colors.ink} numberOfLines={2}>
+          {revision.problemTitle ?? 'Untitled problem'}
+        </AppText>
+        {revision.topicTitle ? (
+          <View className="flex-row items-center" style={{ gap: 5, marginTop: 3 }}>
+            <Icon name="hash" size={12} color="graphite" />
+            <AppText variant="caption" color={colors.ash}>
+              {revision.topicTitle}
             </AppText>
-            <View className="flex-row items-center" style={{ gap: 6, marginTop: 3 }}>
-              <Icon name="hash" size={12} color="textSubtle" strokeWidth={2.4} />
-              <AppText variant="caption" color={colors.textMuted}>
-                {revision.topicTitle}
-              </AppText>
-            </View>
           </View>
-        </View>
+        ) : null}
 
-        {/* Confidence meter */}
-        <View style={{ marginTop: 14 }}>
-          <ConfidenceMeter level={revision.confidence} />
+        {/* Confidence + due meta */}
+        <View className="flex-row items-center justify-between" style={{ marginTop: 12 }}>
+          <ConfidenceMeter value={revision.confidence} />
+          <AppText variant="caption" color={overdue ? colors.rust : colors.graphite}>
+            {relativeDueLabel(revision.dueDate)}
+          </AppText>
         </View>
 
         {/* Action / rating zone */}
         <AnimatePresence exitBeforeEnter>
-          {mode === 'done' ? (
-            <MotiView
-              key="done"
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ type: 'spring', damping: 14, stiffness: 180 }}
-              className="flex-row items-center"
-              style={{ marginTop: 16, gap: 10 }}
-            >
-              <Neumorph variant="raised" radius={radii.pill} intensity="sm" surface={colors.highlighter}>
-                <View
-                  style={{
-                    width: 34,
-                    height: 34,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Icon name="check" size={20} color="carbon" strokeWidth={3} />
-                </View>
-              </Neumorph>
-              <View style={{ flex: 1 }}>
-                <AppText variant="body" weight="bold" color={colors.carbon}>
-                  Review saved
-                </AppText>
-                <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 11 }}>
-                  Next up {nextReviewPreview(revision, meta)}
-                </AppText>
-              </View>
-            </MotiView>
-          ) : mode === 'rating' ? (
+          {rating ? (
             <MotiView
               key="rating"
-              from={{ opacity: 0, translateY: -8 }}
+              from={{ opacity: 0, translateY: -6 }}
               animate={{ opacity: 1, translateY: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ type: 'timing', duration: 220 }}
-              style={{ marginTop: 16 }}
+              transition={{ type: 'timing', duration: 180 }}
+              style={{ marginTop: 14 }}
             >
-              <View className="flex-row items-center justify-between" style={{ marginBottom: 10 }}>
-                <AppText
-                  variant="caption"
-                  weight="semibold"
-                  color={colors.textSubtle}
-                  style={{ textTransform: 'uppercase', letterSpacing: 1.5, fontSize: 10 }}
-                >
+              <View className="flex-row items-center justify-between" style={{ marginBottom: 8 }}>
+                <AppText variant="caption" color={colors.graphite}>
                   How well did you recall it?
                 </AppText>
-                <View className="flex-row items-center" style={{ gap: 5 }}>
-                  <Icon name="calendar" size={12} color="textSubtle" strokeWidth={2.2} />
-                  <Text
-                    style={{
-                      fontFamily: fonts.bodyMedium,
-                      fontSize: 11,
-                      color: meta.accentHex,
-                    }}
-                  >
-                    {nextReviewPreview(revision, meta)}
-                  </Text>
-                </View>
+                <AppText
+                  variant="caption"
+                  weight="medium"
+                  color={colors.ink}
+                  style={{ fontFamily: fonts.sansMedium }}
+                >
+                  Next {nextReviewPreview(revision, meta)}
+                </AppText>
               </View>
 
-              {/* The recall grade — a custom segmented control, never radios. */}
-              <SegmentedTabs
-                options={GRADE_SEGMENTS}
-                value={grade}
-                onChange={setGrade}
-                height={50}
-              />
+              <SegmentedTabs options={GRADE_SEGMENTS} value={grade} onChange={setGrade} height={36} />
 
-              <View className="flex-row items-center" style={{ marginTop: 14, gap: 10 }}>
-                <SoftButton
-                  label="Save review"
-                  variant="yellow"
+              <View className="flex-row items-center justify-between" style={{ marginTop: 12 }}>
+                <PillButton
+                  label={pending ? 'Saving…' : 'Save review'}
+                  variant="black"
                   size="sm"
-                  onPress={commit}
-                  style={{ flex: 1 }}
-                  icon={<Icon name="check" size={15} color="carbon" strokeWidth={3} />}
+                  disabled={pending}
+                  onPress={() => onReview(revision.id, grade)}
+                  icon={<Icon name="check" size={14} color="white" />}
                 />
-                <Pressable
-                  onPress={() => setMode('idle')}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel="Cancel rating"
-                >
-                  <Neumorph variant="raised" radius={radii.pill} intensity="sm">
-                    <View
-                      style={{
-                        width: 42,
-                        height: 42,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Icon name="x" size={18} color="textMuted" strokeWidth={2.4} />
-                    </View>
-                  </Neumorph>
-                </Pressable>
+                <TextLink label="Cancel" muted size="sm" disabled={pending} onPress={() => setRating(false)} />
               </View>
             </MotiView>
           ) : (
@@ -266,44 +181,21 @@ export function RevisionCard({
               from={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ type: 'timing', duration: 200 }}
-              className="flex-row items-center"
-              style={{ marginTop: 16, gap: 10 }}
+              transition={{ type: 'timing', duration: 150 }}
+              className="flex-row items-center justify-between"
+              style={{ marginTop: 14 }}
             >
-              <SoftButton
+              <PillButton
                 label="Review"
-                variant="yellow"
+                variant="black"
                 size="sm"
-                onPress={() => setMode('rating')}
-                style={{ flex: 1 }}
-                icon={<Icon name="check-circle" size={16} color="carbon" strokeWidth={2.4} />}
+                onPress={() => setRating(true)}
+                icon={<Icon name="check-circle" size={14} color="white" />}
               />
-              <SoftButton
-                label="Snooze"
-                variant="neutral"
-                size="sm"
-                onPress={() => onSnooze(revision.id)}
-                icon={<Icon name="clock" size={15} color="carbon" strokeWidth={2.2} />}
-              />
-              <Pressable
-                onPress={() => onSkip(revision.id)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Skip revision"
-              >
-                <Neumorph variant="raised" radius={radii.pill} intensity="sm">
-                  <View
-                    style={{
-                      width: 42,
-                      height: 42,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Icon name="x" size={18} color="textMuted" strokeWidth={2.4} />
-                  </View>
-                </Neumorph>
-              </Pressable>
+              <View className="flex-row items-center" style={{ gap: 16 }}>
+                <TextLink label="Snooze" size="sm" onPress={() => onSnooze(revision.id)} />
+                <TextLink label="Skip" muted size="sm" onPress={() => onSkip(revision.id)} />
+              </View>
             </MotiView>
           )}
         </AnimatePresence>

@@ -1,30 +1,27 @@
 import {
-  useFonts as usePoppins,
-  Poppins_400Regular,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-  Poppins_700Bold,
-} from '@expo-google-fonts/poppins';
+  useFonts,
+  Fraunces_400Regular,
+  Fraunces_500Medium,
+  Fraunces_600SemiBold,
+} from '@expo-google-fonts/fraunces';
 import {
-  Inter_300Light,
   Inter_400Regular,
   Inter_500Medium,
-  Inter_700Bold,
 } from '@expo-google-fonts/inter';
 
 /**
- * Loads the Aaply font families (Poppins for display, Inter for body/UI).
- * Returns `[loaded, error]` like expo-font's useFonts.
+ * Loads the STEEP font families:
+ *  - Fraunces (editorial serif) for screen titles / headlines ONLY.
+ *  - Inter (clean sans, weights 400 / 500 only) for everything else.
+ *
+ * Poppins has been removed. Returns `[loaded, error]` like expo-font's useFonts.
  */
 export function useAppFonts() {
-  return usePoppins({
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-    Poppins_700Bold,
-    Inter_300Light,
+  return useFonts({
+    Fraunces_400Regular,
+    Fraunces_500Medium,
+    Fraunces_600SemiBold,
     Inter_400Regular,
     Inter_500Medium,
-    Inter_700Bold,
   });
 }

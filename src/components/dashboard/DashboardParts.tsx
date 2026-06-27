@@ -1,18 +1,19 @@
 /**
- * Presentational building blocks for the Dashboard screen.
+ * Presentational building blocks for the Dashboard screen (STEEP).
  *
- * Dashboard-namespaced (not the shared UI kit) so they can stay opinionated to
- * this screen's layout while leaning entirely on the Aaply neumorphic kit +
- * tokens. NOTHING here invents new visual language — every part composes
- * SoftCard / Neumorph / AppText / Tag / Icon with the palette in tokens.ts.
+ * Editorial, calm, premium. Everything here is FLAT: pure white / fog surfaces,
+ * a 1px Dove hairline + the ONE subtle shadow (via Card), small compact
+ * padding, the small mobile type scale. Color is punctuation — chrome is
+ * monochrome Ink/Graphite, Rust is the only warm stroke, and the two washes
+ * (apricot / sky) are reserved for the single data card on the screen.
  *
  * Rules honoured here:
- *  - ZERO emoji. Every glyph is an `IconName` rendered through `<Icon />`.
- *  - Neumorphism everywhere: raised idle surfaces, inset wells for "pressed /
- *    active" states, on the graphite-mist #f2f2f2 canvas.
- *  - Tasteful motion via moti springs on press.
+ *  - NO neumorphism, NO dual shadows, NO puffy surfaces, NO accent tints.
+ *  - NO lucide, NO emoji — every glyph is an `IconName` through `<Icon />`,
+ *    small (~14-17px), thin outline, Ink/Graphite (Rust only for the accent).
+ *  - ONE filled Ink pill per screen; secondary actions are TextLinks.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Pressable,
@@ -20,279 +21,160 @@ import {
   type ViewStyle,
   type GestureResponderEvent,
 } from 'react-native';
-import { MotiView } from 'moti';
 import Svg, { Circle } from 'react-native-svg';
 
-import { SoftCard } from '@/components/ui/SoftCard';
-import { Neumorph } from '@/components/ui/Neumorph';
+import { Card } from '@/components/ui/SoftCard';
 import { AppText } from '@/components/ui/Typography';
+import { TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors } from '@/theme/tokens';
+import { colors, radii, spacing } from '@/theme/tokens';
 
 /* ------------------------------------------------------------------ */
-/* Accent token resolution                                             */
-/* ------------------------------------------------------------------ */
-
-export type Accent =
-  | 'highlighter'
-  | 'signal'
-  | 'peach'
-  | 'annotation'
-  | 'success';
-
-/** Solid accent color for a token name. */
-export function accentColor(a: Accent): string {
-  return colors[a];
-}
-
-/** Soft tinted fill used behind accent icon wells. */
-export function accentTint(a: Accent): string {
-  switch (a) {
-    case 'highlighter':
-      return '#f6f5a8';
-    case 'signal':
-      return '#e1e8ff';
-    case 'peach':
-      return '#ffe6dd';
-    case 'annotation':
-      return '#ffe2e2';
-    case 'success':
-      return '#dff5e8';
-  }
-}
-
-/** Readable ink color for an icon sitting on its accent tint. */
-export function accentInk(a: Accent): string {
-  switch (a) {
-    case 'highlighter':
-      return '#8a8900';
-    case 'signal':
-      return colors.signal;
-    case 'peach':
-      return '#d8602f';
-    case 'annotation':
-      return colors.annotation;
-    case 'success':
-      return '#2c9d5f';
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* Chevron (forward affordance)                                        */
-/* ------------------------------------------------------------------ */
-
-export function Chevron({
-  size = 18,
-  color = colors.textMuted,
-}: {
-  size?: number;
-  color?: string;
-}) {
-  return <Icon name="chevron-right" size={size} color={color} strokeWidth={2.25} />;
-}
-
-/* ------------------------------------------------------------------ */
-/* Rounded-square icon well (the recurring accent tile)                */
-/* ------------------------------------------------------------------ */
-
-export function IconWell({
-  icon,
-  accent = 'highlighter',
-  size = 36,
-  radius = 12,
-  iconSize,
-}: {
-  icon: IconName;
-  accent?: Accent;
-  size?: number;
-  radius?: number;
-  iconSize?: number;
-}) {
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius,
-        backgroundColor: accentTint(accent),
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Icon
-        name={icon}
-        size={iconSize ?? Math.round(size * 0.5)}
-        color={accentInk(accent)}
-        strokeWidth={2.25}
-      />
-    </View>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Section header (icon + title + optional action)                     */
+/* Section header — small serif title + optional TextLink action       */
 /* ------------------------------------------------------------------ */
 
 export function SectionHeader({
   title,
-  icon,
-  accent = 'highlighter',
   actionLabel,
   onAction,
   style,
 }: {
   title: string;
-  icon?: IconName;
-  accent?: Accent;
   actionLabel?: string;
   onAction?: () => void;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
     <View
-      className="flex-row items-center justify-between"
-      style={[{ marginBottom: 14 }, style]}
+      style={[
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: spacing.md,
+        },
+        style,
+      ]}
     >
-      <View className="flex-row items-center" style={{ gap: 10 }}>
-        {icon ? <IconWell icon={icon} accent={accent} size={30} radius={10} /> : null}
-        <AppText variant="headingSm" weight="bold">
-          {title}
-        </AppText>
-      </View>
+      <AppText variant="headingSm" display weight="medium">
+        {title}
+      </AppText>
       {actionLabel ? (
-        <Pressable
-          onPress={onAction}
-          hitSlop={8}
-          className="flex-row items-center"
-          style={{ gap: 2 }}
-        >
-          <AppText variant="caption" weight="semibold" color={colors.textMuted}>
-            {actionLabel}
-          </AppText>
-          <Chevron size={15} color={colors.textMuted} />
-        </Pressable>
+        <TextLink label={actionLabel} onPress={onAction} muted size="sm" />
       ) : null}
     </View>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Streak chip (Icon-based replacement for shared StreakBadge)         */
+/* Streak chip — quiet pill: rust flame + count                        */
 /* ------------------------------------------------------------------ */
 
 export function StreakChip({
   count,
-  size = 'md',
-  flat = false,
   style,
 }: {
   count: number;
-  size?: 'sm' | 'md';
-  flat?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const py = size === 'sm' ? 6 : 8;
-  const px = size === 'sm' ? 11 : 14;
-  const num = size === 'sm' ? 14 : 19;
-  const glyph = size === 'sm' ? 14 : 17;
-
-  const inner = (
-    <View
-      className="flex-row items-center"
-      style={{ paddingVertical: py, paddingHorizontal: px, gap: 7 }}
-    >
-      <Icon name="flame" size={glyph} color={colors.peach} fill={colors.peach} strokeWidth={2} />
-      <View className="flex-row items-baseline" style={{ gap: 4 }}>
-        <AppText
-          variant="subheading"
-          display
-          weight="bold"
-          style={{ fontSize: num, lineHeight: num + 2 }}
-        >
-          {count}
-        </AppText>
-        <AppText
-          variant="caption"
-          weight="medium"
-          color={colors.textMuted}
-          style={{ fontSize: size === 'sm' ? 10 : 11 }}
-        >
-          day streak
-        </AppText>
-      </View>
-    </View>
-  );
-
-  if (flat) {
-    return (
-      <View
-        style={[
-          { alignSelf: 'flex-start', borderRadius: 9999, backgroundColor: colors.highlighter },
-          style,
-        ]}
-      >
-        {inner}
-      </View>
-    );
-  }
-
-  return (
-    <Neumorph variant="raised" radius={9999} intensity="sm" style={style}>
-      {inner}
-    </Neumorph>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Linear progress bar (inset well + accent fill, animated)            */
-/* ------------------------------------------------------------------ */
-
-export function ProgressBar({
-  progress,
-  accent = 'highlighter',
-  height = 8,
-  style,
-}: {
-  /** 0–100. */
-  progress: number;
-  accent?: Accent;
-  height?: number;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const pct = Math.max(0, Math.min(100, progress));
   return (
     <View
       style={[
-        { height, borderRadius: height, backgroundColor: '#e4e4e4', overflow: 'hidden' },
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 5,
+          paddingVertical: 5,
+          paddingHorizontal: 10,
+          borderRadius: radii.pill,
+          backgroundColor: colors.white,
+          borderWidth: 1,
+          borderColor: colors.dove,
+        },
         style,
       ]}
     >
-      <MotiView
-        from={{ width: '0%' }}
-        animate={{ width: `${pct}%` }}
-        transition={{ type: 'timing', duration: 600, delay: 120 }}
-        style={{ height: '100%', borderRadius: height, backgroundColor: accentColor(accent) }}
-      />
+      <Icon name="flame" size={14} color="rust" weight="fill" />
+      <AppText variant="caption" weight="medium" color={colors.ink} style={{ fontSize: 12 }}>
+        {count}
+      </AppText>
     </View>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Circular progress ring (SVG) — for the daily goal                   */
+/* Stat card — compact white figure tile                               */
 /* ------------------------------------------------------------------ */
 
-export function ProgressRing({
+export function StatCard({
+  value,
+  unit,
+  label,
+  onPress,
+  style,
+}: {
+  value: string;
+  unit?: string;
+  label: string;
+  onPress?: (e: GestureResponderEvent) => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const body = (
+    <Card padding={spacing.md} style={[{ flex: 1 }, style]}>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
+        <AppText variant="heading" display weight="medium" style={{ lineHeight: 26 }}>
+          {value}
+        </AppText>
+        {unit ? (
+          <AppText variant="caption" color={colors.graphite} style={{ fontSize: 12 }}>
+            {unit}
+          </AppText>
+        ) : null}
+      </View>
+      <AppText variant="caption" color={colors.graphite} style={{ marginTop: 4 }} numberOfLines={1}>
+        {label}
+      </AppText>
+    </Card>
+  );
+
+  if (!onPress) return body;
+  return (
+    <Pressable onPress={onPress} style={[{ flex: 1 }, style]}>
+      {({ pressed }) => (
+        <Card padding={spacing.md} style={{ opacity: pressed ? 0.7 : 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
+            <AppText variant="heading" display weight="medium" style={{ lineHeight: 26 }}>
+              {value}
+            </AppText>
+            {unit ? (
+              <AppText variant="caption" color={colors.graphite} style={{ fontSize: 12 }}>
+                {unit}
+              </AppText>
+            ) : null}
+          </View>
+          <AppText variant="caption" color={colors.graphite} style={{ marginTop: 4 }} numberOfLines={1}>
+            {label}
+          </AppText>
+        </Card>
+      )}
+    </Pressable>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Goal ring — thin Rust arc on a Dove track                           */
+/* ------------------------------------------------------------------ */
+
+export function GoalRing({
   progress,
   size = 64,
-  stroke = 7,
-  accent = 'highlighter',
+  stroke = 6,
   children,
 }: {
-  /** 0–100. */
+  /** 0-100. */
   progress: number;
   size?: number;
   stroke?: number;
-  accent?: Accent;
   children?: React.ReactNode;
 }) {
   const pct = Math.max(0, Math.min(100, progress));
@@ -303,12 +185,12 @@ export function ProgressRing({
   return (
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size}>
-        <Circle cx={size / 2} cy={size / 2} r={r} stroke="#e2e2e2" strokeWidth={stroke} fill="none" />
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.dove} strokeWidth={stroke} fill="none" />
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke={accentColor(accent)}
+          stroke={colors.rust}
           strokeWidth={stroke}
           strokeLinecap="round"
           fill="none"
@@ -337,365 +219,263 @@ export function ProgressRing({
 }
 
 /* ------------------------------------------------------------------ */
-/* Quick-stat card (horizontal carousel tile)                          */
+/* Progress bar — thin Ink fill on a Fog/Dove track                    */
 /* ------------------------------------------------------------------ */
 
-export function StatCard({
-  icon,
-  value,
-  unit,
-  label,
-  accent = 'highlighter',
-  trend,
+export function ProgressBar({
+  progress,
+  height = 4,
+  color = colors.ink,
   style,
 }: {
-  icon: IconName;
-  value: string;
-  unit?: string;
-  label: string;
-  accent?: Accent;
-  /** Optional small trailing trend label, e.g. '+12%'. */
-  trend?: string;
+  /** 0-100. */
+  progress: number;
+  height?: number;
+  color?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const pct = Math.max(0, Math.min(100, progress));
   return (
-    <SoftCard radius={24} intensity="sm" padding={16} style={style}>
-      <View className="flex-row items-center justify-between" style={{ marginBottom: 14 }}>
-        <IconWell icon={icon} accent={accent} size={38} radius={13} />
-        {trend ? (
-          <View className="flex-row items-center" style={{ gap: 2 }}>
-            <Icon name="trending-up" size={13} color={accentInk(accent)} strokeWidth={2.5} />
-            <AppText variant="caption" weight="semibold" color={accentInk(accent)} style={{ fontSize: 11 }}>
-              {trend}
-            </AppText>
-          </View>
-        ) : null}
-      </View>
-      <View className="flex-row items-baseline" style={{ gap: 3 }}>
-        <AppText variant="heading" weight="bold" style={{ fontSize: 26, lineHeight: 30 }}>
-          {value}
-        </AppText>
-        {unit ? (
-          <AppText variant="caption" weight="semibold" color={colors.textMuted}>
-            {unit}
-          </AppText>
-        ) : null}
-      </View>
-      <AppText variant="caption" color={colors.textMuted} style={{ marginTop: 2 }}>
-        {label}
-      </AppText>
-    </SoftCard>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Overview tile (inset metric inside Today's Overview)                */
-/* ------------------------------------------------------------------ */
-
-export function OverviewTile({
-  icon,
-  value,
-  label,
-  accent = 'highlighter',
-  onPress,
-  style,
-}: {
-  icon: IconName;
-  value: string;
-  label: string;
-  accent?: Accent;
-  onPress?: (e: GestureResponderEvent) => void;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const [pressed, setPressed] = useState(false);
-  return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
-      style={style}
+    <View
+      style={[
+        { height, borderRadius: height, backgroundColor: colors.fog, overflow: 'hidden' },
+        style,
+      ]}
     >
-      <MotiView animate={{ scale: pressed ? 0.97 : 1 }} transition={{ type: 'timing', duration: 120 }}>
-        <Neumorph variant="inset" radius={18} intensity="sm" padding={12}>
-          <View className="flex-row items-center" style={{ gap: 10 }}>
-            <IconWell icon={icon} accent={accent} size={34} radius={11} />
-            <View style={{ flex: 1 }}>
-              <AppText variant="subheading" weight="bold" style={{ fontSize: 19 }}>
-                {value}
-              </AppText>
-              <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 12 }}>
-                {label}
-              </AppText>
-            </View>
-          </View>
-        </Neumorph>
-      </MotiView>
-    </Pressable>
+      <View style={{ height: '100%', width: `${pct}%`, borderRadius: height, backgroundColor: color }} />
+    </View>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Quick action (round neumorphic button + caption)                    */
+/* List row — title/meta + chevron, hairline divider                   */
 /* ------------------------------------------------------------------ */
 
-export function QuickAction({
+export function ListRow({
   icon,
-  label,
-  onPress,
-  accent = false,
-  style,
-}: {
-  icon: IconName;
-  label: string;
-  onPress?: () => void;
-  /** Accent the primary action with a highlighter-yellow inset well. */
-  accent?: boolean;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const [pressed, setPressed] = useState(false);
-  const inset = accent || pressed;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      className="items-center"
-      style={[{ gap: 8 }, style]}
-    >
-      <MotiView animate={{ scale: pressed ? 0.92 : 1 }} transition={{ type: 'timing', duration: 110 }}>
-        <Neumorph
-          variant={inset ? 'inset' : 'raised'}
-          radius={20}
-          intensity="sm"
-          surface={accent ? colors.highlighter : colors.canvas}
-        >
-          <View style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={icon} size={23} color="carbon" strokeWidth={2.1} />
-          </View>
-        </Neumorph>
-      </MotiView>
-      <AppText
-        variant="caption"
-        weight="medium"
-        color={colors.textMuted}
-        numberOfLines={1}
-        style={{ fontSize: 11, textAlign: 'center' }}
-      >
-        {label}
-      </AppText>
-    </Pressable>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Schedule row (raised icon well + title/meta + trailing)             */
-/* ------------------------------------------------------------------ */
-
-export function ScheduleRow({
-  icon,
-  accent = 'highlighter',
   title,
   meta,
   trailing,
   onPress,
   showDivider = true,
 }: {
-  icon: IconName;
-  accent?: Accent;
+  icon?: IconName;
   title: string;
-  meta: string;
+  meta?: string;
   trailing?: React.ReactNode;
   onPress?: (e: GestureResponderEvent) => void;
   showDivider?: boolean;
 }) {
-  const [pressed, setPressed] = useState(false);
   return (
-    <Pressable onPress={onPress} onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)}>
-      <MotiView animate={{ opacity: pressed ? 0.6 : 1 }} transition={{ type: 'timing', duration: 100 }}>
+    <Pressable onPress={onPress}>
+      {({ pressed }) => (
         <View
-          className="flex-row items-center"
           style={{
-            gap: 12,
-            paddingVertical: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.md,
+            paddingVertical: 11,
             borderBottomWidth: showDivider ? 1 : 0,
-            borderBottomColor: colors.hairline,
+            borderBottomColor: colors.fog,
+            opacity: pressed ? 0.6 : 1,
           }}
         >
-          <Neumorph variant="raised" radius={13} intensity="sm">
-            <View style={{ width: 42, height: 42, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={icon} size={19} color={accentInk(accent)} strokeWidth={2.1} />
-            </View>
-          </Neumorph>
+          {icon ? <Icon name={icon} size={16} color="graphite" /> : null}
           <View style={{ flex: 1 }}>
-            <AppText variant="body" weight="semibold" numberOfLines={1}>
+            <AppText variant="body" weight="medium" numberOfLines={1}>
               {title}
             </AppText>
-            <AppText
-              variant="caption"
-              color={colors.textMuted}
-              numberOfLines={1}
-              style={{ marginTop: 1 }}
-            >
-              {meta}
-            </AppText>
+            {meta ? (
+              <AppText
+                variant="caption"
+                color={colors.graphite}
+                numberOfLines={1}
+                style={{ marginTop: 1 }}
+              >
+                {meta}
+              </AppText>
+            ) : null}
           </View>
-          {trailing ?? <Chevron />}
+          {trailing ?? <Icon name="chevron-right" size={16} color="dove" />}
         </View>
-      </MotiView>
+      )}
     </Pressable>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Weekly focus bars (mini chart)                                      */
+/* Continue row — title + thin progress bar + percent                  */
 /* ------------------------------------------------------------------ */
 
-export function WeeklyBars({
-  values,
-  labels,
-  highlightIndex,
-  height = 80,
-  barWidth = 22,
+export function ContinueRow({
+  title,
+  progress,
+  onPress,
+  showDivider = true,
 }: {
-  values: number[];
-  labels: string[];
-  /** Index to render in highlighter-yellow (e.g. today). */
-  highlightIndex?: number;
-  height?: number;
-  barWidth?: number;
+  title: string;
+  /** 0-100. */
+  progress: number;
+  onPress?: () => void;
+  showDivider?: boolean;
 }) {
-  const peak = Math.max(1, ...values);
   return (
-    <View className="flex-row items-end justify-between" style={{ height: height + 16 }}>
-      {values.map((mins, i) => {
-        const isHi = i === highlightIndex;
-        const h = Math.max(6, Math.round((mins / peak) * height));
-        return (
-          <View key={i} className="items-center" style={{ flex: 1, gap: 6 }}>
-            <View className="justify-end" style={{ height }}>
-              <MotiView
-                from={{ height: 6 }}
-                animate={{ height: h }}
-                transition={{ type: 'timing', duration: 520, delay: i * 50 }}
-              >
-                <Neumorph
-                  variant={mins > 0 ? 'raised' : 'inset'}
-                  radius={8}
-                  intensity="sm"
-                  surface={mins <= 0 ? '#ececec' : isHi ? colors.highlighter : colors.canvas}
-                >
-                  <View style={{ width: barWidth, height: h }} />
-                </Neumorph>
-              </MotiView>
-            </View>
-            <AppText
-              variant="caption"
-              weight={isHi ? 'bold' : 'regular'}
-              color={isHi ? colors.carbon : colors.textSubtle}
-              style={{ fontSize: 11 }}
-            >
-              {labels[i]}
+    <Pressable onPress={onPress}>
+      {({ pressed }) => (
+        <View
+          style={{
+            paddingVertical: 11,
+            borderBottomWidth: showDivider ? 1 : 0,
+            borderBottomColor: colors.fog,
+            opacity: pressed ? 0.6 : 1,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
+            <AppText variant="body" weight="medium" numberOfLines={1} style={{ flex: 1 }}>
+              {title}
+            </AppText>
+            <AppText variant="caption" color={colors.graphite} style={{ fontSize: 12 }}>
+              {progress}%
             </AppText>
           </View>
-        );
-      })}
+          <ProgressBar progress={progress} style={{ marginTop: 8 }} />
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Empty state — quiet, icon-led                                       */
+/* ------------------------------------------------------------------ */
+
+export function EmptyState({
+  icon = 'check-circle',
+  title,
+  subtitle,
+}: {
+  icon?: IconName;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: spacing.xl, gap: 6 }}>
+      <Icon name={icon} size={20} color="graphite" />
+      <AppText variant="body" weight="medium" style={{ marginTop: 2 }}>
+        {title}
+      </AppText>
+      {subtitle ? (
+        <AppText variant="caption" color={colors.graphite} style={{ textAlign: 'center' }}>
+          {subtitle}
+        </AppText>
+      ) : null}
     </View>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Continue-where-you-left-off row                                     */
+/* Error state — calm, with a retry TextLink                           */
 /* ------------------------------------------------------------------ */
 
-export function ContinueRow({
-  icon,
-  title,
-  progress,
-  accent = 'signal',
-  onPress,
+export function ErrorState({
+  message,
+  onRetry,
 }: {
-  icon: IconName;
-  title: string;
-  /** 0–100. */
-  progress: number;
-  accent?: Accent;
-  onPress?: () => void;
+  message: string;
+  onRetry?: () => void;
 }) {
-  const [pressed, setPressed] = useState(false);
   return (
-    <Pressable onPress={onPress} onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)}>
-      <MotiView animate={{ scale: pressed ? 0.98 : 1 }} transition={{ type: 'timing', duration: 110 }}>
-        <View className="flex-row items-center" style={{ gap: 12, paddingVertical: 10 }}>
-          <Neumorph variant="raised" radius={14} intensity="sm">
-            <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={icon} size={20} color={accentInk(accent)} strokeWidth={2.1} />
-            </View>
-          </Neumorph>
-          <View style={{ flex: 1 }}>
-            <AppText variant="body" weight="semibold" numberOfLines={1}>
-              {title}
-            </AppText>
-            <View className="flex-row items-center" style={{ gap: 8, marginTop: 6 }}>
-              <ProgressBar progress={progress} accent={accent} height={6} style={{ flex: 1 }} />
-              <AppText
-                variant="caption"
-                weight="semibold"
-                color={colors.textMuted}
-                style={{ fontSize: 11 }}
-              >
-                {progress}%
-              </AppText>
-            </View>
-          </View>
-          <Icon name="arrow-right" size={19} color={colors.textMuted} strokeWidth={2.1} />
-        </View>
-      </MotiView>
-    </Pressable>
+    <Card variant="inset" padding={spacing.xl}>
+      <View style={{ alignItems: 'center', gap: 6 }}>
+        <Icon name="alert" size={20} color="graphite" />
+        <AppText variant="body" weight="medium" style={{ marginTop: 2 }}>
+          Couldn&rsquo;t load this
+        </AppText>
+        <AppText variant="caption" color={colors.graphite} style={{ textAlign: 'center' }}>
+          {message}
+        </AppText>
+        {onRetry ? (
+          <TextLink label="Try again" onPress={onRetry} size="sm" style={{ marginTop: 4 }} />
+        ) : null}
+      </View>
+    </Card>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Empty state (icon-led, for all-clear lists)                         */
+/* Skeleton primitives — quiet Fog blocks for the loading state        */
 /* ------------------------------------------------------------------ */
 
-export function EmptyState({
-  icon,
-  title,
-  subtitle,
-  accent = 'success',
+export function SkeletonBlock({
+  width = '100%',
+  height = 16,
+  radius = radii.sm,
+  style,
 }: {
-  icon: IconName;
-  title: string;
-  subtitle?: string;
-  accent?: Accent;
+  width?: number | `${number}%`;
+  height?: number;
+  radius?: number;
+  style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <View className="items-center" style={{ paddingVertical: 22, gap: 10 }}>
-      <Neumorph variant="raised" radius={22} intensity="sm">
-        <View
-          style={{
-            width: 60,
-            height: 60,
-            borderRadius: 22,
-            backgroundColor: accentTint(accent),
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Icon name={icon} size={26} color={accentInk(accent)} strokeWidth={2.1} />
+    <View
+      style={[
+        { width, height, borderRadius: radius, backgroundColor: colors.fog },
+        style,
+      ]}
+    />
+  );
+}
+
+/** The dashboard loading skeleton — mirrors the real layout, all Fog blocks. */
+export function DashboardSkeleton() {
+  return (
+    <View style={{ gap: spacing.xl }}>
+      {/* greeting */}
+      <View style={{ gap: 8 }}>
+        <SkeletonBlock width="40%" height={11} />
+        <SkeletonBlock width="70%" height={26} radius={radii.input} />
+      </View>
+
+      {/* overview card */}
+      <Card padding={spacing.lg}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
+          <SkeletonBlock width={64} height={64} radius={32} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <SkeletonBlock width="60%" height={14} />
+            <SkeletonBlock width="90%" height={11} />
+            <SkeletonBlock width="100%" height={4} radius={4} />
+          </View>
         </View>
-      </Neumorph>
-      <AppText variant="body" weight="bold" style={{ marginTop: 2 }}>
-        {title}
-      </AppText>
-      {subtitle ? (
-        <AppText variant="caption" color={colors.textMuted} style={{ textAlign: 'center' }}>
-          {subtitle}
-        </AppText>
-      ) : null}
+      </Card>
+
+      {/* stat row */}
+      <View style={{ flexDirection: 'row', gap: spacing.md }}>
+        {[0, 1, 2].map((i) => (
+          <Card key={i} padding={spacing.md} style={{ flex: 1 }}>
+            <SkeletonBlock width="50%" height={22} radius={radii.input} />
+            <SkeletonBlock width="80%" height={11} style={{ marginTop: 8 }} />
+          </Card>
+        ))}
+      </View>
+
+      {/* data card */}
+      <SkeletonBlock width="100%" height={96} radius={radii.cardLg} />
+
+      {/* list card */}
+      <Card padding={spacing.lg}>
+        <View style={{ gap: spacing.lg }}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <SkeletonBlock width={16} height={16} radius={8} />
+              <View style={{ flex: 1, gap: 6 }}>
+                <SkeletonBlock width="70%" height={13} />
+                <SkeletonBlock width="40%" height={11} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </Card>
     </View>
   );
 }

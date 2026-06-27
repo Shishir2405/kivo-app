@@ -1,194 +1,122 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { AnimatePresence, MotiView } from 'moti';
-import { SoftCard } from '@/components/ui/SoftCard';
+import { Card } from '@/components/ui/SoftCard';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Tag, type TagTone } from '@/components/ui/Tag';
 import { AppText } from '@/components/ui/Typography';
-import { Neumorph } from '@/components/ui/Neumorph';
-import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors, radii } from '@/theme/tokens';
+import { Icon } from '@/components/ui/Icon';
+import { colors, spacing } from '@/theme/tokens';
 import type { Task, Priority } from '@/types/models';
 
+/** Today, for relative due labels. Injected so the card stays deterministic. */
+const TODAY = '2026-06-27';
+const TOMORROW = '2026-06-28';
+
 const PRIORITY_TONE: Record<Priority, TagTone> = {
-  HIGH: 'annotation',
-  MEDIUM: 'peach',
-  LOW: 'signal',
+  HIGH: 'rust',
+  MEDIUM: 'warm',
+  LOW: 'neutral',
 };
 
-const CATEGORY_TONE: Record<Task['category'], TagTone> = {
-  DSA: 'yellow',
-  PROJECT: 'signal',
-  REVISION: 'peach',
-  OTHER: 'neutral',
-};
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const CATEGORY_ICON: Record<Task['category'], IconName> = {
-  DSA: 'code',
-  PROJECT: 'folder',
-  REVISION: 'repeat',
-  OTHER: 'list',
-};
-
-/** Pretty due-date: relative for today/tomorrow, else a short label. */
+/** Pretty due-date: relative for today/tomorrow, else a short month-day label. */
 function dueLabel(due: string): { text: string; overdue: boolean } {
-  const TODAY = '2026-06-26';
-  if (due === TODAY) return { text: 'Today', overdue: false };
-  if (due < TODAY) return { text: 'Overdue', overdue: true };
-  if (due === '2026-06-27') return { text: 'Tomorrow', overdue: false };
-  // Month-day from the ISO date (deterministic, no Date parsing needed for labels).
-  const [, mm, dd] = due.split('-');
-  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = due.slice(0, 10);
+  if (day === TODAY) return { text: 'Today', overdue: false };
+  if (day < TODAY) return { text: 'Overdue', overdue: true };
+  if (day === TOMORROW) return { text: 'Tomorrow', overdue: false };
+  const [, mm, dd] = day.split('-');
   const monthIdx = Math.max(0, Math.min(11, Number(mm) - 1));
   return { text: `${MONTHS[monthIdx]} ${Number(dd)}`, overdue: false };
 }
 
 export type TaskCardProps = {
   task: Task;
-  onToggle: (id: string) => void;
-  onToggleChecklistItem: (taskId: string, itemId: string) => void;
+  onToggle: (id: string, next: boolean) => void;
+  onToggleChecklistItem?: (taskId: string, itemId: string, next: boolean) => void;
 };
 
 /**
- * A premium task row.
+ * A flat Steep task row.
  *
- * - The complete toggle is the CUSTOM neumorphic {@link Checkbox} — never a
- *   native control. When checked the card sinks to an inset well and the title
- *   strikes through.
- * - A category icon medallion anchors the row; priority / category / due tags
- *   give quick scanning hierarchy.
- * - If the task has a checklist, a progress chip is shown and the card expands
- *   (animated) to reveal sub-step checkboxes.
+ * - Complete is the small flat {@link Checkbox} (Ink square + white check). When
+ *   done, the title strikes through and the row dims; the surface itself stays
+ *   flat white (no inset well, no neumorphism).
+ * - Priority / due tags are small Steep chips (color as punctuation only).
+ * - If the task has a checklist or notes, the row expands (animated) to reveal
+ *   sub-step checkboxes + notes behind a thin Dove divider.
  */
 export function TaskCard({ task, onToggle, onToggleChecklistItem }: TaskCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const checklist = task.checklist ?? [];
   const hasChecklist = checklist.length > 0;
-  const doneCount = useMemo(
-    () => checklist.filter((c) => c.done).length,
-    [checklist],
-  );
+  const hasDetail = hasChecklist || !!task.notes;
+  const doneCount = useMemo(() => checklist.filter((c) => c.done).length, [checklist]);
 
   const due = task.dueDate ? dueLabel(task.dueDate) : null;
-  const categoryIcon = task.icon ?? CATEGORY_ICON[task.category];
 
   return (
-    <SoftCard
-      variant={task.done ? 'inset' : 'raised'}
-      radius={radii.sm + 8}
-      intensity="sm"
-      padding={14}
-      style={{ marginBottom: 12 }}
-    >
-      <View className="flex-row items-start" style={{ gap: 12 }}>
+    <Card padding={spacing.md} style={{ marginBottom: spacing.sm }}>
+      <View className="flex-row items-start" style={{ gap: spacing.md }}>
         <Checkbox
           checked={task.done}
-          onChange={() => onToggle(task.id)}
-          style={{ marginTop: 2 }}
+          onChange={(next) => onToggle(task.id, next)}
+          style={{ marginTop: 1 }}
         />
 
         <Pressable
           style={{ flex: 1 }}
-          disabled={!hasChecklist && !task.notes}
+          disabled={!hasDetail}
           onPress={() => setExpanded((e) => !e)}
         >
-          <View className="flex-row items-start" style={{ gap: 10 }}>
-            <Neumorph
-              variant={task.done ? 'flat' : 'inset'}
-              radius={11}
-              intensity="sm"
-              surface={task.done ? '#e8e8e8' : colors.canvas}
-            >
-              <View
-                style={{ width: 34, height: 34 }}
-                className="items-center justify-center"
-              >
-                <Icon
-                  name={categoryIcon}
-                  size={17}
-                  color={task.done ? 'textSubtle' : 'carbon'}
-                  strokeWidth={2.2}
-                />
-              </View>
-            </Neumorph>
-
+          <View className="flex-row items-start" style={{ gap: spacing.sm }}>
             <View style={{ flex: 1 }}>
               <AppText
                 variant="body"
-                weight="semibold"
-                color={task.done ? colors.textMuted : colors.carbon}
+                weight="medium"
+                color={task.done ? colors.dove : colors.ink}
                 numberOfLines={2}
-                style={
-                  task.done ? { textDecorationLine: 'line-through' } : undefined
-                }
+                style={task.done ? { textDecorationLine: 'line-through' } : undefined}
               >
                 {task.title}
               </AppText>
 
-              <View
-                className="flex-row items-center"
-                style={{ gap: 8, marginTop: 9, flexWrap: 'wrap', rowGap: 8 }}
-              >
-                <Tag
-                  label={task.priority}
-                  tone={PRIORITY_TONE[task.priority]}
-                  size="sm"
-                />
-                <Tag
-                  label={task.category}
-                  tone={CATEGORY_TONE[task.category]}
-                  size="sm"
-                />
-                {due ? (
-                  <Tag
-                    label={due.text}
-                    tone={due.overdue ? 'annotation' : 'neutral'}
-                    size="sm"
-                    icon={
-                      <Icon
-                        name="clock"
-                        size={11}
-                        color={due.overdue ? colors.annotation : colors.textMuted}
-                        strokeWidth={2.4}
-                      />
-                    }
-                  />
-                ) : null}
-                {hasChecklist ? (
-                  <Tag
-                    label={`${doneCount}/${checklist.length}`}
-                    tone={doneCount === checklist.length ? 'success' : 'neutral'}
-                    size="sm"
-                    icon={
-                      <Icon
-                        name="check-square"
-                        size={11}
-                        color={
-                          doneCount === checklist.length
-                            ? '#2c9d5f'
-                            : colors.textMuted
-                        }
-                        strokeWidth={2.2}
-                      />
-                    }
-                  />
-                ) : null}
-              </View>
+              {!task.done && (due || task.priority === 'HIGH' || hasChecklist) ? (
+                <View
+                  className="flex-row items-center"
+                  style={{ gap: 6, marginTop: 7, flexWrap: 'wrap', rowGap: 6 }}
+                >
+                  {task.priority === 'HIGH' ? (
+                    <Tag label="High" tone={PRIORITY_TONE.HIGH} size="sm" />
+                  ) : null}
+                  {due ? (
+                    <Tag
+                      label={due.text}
+                      tone={due.overdue ? 'rust' : 'neutral'}
+                      size="sm"
+                    />
+                  ) : null}
+                  {hasChecklist ? (
+                    <Tag
+                      label={`${doneCount}/${checklist.length}`}
+                      tone="neutral"
+                      size="sm"
+                    />
+                  ) : null}
+                </View>
+              ) : null}
             </View>
 
-            {(hasChecklist || task.notes) && !task.done ? (
+            {hasDetail && !task.done ? (
               <MotiView
                 animate={{ rotate: expanded ? '180deg' : '0deg' }}
-                transition={{ type: 'timing', duration: 220 }}
-                style={{ marginTop: 6 }}
+                transition={{ type: 'timing', duration: 200 }}
+                style={{ marginTop: 2 }}
               >
-                <Icon
-                  name="chevron-down"
-                  size={18}
-                  color="textSubtle"
-                  strokeWidth={2.4}
-                />
+                <Icon name="chevron-down" size={16} color="graphite" />
               </MotiView>
             ) : null}
           </View>
@@ -199,53 +127,44 @@ export function TaskCard({ task, onToggle, onToggleChecklistItem }: TaskCardProp
       <AnimatePresence>
         {expanded && !task.done ? (
           <MotiView
-            from={{ opacity: 0, translateY: -6 }}
+            from={{ opacity: 0, translateY: -4 }}
             animate={{ opacity: 1, translateY: 0 }}
-            exit={{ opacity: 0, translateY: -6 }}
-            transition={{ type: 'timing', duration: 220 }}
-            style={{ marginTop: 14, paddingLeft: 2 }}
+            exit={{ opacity: 0, translateY: -4 }}
+            transition={{ type: 'timing', duration: 200 }}
+            style={{ marginTop: spacing.md }}
           >
             <View
-              style={{
-                height: 1,
-                backgroundColor: colors.hairline,
-                marginBottom: 14,
-              }}
+              style={{ height: 1, backgroundColor: colors.dove, marginBottom: spacing.md }}
             />
             {task.notes ? (
-              <View className="flex-row" style={{ gap: 8, marginBottom: 14 }}>
-                <Icon name="info" size={15} color="textSubtle" strokeWidth={2.2} />
-                <AppText
-                  variant="caption"
-                  color={colors.textMuted}
-                  style={{ flex: 1, lineHeight: 19 }}
-                >
-                  {task.notes}
-                </AppText>
-              </View>
+              <AppText
+                variant="caption"
+                color={colors.ash}
+                style={{ marginBottom: hasChecklist ? spacing.md : 0 }}
+              >
+                {task.notes}
+              </AppText>
             ) : null}
 
             {checklist.map((item) => (
               <View
                 key={item.id}
                 className="flex-row items-center"
-                style={{ gap: 11, marginBottom: 10 }}
+                style={{ gap: spacing.sm, marginBottom: spacing.sm }}
               >
                 <Checkbox
                   checked={item.done}
-                  size={22}
-                  onChange={() => onToggleChecklistItem(task.id, item.id)}
+                  size={18}
+                  onChange={(next) =>
+                    onToggleChecklistItem?.(task.id, item.id, next)
+                  }
                 />
                 <AppText
                   variant="caption"
-                  weight="medium"
-                  color={item.done ? colors.textSubtle : colors.carbon}
+                  color={item.done ? colors.dove : colors.ash}
                   style={{
                     flex: 1,
-                    fontSize: 14,
-                    ...(item.done
-                      ? { textDecorationLine: 'line-through' }
-                      : null),
+                    ...(item.done ? { textDecorationLine: 'line-through' } : null),
                   }}
                 >
                   {item.label}
@@ -255,7 +174,7 @@ export function TaskCard({ task, onToggle, onToggleChecklistItem }: TaskCardProp
           </MotiView>
         ) : null}
       </AnimatePresence>
-    </SoftCard>
+    </Card>
   );
 }
 

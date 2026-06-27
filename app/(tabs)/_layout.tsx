@@ -1,5 +1,6 @@
 import React from 'react';
-import { Tabs } from 'expo-router/js-tabs';
+import { Tabs } from 'expo-router';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { colors } from '@/theme/tokens';
 import { NeumorphicTabBar } from '@/components/navigation/NeumorphicTabBar';
 
@@ -15,7 +16,7 @@ import { NeumorphicTabBar } from '@/components/navigation/NeumorphicTabBar';
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={(props) => <NeumorphicTabBar {...props} />}
+      tabBar={(props: BottomTabBarProps) => <NeumorphicTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: colors.canvas },

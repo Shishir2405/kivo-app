@@ -1,7 +1,10 @@
 /**
- * Aaply design system — Tailwind / NativeWind v4 tokens.
- * Theme: light. "Digital sketchpad with electric highlighter."
- * Flat, rounded, dot-grid canvas, single soft shadow only.
+ * STEEP design system — Tailwind / NativeWind v4 tokens.
+ * Editorial, calm, premium. Monochrome chrome + Rust accent + two washes.
+ * Flat surfaces (1px Dove hairline + ONE subtle shadow). Small mobile scale.
+ *
+ * Mirrors src/theme/tokens.ts. Legacy class names (highlighter/carbon/paper/
+ * canvas/...) are remapped onto Steep so existing className usage stays on-brand.
  */
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -13,62 +16,74 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Brand accents
-        highlighter: "#e6e51e", // primary brand accent (pills, logo, highlights)
-        annotation: "#f34646", // annotation red
-        signal: "#466cf3", // signal blue
-        peach: "#ff8562", // peach wash
-        sunbeam: "#fff705", // sunbeam yellow
-        // Ink & surfaces
-        carbon: "#000000", // primary text / dark buttons
-        paper: "#ffffff", // cards
-        canvas: "#f2f2f2", // page canvas (graphite mist)
-        hairline: "#e6e6e6", // borders
-        "shadow-gray": "#cccccc", // shadow gray
-        // Convenience aliases used across the app
-        "highlighter-yellow": "#e6e51e",
-        "annotation-red": "#f34646",
-        "signal-blue": "#466cf3",
-        "peach-wash": "#ff8562",
-        "graphite-mist": "#f2f2f2",
-        "hairline-gray": "#e6e6e6",
+        // --- Steep palette (prefer these) ---
+        ink: "#17191c",
+        white: "#ffffff",
+        fog: "#f7f7f8",
+        ash: "#4c4c4c",
+        graphite: "#777b86",
+        dove: "#a3a6af",
+        rust: "#5d2a1a",
+        apricot: "#fbe1d1",
+        sky: "#d3e3fc",
+        success: "#3f7d57",
+        danger: "#9b3a2c",
+        // --- Legacy aliases → remapped to Steep ---
+        highlighter: "#17191c",
+        annotation: "#9b3a2c",
+        signal: "#777b86",
+        peach: "#5d2a1a",
+        sunbeam: "#17191c",
+        carbon: "#17191c",
+        paper: "#ffffff",
+        canvas: "#ffffff",
+        hairline: "#a3a6af",
+        "shadow-gray": "rgba(23,25,28,0.06)",
+        "highlighter-yellow": "#17191c",
+        "annotation-red": "#9b3a2c",
+        "signal-blue": "#777b86",
+        "peach-wash": "#fbe1d1",
+        "graphite-mist": "#f7f7f8",
+        "hairline-gray": "#a3a6af",
       },
       fontFamily: {
-        // Display / headings
-        display: ["Poppins_700Bold"],
-        "display-medium": ["Poppins_500Medium"],
-        "display-semibold": ["Poppins_600SemiBold"],
-        poppins: ["Poppins_400Regular"],
-        // Body / UI
+        // --- Steep ---
+        serif: ["Fraunces_400Regular"],
+        "serif-medium": ["Fraunces_500Medium"],
+        "serif-semibold": ["Fraunces_600SemiBold"],
         sans: ["Inter_400Regular"],
-        "sans-light": ["Inter_300Light"],
         "sans-medium": ["Inter_500Medium"],
-        "sans-bold": ["Inter_700Bold"],
+        // --- Legacy aliases → Steep ---
+        display: ["Fraunces_600SemiBold"],
+        "display-medium": ["Fraunces_500Medium"],
+        "display-semibold": ["Fraunces_600SemiBold"],
+        poppins: ["Fraunces_400Regular"],
+        "sans-light": ["Inter_400Regular"],
+        "sans-bold": ["Inter_500Medium"],
       },
       fontSize: {
-        // Aaply type scale
-        caption: ["14px", { lineHeight: "20px" }],
-        body: ["16px", { lineHeight: "24px" }],
-        subheading: ["18px", { lineHeight: "26px", letterSpacing: "-0.5px" }],
-        "heading-sm": ["27px", { lineHeight: "32px", letterSpacing: "-0.5px" }],
-        heading: ["34px", { lineHeight: "38px", letterSpacing: "-1px" }],
-        "heading-lg": ["52px", { lineHeight: "54px", letterSpacing: "-1.5px" }],
-        display: ["57px", { lineHeight: "58px", letterSpacing: "-2px" }],
+        // Small Steep mobile scale (matches tokens.typeScale).
+        caption: ["11px", { lineHeight: "15px" }],
+        body: ["13px", { lineHeight: "19px", letterSpacing: "-0.1px" }],
+        subheading: ["15px", { lineHeight: "21px", letterSpacing: "-0.15px" }],
+        "heading-sm": ["17px", { lineHeight: "22px", letterSpacing: "-0.2px" }],
+        heading: ["19px", { lineHeight: "24px", letterSpacing: "-0.3px" }],
+        "heading-lg": ["23px", { lineHeight: "28px", letterSpacing: "-0.4px" }],
+        display: ["27px", { lineHeight: "32px", letterSpacing: "-0.5px" }],
       },
       borderRadius: {
-        pill: "9999px", // buttons & tags fully rounded
-        card: "32px", // cards 30-40
-        "card-lg": "40px",
-        input: "16px", // inputs
-        frame: "16px", // product / mockup frames
+        pill: "9999px",
+        card: "18px",
+        "card-lg": "20px",
+        input: "13px",
+        frame: "16px",
       },
       spacing: {
-        // dot-grid spacing reference
         dot: "20px",
       },
       boxShadow: {
-        // The ONE shadow. Used sparingly (nav / floating cards).
-        soft: "0px 10px 10px -5px rgba(0,0,0,0.2)",
+        // The ONE subtle Steep shadow.
+        soft: "0px 2px 8px rgba(23,25,28,0.06)",
       },
     },
   },

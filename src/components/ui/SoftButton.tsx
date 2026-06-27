@@ -7,7 +7,6 @@ import {
   type ViewStyle,
   type PressableProps,
 } from 'react-native';
-import { Neumorph } from './Neumorph';
 import { colors, fonts, radii } from '@/theme/tokens';
 
 export type SoftButtonVariant = 'neutral' | 'yellow' | 'carbon';
@@ -16,7 +15,11 @@ export type SoftButtonProps = {
   label?: string;
   children?: React.ReactNode;
   onPress?: PressableProps['onPress'];
-  /** neutral = neumorphic gray; yellow = flat highlighter pill; carbon = flat black pill. */
+  /**
+   * Steep mapping:
+   *  - 'carbon' / 'yellow' → the ONE filled INK pill (primary CTA).
+   *  - 'neutral' → a TEXT LINK (Ink text, no bg/border) for secondary actions.
+   */
   variant?: SoftButtonVariant;
   icon?: React.ReactNode;
   fullWidth?: boolean;
@@ -26,25 +29,26 @@ export type SoftButtonProps = {
   size?: 'sm' | 'md' | 'lg';
 };
 
+// Compact Steep padding — tight 8x16, small ~13–14 label.
 const PAD = {
-  sm: { py: 10, px: 18, font: 14 },
-  md: { py: 16, px: 32, font: 16 },
-  lg: { py: 18, px: 38, font: 17 },
+  sm: { py: 7, px: 14, font: 13 },
+  md: { py: 9, px: 18, font: 14 },
+  lg: { py: 11, px: 22, font: 14 },
 };
 
 /**
- * The Aaply pill button.
+ * The Steep button.
  *
- * - `yellow` / `carbon` render as FLAT high-energy fills (carbon text on yellow,
- *   paper text on carbon) — the accent that pops against the neumorphic gray.
- *   Per the spec these are meant to be paired (see <PillPair/>).
- * - `neutral` renders as a raised neumorphic pill that depresses (inset) on press.
+ * There is exactly ONE filled button style: an Ink pill (Ink bg, white text,
+ * small label, tight padding). Both 'carbon' and 'yellow' map to it. The
+ * 'neutral' variant renders a TEXT LINK — secondary actions are links, not
+ * extra filled/ghost buttons. One filled Ink CTA per screen.
  */
 export function SoftButton({
   label,
   children,
   onPress,
-  variant = 'yellow',
+  variant = 'carbon',
   icon,
   fullWidth,
   disabled,
@@ -54,76 +58,71 @@ export function SoftButton({
 }: SoftButtonProps) {
   const [pressed, setPressed] = useState(false);
   const pad = PAD[size];
+  const isLink = variant === 'neutral';
 
-  const content = (
-    <View
-      className="flex-row items-center justify-center"
-      style={{
-        paddingVertical: pad.py,
-        paddingHorizontal: pad.px,
-        gap: icon ? 8 : 0,
-      }}
-    >
-      {icon}
-      {label ? (
-        <Text
-          style={{
-            fontFamily: fonts.bodyMedium,
-            fontSize: pad.font,
-            color:
-              variant === 'yellow'
-                ? colors.carbon
-                : variant === 'carbon'
-                  ? colors.paper
-                  : colors.carbon,
-            letterSpacing: 0.2,
-          }}
-        >
-          {label}
-        </Text>
-      ) : (
-        children
-      )}
-    </View>
-  );
-
-  // Flat accent pills (yellow / carbon) — no neumorphism, just energy.
-  if (variant === 'yellow' || variant === 'carbon') {
+  if (isLink) {
     return (
       <Pressable
         onPress={onPress}
         disabled={disabled}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
+        hitSlop={8}
         style={[
           {
-            borderRadius: radius,
-            backgroundColor:
-              variant === 'yellow' ? colors.highlighter : colors.carbon,
-            opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
-            transform: [{ scale: pressed ? 0.98 : 1 }],
             alignSelf: fullWidth ? 'stretch' : 'flex-start',
+            opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
           },
           style,
         ]}
       >
-        {content}
+        <View
+          className="flex-row items-center"
+          style={{ gap: icon ? 6 : 0, justifyContent: fullWidth ? 'center' : 'flex-start' }}
+        >
+          {icon}
+          {label ? (
+            <Text style={{ fontFamily: fonts.sansMedium, fontSize: pad.font, color: colors.ink }}>
+              {label}
+            </Text>
+          ) : (
+            children
+          )}
+        </View>
       </Pressable>
     );
   }
 
-  // Neutral neumorphic pill — raised normally, inset when pressed.
+  // The single filled Ink pill.
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
-      style={[{ alignSelf: fullWidth ? 'stretch' : 'flex-start' }, style]}
+      style={[
+        {
+          borderRadius: radius,
+          backgroundColor: colors.ink,
+          opacity: disabled ? 0.4 : pressed ? 0.88 : 1,
+          alignSelf: fullWidth ? 'stretch' : 'flex-start',
+        },
+        style,
+      ]}
     >
-      <Neumorph variant={pressed ? 'inset' : 'raised'} radius={radius} intensity="sm">
-        {content}
-      </Neumorph>
+      <View
+        className="flex-row items-center justify-center"
+        style={{ paddingVertical: pad.py, paddingHorizontal: pad.px, gap: icon ? 6 : 0 }}
+      >
+        {icon}
+        {label ? (
+          <Text style={{ fontFamily: fonts.sansMedium, fontSize: pad.font, color: colors.white }}>
+            {label}
+          </Text>
+        ) : (
+          children
+        )}
+      </View>
     </Pressable>
   );
 }

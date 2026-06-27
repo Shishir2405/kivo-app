@@ -6,9 +6,9 @@ import { colors } from '@/theme/tokens';
 export type ProgressBarProps = {
   /** 0–100 completion. */
   progress: number;
-  /** Track height in px. */
+  /** Track height in px. Steep is thin: default 6. */
   height?: number;
-  /** Fill color (defaults to highlighter-yellow). */
+  /** Fill color (defaults to Ink). Pass Rust to mark key progress. */
   color?: string;
   /** Animate the fill growing on mount. */
   animate?: boolean;
@@ -17,17 +17,17 @@ export type ProgressBarProps = {
 };
 
 /**
- * A neumorphic progress track — an inset well on the gray canvas with a
- * highlighter-yellow fill that grows on mount. Used in roadmap and topic cards.
+ * A flat Steep progress track — a quiet Fog rail with an Ink (or Rust) fill
+ * that grows on mount. Thin, small radius, no neumorphism.
  */
 export function ProgressBar({
   progress,
-  height = 10,
-  color = colors.highlighter,
+  height = 6,
+  color = colors.ink,
   animate = true,
   delay = 0,
 }: ProgressBarProps) {
-  const pct = Math.max(0, Math.min(100, progress));
+  const pct = Math.max(0, Math.min(100, Number.isFinite(progress) ? progress : 0));
 
   return (
     <View
@@ -35,16 +35,16 @@ export function ProgressBar({
         height,
         width: '100%',
         borderRadius: height,
-        backgroundColor: '#e6e6e6',
+        backgroundColor: colors.fog,
         overflow: 'hidden',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(174,174,192,0.28)',
+        borderWidth: 1,
+        borderColor: colors.dove,
       }}
     >
       <MotiView
         from={{ width: animate ? '0%' : `${pct}%` }}
         animate={{ width: `${pct}%` }}
-        transition={{ type: 'timing', duration: 640, delay }}
+        transition={{ type: 'timing', duration: 560, delay }}
         style={{
           height: '100%',
           borderRadius: height,

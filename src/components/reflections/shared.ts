@@ -15,19 +15,17 @@ export type MoodMeta = {
   mood: Mood;
   label: string;
   icon: IconName;
-  /** Tag tone used for the mood chip / pill. */
-  tone: Exclude<TagTone, 'yellow' | 'carbon' | 'neutral'> | 'yellow';
-  /** Accent color token for glyphs. */
-  accent: 'highlighter' | 'signal' | 'peach' | 'annotation' | 'success';
+  /** Steep Tag tone used for the mood chip / pill (monochrome + washes only). */
+  tone: TagTone;
 };
 
 /** Ordered, best → toughest. Drives both the chips and the summary legend. */
 export const MOODS: MoodMeta[] = [
-  { mood: 'GREAT', label: 'Great', icon: 'flame', tone: 'peach', accent: 'peach' },
-  { mood: 'GOOD', label: 'Good', icon: 'smile', tone: 'success', accent: 'success' },
-  { mood: 'OKAY', label: 'Okay', icon: 'sun', tone: 'yellow', accent: 'highlighter' },
-  { mood: 'TIRED', label: 'Tired', icon: 'moon', tone: 'signal', accent: 'signal' },
-  { mood: 'STRESSED', label: 'Stressed', icon: 'activity', tone: 'annotation', accent: 'annotation' },
+  { mood: 'GREAT', label: 'Great', icon: 'flame', tone: 'warm' },
+  { mood: 'GOOD', label: 'Good', icon: 'smile', tone: 'cool' },
+  { mood: 'OKAY', label: 'Okay', icon: 'sun', tone: 'neutral' },
+  { mood: 'TIRED', label: 'Tired', icon: 'moon', tone: 'neutral' },
+  { mood: 'STRESSED', label: 'Stressed', icon: 'activity', tone: 'rust' },
 ];
 
 const MOOD_BY_KEY: Record<Mood, MoodMeta> = MOODS.reduce(

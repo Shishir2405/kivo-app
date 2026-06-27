@@ -7,12 +7,14 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreenModule from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { QueryClientProvider } from '@tanstack/react-query';
 
 import { useAppFonts } from '@/theme/useAppFonts';
 import { colors } from '@/theme/tokens';
 import { SplashScreen } from '@/components/SplashScreen';
-import { useUiStore } from '@/store';
+import { useUiStore, useAuthStore } from '@/store';
 import { useNotifications } from '@/hooks/useNotifications';
+import { queryClient } from '@/services/queryClient';
 
 // Keep the native splash up until fonts are ready and we say so.
 SplashScreenModule.preventAutoHideAsync().catch(() => {
@@ -26,6 +28,12 @@ export default function RootLayout() {
 
   // Install the notification handler + best-effort push registration at startup.
   useNotifications();
+
+  // Restore any persisted auth session from AsyncStorage on app start.
+  const restoreSession = useAuthStore((s) => s.restoreSession);
+  useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
 
   // Local gate for the very first animated splash (independent of route).
   const [animatedSplashOver, setAnimatedSplashOver] = useState(false);
@@ -57,8 +65,9 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <SafeAreaProvider>
-        <StatusBar style="dark" />
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <StatusBar style="dark" />
         <View
           style={{ flex: 1, backgroundColor: colors.canvas }}
           onLayout={onLayoutRootView}
@@ -99,7 +108,8 @@ export default function RootLayout() {
             </View>
           ) : null}
         </View>
-      </SafeAreaProvider>
+        </SafeAreaProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
   );
 }

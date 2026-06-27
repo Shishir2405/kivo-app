@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, fonts, radii } from '@/theme/tokens';
+import { colors, fonts, palette, radii } from '@/theme/tokens';
 
 export type TagTone =
   | 'yellow'
@@ -9,16 +9,31 @@ export type TagTone =
   | 'annotation'
   | 'peach'
   | 'success'
-  | 'neutral';
+  | 'neutral'
+  // Steep tones (prefer these):
+  | 'ink'
+  | 'warm'
+  | 'cool'
+  | 'rust';
 
-const TONES: Record<TagTone, { bg: string; fg: string }> = {
-  yellow: { bg: colors.highlighter, fg: colors.carbon },
-  carbon: { bg: colors.carbon, fg: colors.paper },
-  signal: { bg: '#e1e8ff', fg: colors.signal },
-  annotation: { bg: '#ffe2e2', fg: colors.annotation },
-  peach: { bg: '#ffe6dd', fg: '#d8602f' },
-  success: { bg: '#dff5e8', fg: '#2c9d5f' },
-  neutral: { bg: '#e9e9e9', fg: colors.textMuted },
+/**
+ * Steep tones — monochrome chrome + the two washes + Rust. Legacy tone names
+ * are remapped so they stay on-brand (no bright/saturated chips).
+ */
+const TONES: Record<TagTone, { bg: string; fg: string; border?: string }> = {
+  // Steep
+  ink: { bg: palette.ink, fg: palette.white },
+  neutral: { bg: palette.white, fg: palette.ash, border: palette.dove },
+  warm: { bg: palette.apricot, fg: palette.rust },
+  cool: { bg: palette.sky, fg: palette.ink },
+  rust: { bg: palette.apricot, fg: palette.rust },
+  // Legacy aliases → Steep
+  yellow: { bg: palette.ink, fg: palette.white },
+  carbon: { bg: palette.ink, fg: palette.white },
+  signal: { bg: palette.sky, fg: palette.ink },
+  annotation: { bg: palette.apricot, fg: palette.rust },
+  peach: { bg: palette.apricot, fg: palette.rust },
+  success: { bg: palette.white, fg: palette.success, border: palette.dove },
 };
 
 export type TagProps = {
@@ -29,12 +44,12 @@ export type TagProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-/** A fully-rounded label chip (Aaply tag — radius 9999). */
+/** A small fully-rounded label chip (Steep tag — radius 9999, flat). */
 export function Tag({ label, tone = 'neutral', icon, size = 'md', style }: TagProps) {
   const t = TONES[tone];
-  const py = size === 'sm' ? 4 : 6;
-  const px = size === 'sm' ? 10 : 14;
-  const font = size === 'sm' ? 11 : 13;
+  const py = size === 'sm' ? 3 : 4;
+  const px = size === 'sm' ? 8 : 10;
+  const font = size === 'sm' ? 10 : 11;
 
   return (
     <View
@@ -45,13 +60,14 @@ export function Tag({ label, tone = 'neutral', icon, size = 'md', style }: TagPr
           borderRadius: radii.pill,
           paddingVertical: py,
           paddingHorizontal: px,
-          gap: 5,
+          gap: 4,
+          ...(t.border ? { borderWidth: 1, borderColor: t.border } : null),
         },
         style,
       ]}
     >
       {icon}
-      <Text style={{ fontFamily: fonts.bodyMedium, fontSize: font, color: t.fg }}>
+      <Text style={{ fontFamily: fonts.sansMedium, fontSize: font, color: t.fg, letterSpacing: -0.1 }}>
         {label}
       </Text>
     </View>

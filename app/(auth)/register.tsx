@@ -1,38 +1,46 @@
 import React, { useRef, useState } from 'react';
-import { View, Pressable, type TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
-
-import { colors } from '@/theme/tokens';
-import { useAuthStore, useUiStore } from '@/store';
-import { mockProfile } from '@/data/mock';
-import { TODAY } from '@/data/mock';
-import { AppText } from '@/components/ui/Typography';
-import { PillButton } from '@/components/ui/PillButton';
-import { SoftInput } from '@/components/ui/SoftInput';
-import { Checkbox } from '@/components/ui/Checkbox';
-import { Icon } from '@/components/ui';
 import {
-  AuthScaffold,
-  PasswordField,
-  SwitchAuthLink,
-} from '@/components/auth';
+  View,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  type TextInput,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { colors, spacing } from '@/theme/tokens';
+import { useAuthStore } from '@/store';
+import {
+  AppText,
+  PillButton,
+  TextLink,
+  SoftInput,
+  Checkbox,
+  AppHeader,
+  Icon,
+} from '@/components/ui';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Register — name / email / password fields with a live strength meter, a
- * custom neumorphic Terms Checkbox (no native control), and submit. Vector
- * Icons throughout (ZERO emoji). On submit we flip the auth store with a profile
- * derived from the entered name and replace into (tabs).
+ * Register — a small Steep form wired to the REAL auth store.
+ *
+ * Name / email / password fields and a Terms checkbox. Validation shows inline
+ * field errors; an auth failure shows inline form error text. The store's
+ * `register` NEVER throws, so submit can't crash the app — on success we
+ * `router.replace('/(tabs)')`.
  */
 export default function RegisterScreen() {
   const router = useRouter();
   const register = useAuthStore((s) => s.register);
-  const pushToast = useUiStore((s) => s.pushToast);
+  const loading = useAuthStore((s) => s.loading);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [show, setShow] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
@@ -40,9 +48,11 @@ export default function RegisterScreen() {
     password?: string;
     agreed?: string;
   }>({});
+  const [formError, setFormError] = useState<string | null>(null);
 
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
+  const insets = useSafeAreaInsets();
 
   const validate = () => {
     const next: typeof errors = {};
@@ -54,33 +64,16 @@ export default function RegisterScreen() {
     return Object.keys(next).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setFormError(null);
+    if (loading) return;
     if (!validate()) return;
-    const trimmedName = name.trim();
-    const username =
-      trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '') ||
-      'kivo.user';
-    register({
-      token: 'mock-token',
-      user: {
-        ...mockProfile,
-        name: trimmedName,
-        username,
-        email: email.trim(),
-        streak: 0,
-        longestStreak: 0,
-        totalSolved: 0,
-        xp: 0,
-        level: 1,
-        joinedAt: TODAY,
-      },
-    });
-    pushToast({
-      id: `joined-${Date.now()}`,
-      message: `Welcome to Kivo, ${trimmedName.split(' ')[0]}!`,
-      tone: 'success',
-    });
-    router.replace('/(tabs)');
+    const result = await register(email.trim(), password, name.trim());
+    if (result.ok) {
+      router.replace('/(tabs)');
+    } else {
+      setFormError(result.error ?? 'Could not create your account. Please try again.');
+    }
   };
 
   const goBack = () => {
@@ -89,123 +82,172 @@ export default function RegisterScreen() {
   };
 
   return (
-    <AuthScaffold
-      badgeIcon="rocket"
-      badgeTone="signal"
-      title="Start your streak"
-      subtitle="Create your account and solve your first problem today."
-      onBack={goBack}
-      footer={
-        <>
-          <PillButton
-            label="Create account"
-            variant="yellow"
-            size="lg"
-            fullWidth
-            onPress={handleSubmit}
-            trailingIcon={<Icon name="arrow-right" size={20} color="carbon" />}
-          />
-          <SwitchAuthLink
-            prompt="Already have an account?"
-            action="Log in"
-            onPress={() => router.replace('/(auth)/login')}
-          />
-        </>
-      }
-    >
-      <SoftInput
-        label="Name"
-        placeholder="Aarav Mehta"
-        value={name}
-        onChangeText={(t) => {
-          setName(t);
-          if (errors.name) setErrors((e) => ({ ...e, name: undefined }));
-        }}
-        error={errors.name}
-        autoCapitalize="words"
-        autoComplete="name"
-        returnKeyType="next"
-        onSubmitEditing={() => emailRef.current?.focus()}
-        leading={<Icon name="user" size={20} color="textMuted" />}
-      />
+    <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: spacing.xl,
+            paddingBottom: insets.bottom + spacing.xl,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <AppHeader onBack={goBack} hideMark />
 
-      <SoftInput
-        ref={emailRef}
-        label="Email"
-        placeholder="you@kivo.app"
-        value={email}
-        onChangeText={(t) => {
-          setEmail(t);
-          if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
-        }}
-        error={errors.email}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoComplete="email"
-        autoCorrect={false}
-        returnKeyType="next"
-        onSubmitEditing={() => passwordRef.current?.focus()}
-        leading={<Icon name="mail" size={20} color="textMuted" />}
-      />
-
-      <PasswordField
-        ref={passwordRef}
-        label="Password"
-        placeholder="At least 6 characters"
-        value={password}
-        onChangeText={(t) => {
-          setPassword(t);
-          if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
-        }}
-        error={errors.password}
-        autoComplete="password-new"
-        returnKeyType="done"
-        onSubmitEditing={handleSubmit}
-        showStrength
-        leading={<Icon name="lock" size={20} color="textMuted" />}
-      />
-
-      {/* Custom neumorphic Terms agreement — never a native checkbox/radio. */}
-      <View style={{ marginTop: 2, gap: 6 }}>
-        <View className="flex-row items-start" style={{ gap: 12 }}>
-          <Checkbox
-            checked={agreed}
-            onChange={(next) => {
-              setAgreed(next);
-              if (errors.agreed) setErrors((e) => ({ ...e, agreed: undefined }));
-            }}
-            style={{ marginTop: 1 }}
-          />
-          <Pressable
-            style={{ flex: 1 }}
-            hitSlop={4}
-            onPress={() => {
-              setAgreed((a) => !a);
-              if (errors.agreed) setErrors((e) => ({ ...e, agreed: undefined }));
-            }}
-          >
-            <AppText variant="caption" color={colors.textMuted} style={{ lineHeight: 20 }}>
-              I agree to Kivo&apos;s{' '}
-              <AppText variant="caption" weight="bold" color={colors.carbon}>
-                Terms
-              </AppText>{' '}
-              and{' '}
-              <AppText variant="caption" weight="bold" color={colors.carbon}>
-                Privacy Policy
-              </AppText>
-              .
+          {/* Heading block */}
+          <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
+            <AppText variant="headingLg" display>
+              Start your streak
             </AppText>
-          </Pressable>
-        </View>
-        {errors.agreed ? (
-          <View className="flex-row items-center" style={{ gap: 6, marginLeft: 2 }}>
-            <Icon name="alert" size={14} color="annotation" />
-            <AppText variant="caption" color={colors.annotation}>
-              {errors.agreed}
+            <AppText variant="body" color={colors.ash} style={{ maxWidth: 320 }}>
+              Create your account and solve your first problem today.
             </AppText>
           </View>
-        ) : null}
-      </View>
-    </AuthScaffold>
+
+          {/* Form */}
+          <View style={{ marginTop: spacing.xxl, gap: spacing.lg }}>
+            <SoftInput
+              label="Name"
+              placeholder="Aarav Mehta"
+              value={name}
+              onChangeText={(t) => {
+                setName(t);
+                if (errors.name) setErrors((e) => ({ ...e, name: undefined }));
+                if (formError) setFormError(null);
+              }}
+              error={errors.name}
+              autoCapitalize="words"
+              autoComplete="name"
+              returnKeyType="next"
+              onSubmitEditing={() => emailRef.current?.focus()}
+            />
+
+            <SoftInput
+              ref={emailRef}
+              label="Email"
+              placeholder="you@kivo.app"
+              value={email}
+              onChangeText={(t) => {
+                setEmail(t);
+                if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
+                if (formError) setFormError(null);
+              }}
+              error={errors.email}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+            />
+
+            <SoftInput
+              ref={passwordRef}
+              label="Password"
+              placeholder="At least 6 characters"
+              value={password}
+              onChangeText={(t) => {
+                setPassword(t);
+                if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
+                if (formError) setFormError(null);
+              }}
+              error={errors.password}
+              secureTextEntry={!show}
+              autoCapitalize="none"
+              autoComplete="password-new"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={handleSubmit}
+              trailing={
+                <Pressable
+                  onPress={() => setShow((v) => !v)}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel={show ? 'Hide password' : 'Show password'}
+                >
+                  <Icon name={show ? 'eye-off' : 'eye'} size={17} color="graphite" />
+                </Pressable>
+              }
+            />
+
+            {/* Terms agreement */}
+            <View style={{ gap: spacing.xs }}>
+              <View className="flex-row items-start" style={{ gap: spacing.md }}>
+                <Checkbox
+                  checked={agreed}
+                  onChange={(next) => {
+                    setAgreed(next);
+                    if (errors.agreed) setErrors((e) => ({ ...e, agreed: undefined }));
+                  }}
+                />
+                <Pressable
+                  style={{ flex: 1 }}
+                  hitSlop={4}
+                  onPress={() => {
+                    setAgreed((a) => !a);
+                    if (errors.agreed) setErrors((e) => ({ ...e, agreed: undefined }));
+                  }}
+                >
+                  <AppText variant="caption" color={colors.ash} style={{ lineHeight: 18 }}>
+                    I agree to Kivo&apos;s{' '}
+                    <AppText variant="caption" weight="medium" color={colors.ink}>
+                      Terms
+                    </AppText>{' '}
+                    and{' '}
+                    <AppText variant="caption" weight="medium" color={colors.ink}>
+                      Privacy Policy
+                    </AppText>
+                    .
+                  </AppText>
+                </Pressable>
+              </View>
+              {errors.agreed ? (
+                <View className="flex-row items-center" style={{ gap: spacing.sm }}>
+                  <Icon name="alert" size={14} color="danger" />
+                  <AppText variant="caption" color={colors.danger}>
+                    {errors.agreed}
+                  </AppText>
+                </View>
+              ) : null}
+            </View>
+
+            {formError ? (
+              <View className="flex-row items-center" style={{ gap: spacing.sm }}>
+                <Icon name="alert" size={15} color="danger" />
+                <AppText variant="caption" color={colors.danger} style={{ flex: 1 }}>
+                  {formError}
+                </AppText>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Footer */}
+          <View style={{ marginTop: 'auto', paddingTop: spacing.xxl, gap: spacing.lg }}>
+            <PillButton
+              label={loading ? 'Creating account…' : 'Create account'}
+              variant="black"
+              size="lg"
+              fullWidth
+              disabled={loading}
+              onPress={handleSubmit}
+            />
+            <View className="flex-row items-center justify-center" style={{ gap: spacing.xs }}>
+              <AppText variant="caption" color={colors.graphite}>
+                Already have an account?
+              </AppText>
+              <TextLink
+                label="Log in"
+                size="sm"
+                onPress={() => router.replace('/(auth)/login')}
+              />
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }

@@ -1,170 +1,100 @@
 /**
- * A single notification row for the Notifications history screen.
+ * A single notification row for the Notifications history screen (STEEP).
  *
- * Layout: a leading neumorphic glyph chip tinted by the notification accent, the
- * title + body text column, and a trailing meta column with the relative time
- * and (when unread) an accent dot. Unread rows read as a raised SoftCard with a
- * subtle accent rail; read rows recede to a flat, muted surface so the eye is
- * pulled to what still needs attention.
+ * Flat & calm: a small thin glyph, the title + body text column, and a meta line
+ * with relative time. Unread rows read as a white raised Card with a small Ink
+ * dot; read rows recede to a quiet Fog inset so the eye is pulled to what still
+ * needs attention. One subtle shadow + Dove hairline, no neumorphism.
  *
- * Composed entirely from the Aaply kit — vector Icons only, ZERO emoji.
+ * Vector Icons only, ZERO emoji.
  */
 import React from 'react';
 import { View, Pressable } from 'react-native';
-import { MotiView } from 'moti';
 
 import { AppText } from '@/components/ui/Typography';
 import { SoftCard } from '@/components/ui/SoftCard';
-import { Neumorph } from '@/components/ui/Neumorph';
 import { Icon } from '@/components/ui/Icon';
 import { colors, radii } from '@/theme/tokens';
 import type { AppNotification } from '@/types/models';
 
 export type NotificationAccent = AppNotification['accent'];
 
-const ACCENT_HEX: Record<NotificationAccent, string> = {
-  highlighter: colors.highlighter,
-  signal: colors.signal,
-  peach: colors.peach,
-  annotation: colors.annotation,
-  success: colors.success,
-};
-
-/** Soft tinted background for the leading glyph well (read state). */
-const ACCENT_WASH: Record<NotificationAccent, string> = {
-  highlighter: '#f7f6c9',
-  signal: '#e1e8ff',
-  peach: '#ffe6dd',
-  annotation: '#ffe2e2',
-  success: '#dff5e8',
-};
-
 export type NotificationRowProps = {
   notification: AppNotification;
   onPress: (id: string) => void;
-  /** Index within its section, used to stagger the entrance. */
+  /** Index within its section (kept for API compat; entrance is instant now). */
   index: number;
 };
 
-export function NotificationRow({ notification, onPress, index }: NotificationRowProps) {
+export function NotificationRow({ notification, onPress }: NotificationRowProps) {
   const [pressed, setPressed] = React.useState(false);
-  const { accent, read } = notification;
-  const accentHex = ACCENT_HEX[accent];
-  // Yellow needs carbon ink to stay legible on the glyph chip.
-  const glyphInk = accent === 'highlighter' ? colors.carbon : accentHex;
+  const { read } = notification;
 
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: 10 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: 'timing', duration: 300, delay: 40 + index * 45 }}
+    <Pressable
+      onPress={() => onPress(notification.id)}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      accessibilityRole="button"
+      accessibilityLabel={`${notification.title}. ${read ? 'Read' : 'Unread'}`}
+      accessibilityState={{ selected: !read }}
+      style={{ opacity: pressed ? 0.9 : 1 }}
     >
-      <Pressable
-        onPress={() => onPress(notification.id)}
-        onPressIn={() => setPressed(true)}
-        onPressOut={() => setPressed(false)}
-        accessibilityRole="button"
-        accessibilityLabel={`${notification.title}. ${read ? 'Read' : 'Unread'}`}
-        accessibilityState={{ selected: !read }}
-      >
-        <SoftCard
-          variant={pressed ? 'inset' : read ? 'flat' : 'raised'}
-          radius={radii.sm + 8}
-          intensity="sm"
-          padding={14}
-          surface={read ? '#ededed' : colors.canvas}
-          style={{
-            opacity: read ? 0.92 : 1,
-            overflow: 'hidden',
-          }}
-        >
-          {/* Unread accent rail down the left edge. */}
-          {!read ? (
-            <View
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 4,
-                backgroundColor: accentHex,
-                borderTopLeftRadius: radii.sm + 8,
-                borderBottomLeftRadius: radii.sm + 8,
-              }}
-            />
-          ) : null}
+      <SoftCard variant={read ? 'inset' : 'raised'} radius={radii.card} padding={13}>
+        <View className="flex-row items-start" style={{ gap: 11 }}>
+          {/* Leading glyph — small, thin, monochrome. */}
+          <View style={{ marginTop: 1 }}>
+            <Icon name={notification.icon} size={17} color={read ? 'graphite' : 'ink'} />
+          </View>
 
-          <View className="flex-row items-start" style={{ gap: 12 }}>
-            {/* Leading glyph chip. */}
-            <Neumorph
-              variant={read ? 'flat' : 'inset'}
-              radius={13}
-              intensity="sm"
-              padding={10}
-              surface={read ? ACCENT_WASH[accent] : colors.canvas}
-            >
-              <Icon name={notification.icon} size={20} color={glyphInk} strokeWidth={2.2} />
-            </Neumorph>
-
-            {/* Title + body. */}
-            <View style={{ flex: 1 }}>
-              <View className="flex-row items-center" style={{ gap: 8 }}>
-                <AppText
-                  variant="body"
-                  weight={read ? 'medium' : 'bold'}
-                  numberOfLines={2}
-                  style={{ flex: 1, fontSize: 15, lineHeight: 20 }}
-                >
-                  {notification.title}
-                </AppText>
-                {!read ? (
-                  <View
-                    style={{
-                      width: 9,
-                      height: 9,
-                      borderRadius: 999,
-                      backgroundColor: accentHex,
-                      marginTop: 4,
-                    }}
-                  />
-                ) : null}
-              </View>
-
+          {/* Title + body. */}
+          <View style={{ flex: 1 }}>
+            <View className="flex-row items-start" style={{ gap: 8 }}>
               <AppText
-                variant="caption"
-                color={colors.textMuted}
+                variant="subheading"
+                weight="medium"
                 numberOfLines={2}
-                style={{ marginTop: 3, fontSize: 13, lineHeight: 18 }}
+                style={{ flex: 1 }}
+                color={read ? colors.ash : colors.ink}
               >
-                {notification.body}
+                {notification.title}
               </AppText>
+              {!read ? (
+                <View
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 999,
+                    backgroundColor: colors.rust,
+                    marginTop: 6,
+                  }}
+                />
+              ) : null}
+            </View>
 
-              <View className="flex-row items-center" style={{ gap: 6, marginTop: 8 }}>
-                <Icon name="clock" size={12} color="textSubtle" strokeWidth={2.2} />
-                <AppText variant="caption" color={colors.textSubtle} style={{ fontSize: 11.5 }}>
-                  {relativeTime(notification.createdAt)}
-                </AppText>
-                {notification.href ? (
-                  <>
-                    <View
-                      style={{
-                        width: 3,
-                        height: 3,
-                        borderRadius: 999,
-                        backgroundColor: colors.textSubtle,
-                      }}
-                    />
-                    <AppText variant="caption" color={colors.textSubtle} style={{ fontSize: 11.5 }}>
-                      Tap to open
-                    </AppText>
-                  </>
-                ) : null}
-              </View>
+            <AppText variant="body" color={colors.ash} numberOfLines={2} style={{ marginTop: 2 }}>
+              {notification.body}
+            </AppText>
+
+            <View className="flex-row items-center" style={{ gap: 6, marginTop: 7 }}>
+              <AppText variant="caption" color={colors.graphite}>
+                {relativeTime(notification.createdAt)}
+              </AppText>
+              {notification.href ? (
+                <>
+                  <View
+                    style={{ width: 2.5, height: 2.5, borderRadius: 999, backgroundColor: colors.dove }}
+                  />
+                  <AppText variant="caption" color={colors.graphite}>
+                    Tap to open
+                  </AppText>
+                </>
+              ) : null}
             </View>
           </View>
-        </SoftCard>
-      </Pressable>
-    </MotiView>
+        </View>
+      </SoftCard>
+    </Pressable>
   );
 }
 
@@ -173,9 +103,8 @@ export function NotificationRow({ notification, onPress, index }: NotificationRo
 /* ------------------------------------------------------------------ */
 
 /**
- * Render a compact, human relative time ("just now", "3h ago", "Mon").
- * Pinned to the app's deterministic "now" so the mock data reads consistently
- * (TODAY = 2026-06-26, late morning).
+ * Compact, human relative time ("Just now", "3h ago", "Mon"). Pinned to the
+ * app's deterministic "now" so the mock data reads consistently.
  */
 const NOW = new Date('2026-06-26T11:30:00Z').getTime();
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

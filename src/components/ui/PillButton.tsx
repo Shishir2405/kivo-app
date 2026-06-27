@@ -14,6 +14,11 @@ export type PillVariant = 'yellow' | 'black' | 'ghost';
 export type PillButtonProps = {
   label: string;
   onPress?: PressableProps['onPress'];
+  /**
+   * Steep mapping:
+   *  - 'yellow' / 'black' → the ONE filled INK pill (primary CTA).
+   *  - 'ghost' → a TEXT LINK (Ink text, no bg/border) for secondary actions.
+   */
   variant?: PillVariant;
   icon?: React.ReactNode;
   trailingIcon?: React.ReactNode;
@@ -23,24 +28,23 @@ export type PillButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
+// Compact Steep padding.
 const SIZES = {
-  sm: { py: 10, px: 18, font: 14 },
-  md: { py: 16, px: 32, font: 16 }, // spec: yellow pill 16x32, Inter 500 16
-  lg: { py: 18, px: 38, font: 17 },
+  sm: { py: 7, px: 14, font: 13 },
+  md: { py: 9, px: 18, font: 14 },
+  lg: { py: 11, px: 22, font: 14 },
 };
 
 /**
- * Aaply pill button — fully rounded (radius 9999).
- *  - yellow: bg #e6e51e, carbon text (primary brand action).
- *  - black:  bg carbon, paper text (the companion to the yellow pill).
- *  - ghost:  transparent with a hairline outline (low-emphasis).
- *
- * Pair the yellow + black variants with <PillPair/> — never split them.
+ * The Steep pill button — exactly ONE filled style: an Ink pill (Ink bg, white
+ * text, small label, tight padding). 'yellow' and 'black' both map to it.
+ * 'ghost' renders a TEXT LINK (secondary actions are links, never extra
+ * filled/ghost buttons). One filled Ink CTA per screen.
  */
 export function PillButton({
   label,
   onPress,
-  variant = 'yellow',
+  variant = 'black',
   icon,
   trailingIcon,
   fullWidth,
@@ -51,14 +55,9 @@ export function PillButton({
   const [pressed, setPressed] = useState(false);
   const s = SIZES[size];
 
-  const bg =
-    variant === 'yellow'
-      ? colors.highlighter
-      : variant === 'black'
-        ? colors.carbon
-        : 'transparent';
-  const fg =
-    variant === 'black' ? colors.paper : colors.carbon;
+  if (variant === 'ghost') {
+    return <TextLink label={label} onPress={onPress} disabled={disabled} icon={icon} size={size} fullWidth={fullWidth} style={style} />;
+  }
 
   return (
     <Pressable
@@ -69,11 +68,8 @@ export function PillButton({
       style={[
         {
           borderRadius: radii.pill,
-          backgroundColor: bg,
-          borderWidth: variant === 'ghost' ? 1.5 : 0,
-          borderColor: colors.carbon,
-          opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
+          backgroundColor: colors.ink,
+          opacity: disabled ? 0.4 : pressed ? 0.88 : 1,
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },
         style,
@@ -81,17 +77,10 @@ export function PillButton({
     >
       <View
         className="flex-row items-center justify-center"
-        style={{ paddingVertical: s.py, paddingHorizontal: s.px, gap: 8 }}
+        style={{ paddingVertical: s.py, paddingHorizontal: s.px, gap: 6 }}
       >
         {icon}
-        <Text
-          style={{
-            fontFamily: fonts.bodyMedium,
-            fontSize: s.font,
-            color: fg,
-            letterSpacing: 0.2,
-          }}
-        >
+        <Text style={{ fontFamily: fonts.sansMedium, fontSize: s.font, color: colors.white }}>
           {label}
         </Text>
         {trailingIcon}
@@ -100,9 +89,65 @@ export function PillButton({
   );
 }
 
+export type TextLinkProps = {
+  label: string;
+  onPress?: PressableProps['onPress'];
+  icon?: React.ReactNode;
+  disabled?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+  fullWidth?: boolean;
+  /** Render in a muted color (Ash) instead of Ink. */
+  muted?: boolean;
+  style?: StyleProp<ViewStyle>;
+};
+
 /**
- * The signature Aaply device: a yellow primary pill paired with a black
- * companion. Keep them together.
+ * TextLink — the Steep secondary action. Ink text, no background, no border.
+ * Use for every action that isn't the single filled Ink CTA.
+ */
+export function TextLink({
+  label,
+  onPress,
+  icon,
+  disabled,
+  size = 'md',
+  fullWidth,
+  muted,
+  style,
+}: TextLinkProps) {
+  const [pressed, setPressed] = useState(false);
+  const font = SIZES[size].font;
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      hitSlop={8}
+      style={[
+        {
+          alignSelf: fullWidth ? 'stretch' : 'flex-start',
+          opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
+        },
+        style,
+      ]}
+    >
+      <View
+        className="flex-row items-center"
+        style={{ gap: icon ? 6 : 0, justifyContent: fullWidth ? 'center' : 'flex-start' }}
+      >
+        {icon}
+        <Text style={{ fontFamily: fonts.sansMedium, fontSize: font, color: muted ? colors.ash : colors.ink }}>
+          {label}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+/**
+ * PillPair — under Steep, the primary becomes the single filled Ink pill and
+ * the secondary becomes a TEXT LINK (not a second filled button).
  */
 export function PillPair({
   primaryLabel,
@@ -122,22 +167,16 @@ export function PillPair({
   return (
     <View
       style={{ gap: 12 }}
-      className={stacked ? 'flex-col w-full' : 'flex-row items-center'}
+      className={stacked ? 'flex-col w-full items-center' : 'flex-row items-center'}
     >
       <PillButton
         label={primaryLabel}
-        variant="yellow"
+        variant="black"
         onPress={onPrimary}
         size={size}
         fullWidth={stacked}
       />
-      <PillButton
-        label={secondaryLabel}
-        variant="black"
-        onPress={onSecondary}
-        size={size}
-        fullWidth={stacked}
-      />
+      <TextLink label={secondaryLabel} onPress={onSecondary} size={size} />
     </View>
   );
 }

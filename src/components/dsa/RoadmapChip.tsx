@@ -1,13 +1,12 @@
 import React from 'react';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
-import { Neumorph } from '@/components/ui/Neumorph';
 import { AppText } from '@/components/ui/Typography';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors } from '@/theme/tokens';
+import { colors, radii } from '@/theme/tokens';
 
 export type RoadmapChipProps = {
   label: string;
-  /** Leading icon glyph (rendered via the Icon system — never an emoji). */
+  /** Leading icon glyph (small, thin — never an emoji). */
   icon?: IconName;
   active?: boolean;
   onPress?: () => void;
@@ -15,9 +14,9 @@ export type RoadmapChipProps = {
 };
 
 /**
- * A roadmap selector chip. Raised neumorphic pill on the gray canvas; when
- * selected it fills with highlighter-yellow (flat accent) and goes carbon-ink —
- * the inset/selected soft-UI state with the brand pop.
+ * A flat Steep selector chip. Inactive: white pill with a 1px Dove hairline,
+ * graphite label. Active: filled Ink pill, white label. No neumorphism, no
+ * bright accent — the Ink fill is the selected state.
  */
 export function RoadmapChip({
   label,
@@ -26,51 +25,32 @@ export function RoadmapChip({
   onPress,
   style,
 }: RoadmapChipProps) {
-  const inner = (
-    <View
-      className="flex-row items-center"
-      style={{ paddingVertical: 10, paddingHorizontal: 16, gap: 8 }}
-    >
-      {icon ? (
-        <Icon
-          name={icon}
-          size={16}
-          color={active ? 'carbon' : 'textMuted'}
-          strokeWidth={active ? 2.4 : 2}
-        />
-      ) : null}
-      <AppText
-        variant="caption"
-        weight={active ? 'bold' : 'medium'}
-        color={active ? colors.carbon : colors.textMuted}
-        style={{ fontSize: 13.5 }}
-      >
-        {label}
-      </AppText>
-    </View>
-  );
-
-  // Active = flat yellow pill (accent pop). Inactive = raised neumorphic pill.
-  if (active) {
-    return (
-      <Pressable onPress={onPress} style={style}>
-        <View
-          style={{
-            borderRadius: 9999,
-            backgroundColor: colors.highlighter,
-          }}
-        >
-          {inner}
-        </View>
-      </Pressable>
-    );
-  }
-
   return (
     <Pressable onPress={onPress} style={style}>
-      <Neumorph variant="raised" radius={9999} intensity="sm">
-        {inner}
-      </Neumorph>
+      <View
+        className="flex-row items-center"
+        style={{
+          paddingVertical: 7,
+          paddingHorizontal: 14,
+          gap: 6,
+          borderRadius: radii.pill,
+          backgroundColor: active ? colors.ink : colors.white,
+          borderWidth: 1,
+          borderColor: active ? colors.ink : colors.dove,
+        }}
+      >
+        {icon ? (
+          <Icon name={icon} size={14} color={active ? 'white' : 'graphite'} />
+        ) : null}
+        <AppText
+          variant="caption"
+          weight="medium"
+          color={active ? colors.white : colors.ash}
+          style={{ fontSize: 12.5 }}
+        >
+          {label}
+        </AppText>
+      </View>
     </Pressable>
   );
 }

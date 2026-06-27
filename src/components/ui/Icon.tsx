@@ -1,157 +1,153 @@
 import React from 'react';
 import {
-  Activity,
-  ArrowLeft,
-  ArrowRight,
-  AtSign,
-  Award,
-  BadgeCheck,
-  Bell,
-  Book,
-  BookOpen,
-  Bookmark,
-  Brain,
-  CalendarCheck,
-  Calendar,
-  Camera,
-  ChartColumn,
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  Circle,
-  CircleAlert,
-  CircleCheck,
-  CircleCheckBig,
-  CircleHelp,
-  CircleMinus,
-  CirclePlus,
-  CircleX,
-  ClipboardList,
-  Clock,
-  Code,
-  CodeXml,
-  Coffee,
-  Compass,
-  Copy,
-  Crown,
-  Download,
-  Dumbbell,
-  Ellipsis,
-  EllipsisVertical,
-  Eye,
-  EyeOff,
-  FileText,
-  Flag,
-  Flame,
-  Folder,
-  Funnel,
-  Gift,
-  Globe,
-  GraduationCap,
-  Grid2x2,
-  Hash,
-  Heart,
-  House,
-  Image as ImageIcon,
-  Info,
-  Layers,
-  Lightbulb,
-  Link,
-  List,
-  Lock,
-  LogOut,
-  Mail,
-  MapPin,
-  Medal,
-  Minus,
-  Moon,
-  NotebookPen,
-  Pause,
-  PenLine,
-  Pencil,
-  Pin,
-  Play,
-  Plus,
-  Repeat,
-  RefreshCw,
-  RotateCw,
-  Rocket,
-  Save,
-  Search,
-  Send,
-  Settings,
-  Share2,
-  Smile,
-  Sparkles,
-  Square,
-  SquareCheck,
-  SquareCheckBig,
-  SquarePen,
-  Star,
-  Sun,
-  Tag as TagIcon,
-  Target,
-  ThumbsUp,
-  Timer,
-  Trash2,
-  TrendingUp,
-  Trophy,
-  Upload,
-  User,
-  Volume2,
-  Wallet,
-  X,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react-native';
+  // phosphor-react-native v3 exports each glyph as `<Name>Icon`; alias to clean names.
+  ArrowLeftIcon as ArrowLeft,
+  ArrowRightIcon as ArrowRight,
+  AtIcon as At,
+  BarbellIcon as Barbell,
+  BellIcon as Bell,
+  BookOpenIcon as BookOpen,
+  BookIcon as Book,
+  BookmarkSimpleIcon as BookmarkSimple,
+  BrainIcon as Brain,
+  CalendarIcon as Calendar,
+  CalendarCheckIcon as CalendarCheck,
+  CameraIcon as Camera,
+  CaretDownIcon as CaretDown,
+  CaretLeftIcon as CaretLeft,
+  CaretRightIcon as CaretRight,
+  CaretUpIcon as CaretUp,
+  ChartBarIcon as ChartBar,
+  CheckIcon as Check,
+  CheckCircleIcon as CheckCircle,
+  CheckSquareIcon as CheckSquare,
+  CircleIcon as Circle,
+  ClipboardTextIcon as ClipboardText,
+  ClockIcon as Clock,
+  CodeIcon as Code,
+  CoffeeIcon as Coffee,
+  CompassIcon as Compass,
+  CopyIcon as Copy,
+  CrownIcon as Crown,
+  DotsThreeIcon as DotsThree,
+  DotsThreeVerticalIcon as DotsThreeVertical,
+  DownloadSimpleIcon as DownloadSimple,
+  EnvelopeIcon as Envelope,
+  EyeIcon as Eye,
+  EyeSlashIcon as EyeSlash,
+  FileTextIcon as FileText,
+  FlagIcon as Flag,
+  FloppyDiskIcon as FloppyDisk,
+  FireIcon as Fire,
+  FolderIcon as Folder,
+  FunnelIcon as Funnel,
+  GearIcon as Gear,
+  GiftIcon as Gift,
+  GlobeIcon as Globe,
+  GraduationCapIcon as GraduationCap,
+  HashIcon as Hash,
+  HeartIcon as Heart,
+  HouseIcon as House,
+  ImageIcon as ImageIcon,
+  InfoIcon as Info,
+  LightbulbIcon as Lightbulb,
+  LightningIcon as Lightning,
+  LinkIcon as Link,
+  ListBulletsIcon as ListBullets,
+  LockIcon as Lock,
+  MagnifyingGlassIcon as MagnifyingGlass,
+  MapPinIcon as MapPin,
+  MedalIcon as Medal,
+  MinusIcon as Minus,
+  MinusCircleIcon as MinusCircle,
+  MoonIcon as Moon,
+  NotePencilIcon as NotePencil,
+  PaperPlaneTiltIcon as PaperPlaneTilt,
+  PauseIcon as Pause,
+  PencilIcon as Pencil,
+  PencilSimpleLineIcon as PencilSimpleLine,
+  PencilSimpleIcon as PencilSimple,
+  PlayIcon as Play,
+  PlusIcon as Plus,
+  PlusCircleIcon as PlusCircle,
+  PulseIcon as Pulse,
+  PushPinIcon as PushPin,
+  QuestionIcon as Question,
+  RepeatIcon as Repeat,
+  RocketIcon as Rocket,
+  SealCheckIcon as SealCheck,
+  ShareNetworkIcon as ShareNetwork,
+  SignOutIcon as SignOut,
+  SmileyIcon as Smiley,
+  SparkleIcon as Sparkle,
+  SpeakerHighIcon as SpeakerHigh,
+  SquareIcon as Square,
+  SquaresFourIcon as SquaresFour,
+  StarIcon as Star,
+  SunIcon as Sun,
+  TagIcon as TagIcon,
+  TargetIcon as Target,
+  ThumbsUpIcon as ThumbsUp,
+  TimerIcon as Timer,
+  TrashIcon as Trash,
+  TrendUpIcon as TrendUp,
+  TrophyIcon as Trophy,
+  UploadSimpleIcon as UploadSimple,
+  UserIcon as User,
+  WalletIcon as Wallet,
+  WarningCircleIcon as WarningCircle,
+  XIcon as X,
+  XCircleIcon as XCircle,
+  type Icon as PhosphorIcon,
+  type IconWeight,
+} from 'phosphor-react-native';
 import { colors, type ColorToken } from '@/theme/tokens';
 
 /**
- * Curated, app-relevant icon registry.
+ * The Steep icon registry — FEW, small, thin-outline, monochrome.
  *
- * Keys are stable semantic names (the public API). Values are the underlying
- * lucide-react-native glyph. Screens import by semantic name only — if we ever
- * swap the icon library, this map is the single place that changes.
+ * Keys are stable semantic names (the public API, unchanged from before so
+ * screens keep compiling). Values are phosphor-react-native glyphs rendered at
+ * the LIGHT weight by default (thin outline). Icons are punctuation: small
+ * (~16–18px), Graphite/Ink stroke only. Swap the library here in one place.
  */
 const REGISTRY = {
   // Navigation / structure
   home: House,
-  layers: Layers,
-  list: List,
-  grid: Grid2x2,
+  layers: SquaresFour,
+  list: ListBullets,
+  grid: SquaresFour,
   folder: Folder,
   compass: Compass,
   globe: Globe,
-  menu: Ellipsis,
-  'more-horizontal': Ellipsis,
-  'more-vertical': EllipsisVertical,
+  menu: DotsThree,
+  'more-horizontal': DotsThree,
+  'more-vertical': DotsThreeVertical,
 
   // Chevrons / arrows
-  'chevron-right': ChevronRight,
-  'chevron-left': ChevronLeft,
-  'chevron-down': ChevronDown,
-  'chevron-up': ChevronUp,
+  'chevron-right': CaretRight,
+  'chevron-left': CaretLeft,
+  'chevron-down': CaretDown,
+  'chevron-up': CaretUp,
   'arrow-right': ArrowRight,
   'arrow-left': ArrowLeft,
 
   // Status / checks
   check: Check,
-  'check-circle': CircleCheck,
-  'check-circle-filled': CircleCheckBig,
-  'check-square': SquareCheck,
-  'check-square-filled': SquareCheckBig,
-  'badge-check': BadgeCheck,
+  'check-circle': CheckCircle,
+  'check-circle-filled': CheckCircle,
+  'check-square': CheckSquare,
+  'check-square-filled': CheckSquare,
+  'badge-check': SealCheck,
   x: X,
-  'x-circle': CircleX,
+  'x-circle': XCircle,
   plus: Plus,
-  'plus-circle': CirclePlus,
+  'plus-circle': PlusCircle,
   minus: Minus,
-  'minus-circle': CircleMinus,
+  'minus-circle': MinusCircle,
   info: Info,
-  alert: CircleAlert,
-  help: CircleHelp,
+  alert: WarningCircle,
+  help: Question,
   circle: Circle,
   square: Square,
 
@@ -161,84 +157,84 @@ const REGISTRY = {
   clock: Clock,
   timer: Timer,
   repeat: Repeat,
-  refresh: RefreshCw,
-  rotate: RotateCw,
-  flame: Flame,
+  refresh: Repeat,
+  rotate: Repeat,
+  flame: Fire,
 
   // Achievement / motivation
   trophy: Trophy,
-  award: Award,
+  award: Medal,
   medal: Medal,
   crown: Crown,
   star: Star,
   target: Target,
-  zap: Zap,
-  sparkles: Sparkles,
-  'trending-up': TrendingUp,
+  zap: Lightning,
+  sparkles: Sparkle,
+  'trending-up': TrendUp,
   rocket: Rocket,
   gift: Gift,
 
   // Learning / content
   book: Book,
   'book-open': BookOpen,
-  'notebook-pen': NotebookPen,
+  'notebook-pen': NotePencil,
   brain: Brain,
   lightbulb: Lightbulb,
   'graduation-cap': GraduationCap,
   code: Code,
-  'code-xml': CodeXml,
+  'code-xml': Code,
   'file-text': FileText,
-  clipboard: ClipboardList,
-  dumbbell: Dumbbell,
+  clipboard: ClipboardText,
+  dumbbell: Barbell,
   coffee: Coffee,
-  chart: ChartColumn,
-  activity: Activity,
+  chart: ChartBar,
+  activity: Pulse,
 
   // Actions
-  edit: SquarePen,
-  'edit-line': Pencil,
-  pen: PenLine,
-  trash: Trash2,
-  save: Save,
+  edit: PencilSimple,
+  'edit-line': PencilSimpleLine,
+  pen: Pencil,
+  trash: Trash,
+  save: FloppyDisk,
   copy: Copy,
-  download: Download,
-  upload: Upload,
-  share: Share2,
-  send: Send,
+  download: DownloadSimple,
+  upload: UploadSimple,
+  share: ShareNetwork,
+  send: PaperPlaneTilt,
   link: Link,
-  search: Search,
+  search: MagnifyingGlass,
   filter: Funnel,
-  bookmark: Bookmark,
-  pin: Pin,
+  bookmark: BookmarkSimple,
+  pin: PushPin,
   flag: Flag,
   play: Play,
   pause: Pause,
-  'volume-up': Volume2,
+  'volume-up': SpeakerHigh,
 
   // People / account
   user: User,
-  settings: Settings,
+  settings: Gear,
   bell: Bell,
-  'log-out': LogOut,
+  'log-out': SignOut,
   lock: Lock,
-  mail: Mail,
+  mail: Envelope,
   wallet: Wallet,
   heart: Heart,
   'thumbs-up': ThumbsUp,
-  smile: Smile,
+  smile: Smiley,
   tag: TagIcon,
   hash: Hash,
-  'at-sign': AtSign,
+  'at-sign': At,
 
   // Media / misc
   camera: Camera,
   image: ImageIcon,
   'map-pin': MapPin,
   eye: Eye,
-  'eye-off': EyeOff,
+  'eye-off': EyeSlash,
   sun: Sun,
   moon: Moon,
-} satisfies Record<string, LucideIcon>;
+} satisfies Record<string, PhosphorIcon>;
 
 /** The full set of valid icon names. */
 export type IconName = keyof typeof REGISTRY;
@@ -246,13 +242,21 @@ export type IconName = keyof typeof REGISTRY;
 export type IconProps = {
   /** Semantic icon name from the curated registry. */
   name: IconName;
-  /** Glyph size in px (square). */
+  /** Glyph size in px (square). Steep default ~17. */
   size?: number;
-  /** A color token (e.g. 'highlighter') OR any hex/rgba string. Defaults to carbon ink. */
+  /** A color token (e.g. 'ink') OR any hex/rgba string. Defaults to Graphite. */
   color?: ColorToken | (string & {});
-  /** Stroke width — 2 is the lucide default; 2.5 reads bolder, 1.75 lighter. */
+  /** Phosphor weight. Steep default is 'light' (thin outline). */
+  weight?: IconWeight;
+  /**
+   * @deprecated Legacy lucide prop. Mapped onto phosphor `weight`:
+   * >= 2.4 → 'regular', otherwise 'light'. Prefer `weight`.
+   */
   strokeWidth?: number;
-  /** Optional fill for "filled" looks (most lucide icons are stroke-only). */
+  /**
+   * @deprecated Legacy lucide prop. A non-'none' value renders the 'fill'
+   * weight. Prefer `weight="fill"`.
+   */
   fill?: ColorToken | (string & {});
 };
 
@@ -261,28 +265,31 @@ function resolveColor(value: string): string {
 }
 
 /**
- * The single icon wrapper for the whole app.
+ * The single icon wrapper for the whole app (Steep).
  *
- * Renders a curated lucide-react-native glyph (built on react-native-svg).
- * Always reach for this instead of an emoji or a raw lucide import so the
- * icon language stays consistent and centrally swappable.
+ * Renders a curated phosphor-react-native glyph at the LIGHT weight — small,
+ * thin, monochrome. Always reach for this instead of an emoji or a raw import
+ * so the icon language stays consistent and centrally swappable.
  */
 export function Icon({
   name,
-  size = 22,
-  color = 'carbon',
-  strokeWidth = 2,
-  fill = 'none',
+  size = 17,
+  color = 'graphite',
+  weight,
+  strokeWidth,
+  fill,
 }: IconProps) {
   const Glyph = REGISTRY[name];
-  return (
-    <Glyph
-      size={size}
-      color={resolveColor(color)}
-      strokeWidth={strokeWidth}
-      fill={fill === 'none' ? 'none' : resolveColor(fill)}
-    />
-  );
+
+  let resolvedWeight: IconWeight =
+    weight ??
+    (fill && fill !== 'none'
+      ? 'fill'
+      : strokeWidth != null && strokeWidth >= 2.4
+        ? 'regular'
+        : 'light');
+
+  return <Glyph size={size} color={resolveColor(color)} weight={resolvedWeight} />;
 }
 
 export default Icon;
