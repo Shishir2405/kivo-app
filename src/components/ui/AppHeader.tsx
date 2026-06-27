@@ -1,21 +1,21 @@
 import React from 'react';
 import { View, Pressable, type StyleProp, type ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import KivoMark from '../../../assets/brand/kivo-mark.svg';
-import { MARK_ASPECT } from '@/components/brand/BrandLogo';
+import { KIVO_MARK, MARK_ASPECT } from '@/components/brand/BrandLogo';
 import { Icon } from './Icon';
 import { AppText } from './Typography';
 
 /**
- * GrayMark — the small, quiet Kivo brand watermark near the status bar.
+ * GrayMark — the small, quiet Kivo brand mark near the status bar.
  *
- * Rendered at a low opacity so it whispers the brand without competing with
- * content. The only brand asset Steep keeps.
+ * The official terracotta mark PNG, rendered small. It reads fine on light and
+ * dark, so no tinting. Slightly dimmed so it whispers rather than competes.
  */
 export function GrayMark({
-  size = 20,
-  opacity = 0.45,
+  size = 22,
+  opacity = 0.9,
   style,
 }: {
   size?: number;
@@ -29,7 +29,11 @@ export function GrayMark({
       pointerEvents="none"
       style={[{ opacity }, style]}
     >
-      <KivoMark width={size * MARK_ASPECT} height={size} />
+      <Image
+        source={KIVO_MARK}
+        style={{ width: size * MARK_ASPECT, height: size }}
+        contentFit="contain"
+      />
     </View>
   );
 }
@@ -43,9 +47,9 @@ export type AppHeaderProps = {
   onBack?: () => void;
   /** Mark height in px. */
   markSize?: number;
-  /** Override the muted opacity of the gray mark. */
+  /** Override the opacity of the brand mark. */
   markOpacity?: number;
-  /** Hide the gray brand mark entirely (default shows it). */
+  /** Hide the brand mark entirely (default shows it). */
   hideMark?: boolean;
   /** Add the safe-area top inset as padding so it sits under the status bar. */
   withInset?: boolean;
@@ -53,20 +57,20 @@ export type AppHeaderProps = {
 };
 
 /**
- * AppHeader — a thin, refined Steep top bar. Respects the status-bar safe area.
+ * AppHeader — a thin, refined Kivo top bar. Respects the status-bar safe area.
  *
- * Layout: [ back? + gray mark? + title? ] ......................... [ right? ]
+ * Layout: [ back? + mark? + title? ] ......................... [ right? ]
  *
- * Small and quiet. Back is a flat chevron (no neumorphic button). The title is
- * an editorial serif headingSm. Screens with a rich title block can drop in
+ * Small and quiet. Back is a flat chevron (theme ink). The title is an
+ * editorial serif headingSm. Screens with a rich title block can drop in
  * <GrayMark /> directly instead.
  */
 export function AppHeader({
   title,
   right,
   onBack,
-  markSize = 20,
-  markOpacity = 0.45,
+  markSize = 22,
+  markOpacity = 0.9,
   hideMark = false,
   withInset = true,
   style,
@@ -95,14 +99,14 @@ export function AppHeader({
             hitSlop={10}
             style={{ marginLeft: -4 }}
           >
-            <Icon name="chevron-left" size={22} color="ink" />
+            <Icon name="chevron-left" size={24} color="ink" />
           </Pressable>
         ) : null}
 
         {!hideMark ? <GrayMark size={markSize} opacity={markOpacity} /> : null}
 
         {title ? (
-          <AppText variant="headingSm" display numberOfLines={1} style={{ flexShrink: 1 }}>
+          <AppText variant="heading" display numberOfLines={1} style={{ flexShrink: 1 }}>
             {title}
           </AppText>
         ) : null}

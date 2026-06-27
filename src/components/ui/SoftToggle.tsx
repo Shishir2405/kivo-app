@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { MotiView } from 'moti';
-import { colors } from '@/theme/tokens';
+import { motion } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 
 export type SoftToggleProps = {
   value: boolean;
@@ -10,14 +11,16 @@ export type SoftToggleProps = {
 };
 
 /**
- * Steep switch — minimal & flat. The track is Ink when on, Dove-on-Fog when
- * off; a small white thumb slides. No neumorphism, single soft thumb shadow.
+ * Kivo switch — minimal & flat (the HTML toggle). The track is TERRACOTTA when
+ * on, a hairline-bordered surface when off; a white thumb springs across. One
+ * soft thumb shadow, theme-aware.
  */
 export function SoftToggle({ value, onValueChange, disabled }: SoftToggleProps) {
+  const { colors } = useTheme();
   const W = 44;
   const H = 26;
-  const KNOB = 20;
-  const travel = W - KNOB - 6;
+  const KNOB = 21;
+  const travel = W - KNOB - 4;
 
   return (
     <Pressable
@@ -26,7 +29,7 @@ export function SoftToggle({ value, onValueChange, disabled }: SoftToggleProps) 
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
       hitSlop={6}
-      style={({ pressed }) => ({ opacity: disabled ? 0.4 : pressed ? 0.7 : 1 })}
+      style={({ pressed }) => ({ opacity: disabled ? 0.45 : pressed ? 0.7 : 1 })}
     >
       <View
         style={{
@@ -34,22 +37,22 @@ export function SoftToggle({ value, onValueChange, disabled }: SoftToggleProps) 
           height: H,
           borderRadius: H / 2,
           justifyContent: 'center',
-          backgroundColor: value ? colors.ink : colors.fog,
+          backgroundColor: value ? colors.primary : colors.surfaceAlt,
           borderWidth: 1,
-          borderColor: value ? colors.ink : colors.dove,
+          borderColor: value ? colors.primary : colors.hairline,
         }}
       >
         <MotiView
-          animate={{ translateX: value ? travel : 3 }}
-          transition={{ type: 'timing', duration: 160 }}
+          animate={{ translateX: value ? travel : 2 }}
+          transition={motion.springSnappy}
           style={{
             width: KNOB,
             height: KNOB,
             borderRadius: KNOB / 2,
-            backgroundColor: colors.white,
-            shadowColor: '#17191c',
+            backgroundColor: '#FFFFFF',
+            shadowColor: colors.shadowTint,
             shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.15,
+            shadowOpacity: 0.2,
             shadowRadius: 2,
             elevation: 2,
           }}

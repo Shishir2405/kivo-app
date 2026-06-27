@@ -11,7 +11,7 @@
  * The countdown / stopwatch run on a real `setInterval` driven by local state.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, ScrollView, ActivityIndicator } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -23,8 +23,11 @@ import { Tag } from '@/components/ui/Tag';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { FocusTimerRing } from '@/components/tracker/FocusTimerRing';
+import { Skeleton, SkeletonText } from '@/components/ui';
+import { MotiView } from 'moti';
 
-import { colors, radii } from '@/theme/tokens';
+import { radii, motion } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { mockSettings } from '@/data/mock';
 import { useStudySessions } from '@/hooks/api';
 import type { StudySession } from '@/types/models';
@@ -81,6 +84,7 @@ function relativeDay(date: string): string {
 /* ------------------------------------------------------------------ */
 
 function SessionRow({ session, fresh, divider }: { session: StudySession; fresh?: boolean; divider?: boolean }) {
+  const { colors } = useTheme();
   return (
     <View
       className="flex-row items-center"
@@ -88,10 +92,22 @@ function SessionRow({ session, fresh, divider }: { session: StudySession; fresh?
         gap: 12,
         paddingVertical: 11,
         borderTopWidth: divider ? 1 : 0,
-        borderTopColor: colors.fog,
+        borderTopColor: colors.hairline,
       }}
     >
-      <Icon name="timer" size={17} color="graphite" />
+      {/* Peach wash icon tile — the session log's colored voice in the HTML. */}
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 9,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.peach,
+        }}
+      >
+        <Icon name="timer" size={15} color="rust" />
+      </View>
       <View style={{ flex: 1 }}>
         <View className="flex-row items-center" style={{ gap: 8 }}>
           <AppText variant="subheading" weight="medium" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -99,16 +115,21 @@ function SessionRow({ session, fresh, divider }: { session: StudySession; fresh?
           </AppText>
           {fresh ? <Tag label="New" tone="ink" size="sm" /> : null}
         </View>
-        <AppText variant="caption" color={colors.graphite} style={{ marginTop: 1 }}>
+        <AppText variant="caption" color={colors.muted} style={{ marginTop: 1 }}>
           {relativeDay(session.date)}
           {session.problemsSolved > 0 ? ` · ${session.problemsSolved} solved` : ''}
         </AppText>
       </View>
       <View className="items-end">
-        <AppText variant="subheading" weight="medium" style={{ fontVariant: ['tabular-nums'] }}>
+        <AppText
+          variant="subheading"
+          weight="semibold"
+          color={colors.primaryOnWash}
+          style={{ fontVariant: ['tabular-nums'] }}
+        >
           {session.minutes}
         </AppText>
-        <AppText variant="caption" color={colors.graphite}>
+        <AppText variant="caption" color={colors.muted}>
           min
         </AppText>
       </View>
@@ -121,12 +142,13 @@ function SessionRow({ session, fresh, divider }: { session: StudySession; fresh?
 /* ------------------------------------------------------------------ */
 
 function StatFigure({ value, label }: { value: string; label: string }) {
+  const { colors } = useTheme();
   return (
     <>
       <AppText variant="headingLg" display weight="semibold" style={{ fontVariant: ['tabular-nums'] }}>
         {value}
       </AppText>
-      <AppText variant="caption" color={colors.ash} style={{ marginTop: 2 }}>
+      <AppText variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
         {label}
       </AppText>
     </>
@@ -140,6 +162,7 @@ function StatFigure({ value, label }: { value: string; label: string }) {
 export default function FocusTimerScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const sessionsQuery = useStudySessions();
 
@@ -269,7 +292,7 @@ export default function FocusTimerScreen() {
   const primaryIcon: IconName = finished ? 'rotate' : running ? (isStopwatch ? 'square' : 'pause') : 'play';
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
         <AppHeader onBack={() => router.back()} right={<TextLink label="Calendar" onPress={() => router.push('/calendar')} muted size="sm" />} />
       </View>
@@ -283,16 +306,26 @@ export default function FocusTimerScreen() {
         }}
       >
         {/* Header */}
-        <View style={{ marginBottom: 16 }}>
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition }}
+          style={{ marginBottom: 16 }}
+        >
           <AppText variant="display" display weight="semibold">
             Focus
           </AppText>
-          <AppText variant="body" color={colors.ash} style={{ marginTop: 4 }}>
+          <AppText variant="body" color={colors.muted} style={{ marginTop: 4 }}>
             Lock in. Make it count.
           </AppText>
-        </View>
+        </MotiView>
 
         {/* Timer card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition, delay: 60 }}
+        >
         <SoftCard radius={radii.cardLg} padding={16}>
           <SegmentedTabs options={MODE_OPTIONS} value={mode} onChange={switchMode} />
 
@@ -335,19 +368,31 @@ export default function FocusTimerScreen() {
             </AppText>
           </View>
         </SoftCard>
+        </MotiView>
 
         {/* Today stats */}
-        <View className="flex-row" style={{ gap: 10, marginTop: 16 }}>
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition, delay: 120 }}
+          className="flex-row"
+          style={{ gap: 10, marginTop: 16 }}
+        >
           <WarmCard style={{ flex: 1 }} padding={14}>
             <StatFigure value={`${totalMinutesToday}`} label="min today" />
           </WarmCard>
           <CoolCard style={{ flex: 1 }} padding={14}>
             <StatFigure value={`${completedCount}`} label="completed" />
           </CoolCard>
-        </View>
+        </MotiView>
 
         {/* Recent sessions */}
-        <View style={{ marginTop: 22 }}>
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition, delay: 180 }}
+          style={{ marginTop: 22 }}
+        >
           <View className="flex-row items-center" style={{ gap: 8, marginBottom: 10 }}>
             <AppText variant="heading" display weight="medium">
               Recent sessions
@@ -360,20 +405,32 @@ export default function FocusTimerScreen() {
             <SoftCard variant="inset" radius={radii.card} padding={20}>
               <View className="items-center" style={{ gap: 8 }}>
                 <Icon name="alert" size={20} color="graphite" />
-                <AppText variant="body" color={colors.ash} style={{ textAlign: 'center' }}>
+                <AppText variant="body" color={colors.muted} style={{ textAlign: 'center' }}>
                   {sessionsQuery.error?.message ?? 'Couldn’t load your sessions.'}
                 </AppText>
                 <TextLink label="Try again" onPress={() => void sessionsQuery.refetch()} icon={<Icon name="repeat" size={14} color="ink" />} />
               </View>
             </SoftCard>
           ) : sessionsQuery.isLoading && freshSessions.length === 0 ? (
-            <SoftCard variant="inset" radius={radii.card} padding={24}>
-              <View className="items-center" style={{ gap: 10 }}>
-                <ActivityIndicator color={colors.ink} />
-                <AppText variant="caption" color={colors.graphite}>
-                  Loading sessions…
-                </AppText>
-              </View>
+            <SoftCard radius={radii.card} padding={12}>
+              {[0, 1, 2].map((i) => (
+                <View
+                  key={i}
+                  className="flex-row items-center"
+                  style={{
+                    gap: 12,
+                    paddingVertical: 11,
+                    borderTopWidth: i > 0 ? 1 : 0,
+                    borderTopColor: colors.hairline,
+                  }}
+                >
+                  <Skeleton width={32} height={32} radius={9} />
+                  <View style={{ flex: 1 }}>
+                    <SkeletonText lines={2} lineHeight={11} gap={6} lastWidth="45%" />
+                  </View>
+                  <Skeleton width={28} height={16} radius={5} />
+                </View>
+              ))}
             </SoftCard>
           ) : sessions.length === 0 ? (
             <SoftCard variant="inset" radius={radii.card} padding={22}>
@@ -382,7 +439,7 @@ export default function FocusTimerScreen() {
                 <AppText variant="subheading" weight="medium">
                   No sessions yet
                 </AppText>
-                <AppText variant="body" color={colors.ash} style={{ textAlign: 'center' }}>
+                <AppText variant="body" color={colors.muted} style={{ textAlign: 'center' }}>
                   Start a focus block and it will show up here.
                 </AppText>
               </View>
@@ -394,7 +451,7 @@ export default function FocusTimerScreen() {
               ))}
             </SoftCard>
           )}
-        </View>
+        </MotiView>
       </ScrollView>
     </View>
   );

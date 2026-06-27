@@ -19,6 +19,7 @@
  *     NOTIFICATIONS.md for the Firebase/APNs setup required to receive push.
  */
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 
@@ -113,6 +114,11 @@ export async function hasNotificationPermissions(): Promise<boolean> {
  */
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   try {
+    // Expo Go (SDK 53+) removed remote push — skip entirely so the removed-API
+    // error is never triggered. LOCAL reminders still work.
+    if (Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient') {
+      return null;
+    }
     // Push tokens only exist on real hardware.
     if (!Device.isDevice) return null;
 

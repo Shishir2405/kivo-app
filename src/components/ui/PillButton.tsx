@@ -7,17 +7,20 @@ import {
   type ViewStyle,
   type PressableProps,
 } from 'react-native';
-import { colors, fonts, radii, pressOpacity } from '@/theme/tokens';
+import { fonts, radii, pressOpacity } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 
-export type PillVariant = 'yellow' | 'black' | 'ghost';
+export type PillVariant = 'primary' | 'ghost' | 'yellow' | 'black';
 
 export type PillButtonProps = {
   label: string;
   onPress?: PressableProps['onPress'];
   /**
-   * Steep mapping:
-   *  - 'yellow' / 'black' → the ONE filled INK pill (primary CTA).
-   *  - 'ghost' → a TEXT LINK (Ink text, no bg/border) for secondary actions.
+   * Kivo mapping:
+   *  - 'primary' (default) → the ONE filled TERRACOTTA pill (primary CTA).
+   *  - legacy 'yellow' / 'black' → also map to the terracotta pill.
+   *  - 'ghost' → a TEXT LINK (terracotta text, no bg/border) for secondary
+   *    actions.
    */
   variant?: PillVariant;
   icon?: React.ReactNode;
@@ -28,23 +31,23 @@ export type PillButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-// Compact Steep padding.
+// Kivo padding (pill CTA from the HTML: padding ~12, font ~13.5).
 const SIZES = {
-  sm: { py: 6, px: 13, font: 12 },
-  md: { py: 8, px: 16, font: 13 },
-  lg: { py: 10, px: 20, font: 14 },
+  sm: { py: 9, px: 16, font: 13 },
+  md: { py: 12, px: 20, font: 14 },
+  lg: { py: 14, px: 24, font: 15 },
 };
 
 /**
- * The Steep pill button — exactly ONE filled style: an Ink pill (Ink bg, white
- * text, small label, tight padding). 'yellow' and 'black' both map to it.
- * 'ghost' renders a TEXT LINK (secondary actions are links, never extra
- * filled/ghost buttons). One filled Ink CTA per screen.
+ * The Kivo pill button — exactly ONE filled style: a TERRACOTTA pill (primary
+ * bg, inverted text, soft terracotta glow shadow). 'primary'/'yellow'/'black'
+ * all map to it. 'ghost' renders a TEXT LINK (secondary actions are links,
+ * never extra filled/ghost buttons). One filled CTA per screen.
  */
 export function PillButton({
   label,
   onPress,
-  variant = 'black',
+  variant = 'primary',
   icon,
   trailingIcon,
   fullWidth,
@@ -52,32 +55,55 @@ export function PillButton({
   size = 'md',
   style,
 }: PillButtonProps) {
+  const { colors } = useTheme();
   const s = SIZES[size];
 
   if (variant === 'ghost') {
-    return <TextLink label={label} onPress={onPress} disabled={disabled} icon={icon} size={size} fullWidth={fullWidth} style={style} />;
+    return (
+      <TextLink
+        label={label}
+        onPress={onPress}
+        disabled={disabled}
+        icon={icon}
+        size={size}
+        fullWidth={fullWidth}
+        style={style}
+      />
+    );
   }
 
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed, hovered }) => [
+      style={({ pressed }) => [
         {
           borderRadius: radii.pill,
-          backgroundColor: colors.ink,
-          opacity: pressOpacity({ pressed }, { disabled, solid: true }) * (hovered && !pressed ? 0.94 : 1),
+          backgroundColor: pressed && !disabled ? colors.primaryPressed : colors.primary,
+          opacity: pressOpacity({ pressed }, { disabled, solid: true }),
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
+          // soft terracotta glow (the HTML CTA shadow)
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: disabled ? 0 : 0.45,
+          shadowRadius: 18,
+          elevation: disabled ? 0 : 4,
         },
         style,
       ]}
     >
       <View
-        className="flex-row items-center justify-center"
-        style={{ paddingVertical: s.py, paddingHorizontal: s.px, gap: 6 }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: s.py,
+          paddingHorizontal: s.px,
+          gap: 7,
+        }}
       >
         {icon}
-        <Text style={{ fontFamily: fonts.sansMedium, fontSize: s.font, color: colors.white }}>
+        <Text style={{ fontFamily: fonts.sansSemibold, fontSize: s.font, color: colors.onPrimary }}>
           {label}
         </Text>
         {trailingIcon}
@@ -93,14 +119,15 @@ export type TextLinkProps = {
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
-  /** Render in a muted color (Ash) instead of Ink. */
+  /** Render in a muted color instead of terracotta. */
   muted?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
 /**
- * TextLink — the Steep secondary action. Ink text, no background, no border.
- * Use for every action that isn't the single filled Ink CTA.
+ * TextLink — the Kivo secondary action. Terracotta text, no background, no
+ * border. Use for every action that isn't the single filled CTA. `muted`
+ * renders it in the theme's muted ink instead.
  */
 export function TextLink({
   label,
@@ -112,6 +139,7 @@ export function TextLink({
   muted,
   style,
 }: TextLinkProps) {
+  const { colors } = useTheme();
   const font = SIZES[size].font;
   return (
     <Pressable
@@ -127,11 +155,21 @@ export function TextLink({
       ]}
     >
       <View
-        className="flex-row items-center"
-        style={{ gap: icon ? 6 : 0, justifyContent: fullWidth ? 'center' : 'flex-start' }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: icon ? 6 : 0,
+          justifyContent: fullWidth ? 'center' : 'flex-start',
+        }}
       >
         {icon}
-        <Text style={{ fontFamily: fonts.sansMedium, fontSize: font, color: muted ? colors.ash : colors.ink }}>
+        <Text
+          style={{
+            fontFamily: fonts.sansSemibold,
+            fontSize: font,
+            color: muted ? colors.muted : colors.primary,
+          }}
+        >
           {label}
         </Text>
       </View>
@@ -140,8 +178,8 @@ export function TextLink({
 }
 
 /**
- * PillPair — under Steep, the primary becomes the single filled Ink pill and
- * the secondary becomes a TEXT LINK (not a second filled button).
+ * PillPair — the primary becomes the single filled terracotta pill and the
+ * secondary becomes a TEXT LINK (not a second filled button).
  */
 export function PillPair({
   primaryLabel,
@@ -165,7 +203,7 @@ export function PillPair({
     >
       <PillButton
         label={primaryLabel}
-        variant="black"
+        variant="primary"
         onPress={onPrimary}
         size={size}
         fullWidth={stacked}

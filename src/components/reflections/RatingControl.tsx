@@ -1,16 +1,19 @@
 /**
- * RatingControl — a 1–5 self-rating control for the reflections form (STEEP).
+ * RatingControl — a 1–5 self-rating control for the reflections form (Kivo).
  *
- * NOT a radio group. Five flat segments sit in a row; the selected value and
- * everything below it fill Ink (a "fill-up" gauge) on a Fog track with a Dove
- * hairline. Tapping any segment sets the rating. Small, flat, no neumorphism.
+ * NOT a radio group. Five flat segments sit in a row; the selected value (and
+ * everything below it) fills terracotta — a calm "fill-up" gauge — on a quiet
+ * track with a hairline. Tapping any segment sets the rating with a snappy
+ * spring. Fully theme-aware (light / dark) via useTheme().
  */
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import { MotiView } from 'moti';
 
 import { AppText } from '@/components/ui/Typography';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors, pressOpacity } from '@/theme/tokens';
+import { motion, pressOpacity } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import type { Rating } from '@/types/models';
 
 export type { Rating };
@@ -45,21 +48,22 @@ export function RatingControl({
   captions = DEFAULT_CAPTIONS,
   disabled,
 }: RatingControlProps) {
+  const { colors } = useTheme();
   return (
     <View style={{ opacity: disabled ? 0.5 : 1 }}>
       {/* Label row */}
       <View className="flex-row items-center justify-between" style={{ marginBottom: 10 }}>
         <View className="flex-row items-center" style={{ gap: 7 }}>
-          <Icon name={icon} size={16} color="graphite" />
-          <AppText variant="subheading" weight="medium">
+          <Icon name={icon} size={16} color={colors.muted} />
+          <AppText variant="subheading" weight="medium" color={colors.ink}>
             {label}
           </AppText>
         </View>
         <View className="flex-row items-baseline" style={{ gap: 5 }}>
-          <AppText variant="subheading" weight="medium" color={colors.ink}>
+          <AppText variant="subheading" weight="medium" color={colors.primaryOnWash}>
             {value}
           </AppText>
-          <AppText variant="caption" color={colors.graphite}>
+          <AppText variant="caption" color={colors.muted}>
             / 5 · {captions[value - 1]}
           </AppText>
         </View>
@@ -72,9 +76,9 @@ export function RatingControl({
           gap: 6,
           padding: 4,
           borderRadius: 12,
-          backgroundColor: colors.fog,
+          backgroundColor: colors.surfaceAlt,
           borderWidth: 1,
-          borderColor: colors.dove,
+          borderColor: colors.hairline,
         }}
       >
         {VALUES.map((v) => {
@@ -90,25 +94,28 @@ export function RatingControl({
               style={({ pressed }) => ({ flex: 1, opacity: pressOpacity({ pressed }, { disabled }) })}
               hitSlop={6}
             >
-              <View
+              <MotiView
+                animate={{
+                  backgroundColor: filled ? colors.primary : colors.surface,
+                }}
+                transition={{ type: 'timing', duration: motion.duration.micro }}
                 style={{
-                  height: 32,
-                  borderRadius: 8,
+                  height: 38,
+                  borderRadius: 10,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: filled ? colors.ink : colors.white,
                   borderWidth: filled ? 0 : 1,
-                  borderColor: colors.dove,
+                  borderColor: colors.hairline,
                 }}
               >
                 <AppText
                   variant="body"
-                  weight="medium"
-                  color={filled ? colors.white : colors.graphite}
+                  weight={filled ? 'bold' : 'medium'}
+                  color={filled ? colors.inkInverted : colors.muted}
                 >
                   {v}
                 </AppText>
-              </View>
+              </MotiView>
             </Pressable>
           );
         })}

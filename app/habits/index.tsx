@@ -10,60 +10,48 @@
  * a failed request never crashes the app.
  */
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { MotiView } from 'moti';
 
 import { AppText } from '@/components/ui/Typography';
 import { SoftCard, CoolCard } from '@/components/ui/SoftCard';
-import { Checkbox } from '@/components/ui/Checkbox';
 import { Tag } from '@/components/ui/Tag';
 import { PillButton, TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { ProgressRing } from '@/components/habits/ProgressRing';
+import { Skeleton, SkeletonText } from '@/components/ui';
 
-import { colors, radii } from '@/theme/tokens';
+import { radii, toneAt, motion } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { useHabits } from '@/hooks/api';
 import type { Habit } from '@/types/models';
 
-const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
 /* ------------------------------------------------------------------ */
-/* Weekly completion dot row                                           */
+/* Weekly completion square grid                                       */
+/*                                                                     */
+/* The HTML habit card shows the week as a flush row of seven equal    */
+/* squares (radius 5, gap 5): a day done filled with the habit's accent,*/
+/* a missed day on a faint cream tile. No day letters — the grid is a   */
+/* quiet completion glyph, not a calendar.                              */
 /* ------------------------------------------------------------------ */
 
-function WeekDots({ history }: { history: boolean[] }) {
+function WeekGrid({ history, accent, miss }: { history: boolean[]; accent: string; miss: string }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 8 }}>
-      {history.map((done, i) => {
-        const isToday = i === history.length - 1;
-        return (
-          <View key={i} style={{ alignItems: 'center', gap: 5 }}>
-            <View
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: 7,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: done ? colors.ink : colors.white,
-                borderWidth: 1,
-                borderColor: done ? colors.ink : colors.dove,
-              }}
-            >
-              {done ? (
-                <Icon name="check" size={11} color="white" weight="bold" />
-              ) : isToday ? (
-                <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.dove }} />
-              ) : null}
-            </View>
-            <AppText variant="caption" color={isToday ? colors.ink : colors.graphite}>
-              {WEEK_LABELS[i]}
-            </AppText>
-          </View>
-        );
-      })}
+    <View style={{ flexDirection: 'row', gap: 5 }}>
+      {history.map((done, i) => (
+        <View
+          key={i}
+          style={{
+            flex: 1,
+            aspectRatio: 1,
+            borderRadius: 5,
+            backgroundColor: done ? accent : miss,
+          }}
+        />
+      ))}
     </View>
   );
 }
@@ -72,57 +60,70 @@ function WeekDots({ history }: { history: boolean[] }) {
 /* Habit card                                                          */
 /* ------------------------------------------------------------------ */
 
-function HabitCard({ habit, onToggle }: { habit: Habit; onToggle: (id: string) => void }) {
-  const doneThisWeek = habit.weekHistory.filter(Boolean).length;
-  const weekProgress = habit.targetPerWeek > 0 ? doneThisWeek / habit.targetPerWeek : 0;
-  const pct = Math.min(100, Math.round(weekProgress * 100));
+function HabitCard({ habit, onToggle, toneIndex }: { habit: Habit; onToggle: (id: string) => void; toneIndex: number }) {
+  const { colors, toneStyle } = useTheme();
+  const tone = toneAt(toneIndex);
+  const ts = toneStyle(tone);
+  const done = habit.completedToday;
 
   return (
-    <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 10 }}>
-      {/* Top row: icon + title + ring */}
-      <View className="flex-row items-center" style={{ gap: 12 }}>
-        <Icon name={habit.emoji} size={18} color="graphite" />
+    <SoftCard radius={radii.cardLg} padding={14} style={{ marginBottom: 12 }}>
+      {/* Top row: colored glyph tile + title/streak + flat complete toggle */}
+      <View className="flex-row items-center" style={{ gap: 11, marginBottom: 12 }}>
+        <View
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: ts.bg,
+          }}
+        >
+          <Icon name={habit.emoji} size={16} color={ts.accent} />
+        </View>
         <View style={{ flex: 1 }}>
-          <AppText variant="subheading" weight="medium" numberOfLines={1}>
+          <AppText variant="subheading" weight="semibold" numberOfLines={1}>
             {habit.title}
           </AppText>
-          <AppText variant="caption" color={colors.graphite} style={{ marginTop: 1 }}>
-            {doneThisWeek}/{habit.targetPerWeek} this week
-          </AppText>
+          <View className="flex-row items-center" style={{ gap: 4, marginTop: 1 }}>
+            {habit.streak > 0 ? (
+              <Icon name="flame" size={11} color="rust" weight="fill" />
+            ) : null}
+            <AppText variant="caption" color={colors.muted}>
+              {habit.streak > 0 ? `${habit.streak} day streak` : 'Not done yet'}
+            </AppText>
+          </View>
         </View>
-        <ProgressRing
-          progress={weekProgress}
-          size={46}
-          stroke={5}
-          color={colors.rust}
-          trackColor={colors.fog}
+
+        {/* Flat 26px tile toggle — accent + check when done, hairline when not. */}
+        <Pressable
+          onPress={() => onToggle(habit.id)}
+          accessibilityRole="button"
+          accessibilityState={{ selected: done }}
+          accessibilityLabel={`Mark ${habit.title} ${done ? 'incomplete' : 'complete'} for today`}
+          hitSlop={8}
+          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
         >
-          <AppText variant="caption" weight="medium">
-            {pct}%
-          </AppText>
-        </ProgressRing>
+          <View
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 8,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: done ? ts.accent : colors.surface,
+              borderWidth: done ? 0 : 1.5,
+              borderColor: colors.hairline,
+            }}
+          >
+            {done ? <Icon name="check" size={14} color="white" weight="bold" /> : null}
+          </View>
+        </Pressable>
       </View>
 
-      {/* Divider */}
-      <View style={{ height: 1, backgroundColor: colors.fog, marginVertical: 12 }} />
-
-      {/* Week dots */}
-      <WeekDots history={habit.weekHistory} />
-
-      {/* Bottom row: streak + mark today */}
-      <View className="flex-row items-center justify-between" style={{ marginTop: 12 }}>
-        <View className="flex-row items-center" style={{ gap: 5 }}>
-          <Icon name="flame" size={14} color="rust" />
-          <AppText variant="caption" color={colors.ash}>
-            {habit.streak}-day streak
-          </AppText>
-        </View>
-        <Checkbox
-          checked={habit.completedToday}
-          onChange={() => onToggle(habit.id)}
-          label={habit.completedToday ? 'Done today' : 'Mark today'}
-        />
-      </View>
+      {/* Weekly completion square grid (oldest -> newest). */}
+      <WeekGrid history={habit.weekHistory} accent={ts.accent} miss={colors.hairline} />
     </SoftCard>
   );
 }
@@ -142,6 +143,7 @@ function CenterNote({
   body: string;
   action?: React.ReactNode;
 }) {
+  const { colors } = useTheme();
   return (
     <SoftCard variant="inset" radius={radii.cardLg} padding={24}>
       <View style={{ alignItems: 'center', gap: 10 }}>
@@ -149,7 +151,7 @@ function CenterNote({
         <AppText variant="subheading" weight="medium" style={{ textAlign: 'center' }}>
           {title}
         </AppText>
-        <AppText variant="body" color={colors.ash} style={{ textAlign: 'center', maxWidth: 280 }}>
+        <AppText variant="body" color={colors.muted} style={{ textAlign: 'center', maxWidth: 280 }}>
           {body}
         </AppText>
         {action ? <View style={{ marginTop: 4 }}>{action}</View> : null}
@@ -173,23 +175,25 @@ function SummaryCard({
   bestStreak: number;
   weekRate: number;
 }) {
+  const { colors } = useTheme();
   const todayFraction = total > 0 ? doneToday / total : 0;
   const allDone = total > 0 && doneToday === total;
 
   return (
     <CoolCard radius={radii.cardLg} padding={16} style={{ marginBottom: 16 }}>
+    {({ accent }) => (
       <View className="flex-row items-center" style={{ gap: 16 }}>
-        <ProgressRing progress={todayFraction} size={84} stroke={8} color={colors.rust} trackColor="rgba(23,25,28,0.08)">
-          <AppText variant="headingLg" display weight="semibold">
+        <ProgressRing progress={todayFraction} size={84} stroke={8} color={accent}>
+          <AppText variant="headingLg" display weight="semibold" color={accent}>
             {doneToday}
           </AppText>
-          <AppText variant="caption" color={colors.ash} style={{ marginTop: -2 }}>
+          <AppText variant="caption" color={colors.muted} style={{ marginTop: -2 }}>
             of {total}
           </AppText>
         </ProgressRing>
 
         <View style={{ flex: 1 }}>
-          <AppText variant="caption" color={colors.ash} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+          <AppText variant="caption" color={colors.muted} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
             Today
           </AppText>
           <AppText variant="subheading" weight="medium" style={{ marginTop: 2 }}>
@@ -197,7 +201,7 @@ function SummaryCard({
           </AppText>
           <View className="flex-row" style={{ gap: 16, marginTop: 10 }}>
             <View>
-              <AppText variant="caption" color={colors.ash}>
+              <AppText variant="caption" color={colors.muted}>
                 Best streak
               </AppText>
               <AppText variant="subheading" weight="medium">
@@ -205,7 +209,7 @@ function SummaryCard({
               </AppText>
             </View>
             <View>
-              <AppText variant="caption" color={colors.ash}>
+              <AppText variant="caption" color={colors.muted}>
                 Week
               </AppText>
               <AppText variant="subheading" weight="medium">
@@ -215,6 +219,7 @@ function SummaryCard({
           </View>
         </View>
       </View>
+    )}
     </CoolCard>
   );
 }
@@ -226,6 +231,7 @@ function SummaryCard({
 export default function HabitsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const { data, isLoading, isError, error, refetch, isFetching } = useHabits();
 
@@ -273,7 +279,7 @@ export default function HabitsScreen() {
   }, [habits]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
         <AppHeader onBack={() => router.back()} />
       </View>
@@ -289,24 +295,30 @@ export default function HabitsScreen() {
           <RefreshControl
             refreshing={isFetching && !isLoading}
             onRefresh={() => void refetch()}
-            tintColor={colors.graphite}
+            tintColor={colors.muted}
           />
         }
       >
         {/* Header */}
-        <View className="flex-row items-end justify-between" style={{ marginBottom: 16 }}>
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition }}
+          className="flex-row items-end justify-between"
+          style={{ marginBottom: 16 }}
+        >
           <View style={{ flex: 1, paddingRight: 12 }}>
             <AppText variant="display" display weight="semibold">
               Habits
             </AppText>
-            <AppText variant="body" color={colors.ash} style={{ marginTop: 4 }}>
+            <AppText variant="body" color={colors.muted} style={{ marginTop: 4 }}>
               {isError ? 'Couldn’t load your habits' : 'Build a daily rhythm'}
             </AppText>
           </View>
           {!isError && !isLoading && habits.length > 0 ? (
             <PillButton label="Add" size="sm" onPress={() => refetch()} icon={<Icon name="plus" size={15} color="white" />} />
           ) : null}
-        </View>
+        </MotiView>
 
         {/* States */}
         {isError ? (
@@ -317,14 +329,39 @@ export default function HabitsScreen() {
             action={<TextLink label="Try again" onPress={() => void refetch()} icon={<Icon name="repeat" size={14} color="ink" />} />}
           />
         ) : isLoading ? (
-          <SoftCard variant="inset" radius={radii.cardLg} padding={28}>
-            <View style={{ alignItems: 'center', gap: 12 }}>
-              <ActivityIndicator color={colors.ink} />
-              <AppText variant="caption" color={colors.graphite}>
-                Loading your habits…
-              </AppText>
-            </View>
-          </SoftCard>
+          <View style={{ gap: 12 }}>
+            {/* Summary skeleton */}
+            <SoftCard radius={radii.cardLg} padding={16}>
+              <View className="flex-row items-center" style={{ gap: 16 }}>
+                <Skeleton width={84} height={84} circle />
+                <View style={{ flex: 1, gap: 8 }}>
+                  <Skeleton width="40%" height={11} radius={6} />
+                  <Skeleton width="75%" height={14} radius={6} />
+                  <SkeletonText lines={1} lineHeight={11} lastWidth="55%" />
+                </View>
+              </View>
+            </SoftCard>
+            {/* Habit card skeletons */}
+            {[0, 1, 2].map((i) => (
+              <SoftCard key={i} radius={radii.cardLg} padding={14}>
+                <View className="flex-row items-center" style={{ gap: 11, marginBottom: 12 }}>
+                  <Skeleton width={34} height={34} radius={10} />
+                  <View style={{ flex: 1, gap: 7 }}>
+                    <Skeleton width="65%" height={14} radius={6} />
+                    <Skeleton width="40%" height={11} radius={6} />
+                  </View>
+                  <Skeleton width={26} height={26} radius={8} />
+                </View>
+                <View className="flex-row" style={{ gap: 5 }}>
+                  {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                    <View key={d} style={{ flex: 1 }}>
+                      <Skeleton width="100%" height={34} radius={5} />
+                    </View>
+                  ))}
+                </View>
+              </SoftCard>
+            ))}
+          </View>
         ) : habits.length === 0 ? (
           <CenterNote
             icon="repeat"
@@ -333,18 +370,35 @@ export default function HabitsScreen() {
           />
         ) : (
           <>
-            <SummaryCard doneToday={doneToday} total={total} bestStreak={bestStreak} weekRate={weekRate} />
+            <MotiView
+              from={{ opacity: 0, translateY: 8 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: motion.duration.transition, delay: 60 }}
+            >
+              <SummaryCard doneToday={doneToday} total={total} bestStreak={bestStreak} weekRate={weekRate} />
 
-            <View className="flex-row items-center" style={{ gap: 8, marginBottom: 12 }}>
-              <AppText variant="heading" display weight="medium">
-                Your habits
-              </AppText>
-              <View style={{ flex: 1 }} />
-              <Tag label={`${total}`} tone="neutral" size="sm" />
-            </View>
+              <View className="flex-row items-center" style={{ gap: 8, marginBottom: 12 }}>
+                <AppText variant="heading" display weight="medium">
+                  Your habits
+                </AppText>
+                <View style={{ flex: 1 }} />
+                <Tag label={`${total}`} tone="neutral" size="sm" />
+              </View>
+            </MotiView>
 
-            {habits.map((habit) => (
-              <HabitCard key={habit.id} habit={habit} onToggle={toggleToday} />
+            {habits.map((habit, i) => (
+              <MotiView
+                key={habit.id}
+                from={{ opacity: 0, translateY: 8 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{
+                  type: 'timing',
+                  duration: motion.duration.transition,
+                  delay: 120 + i * 50,
+                }}
+              >
+                <HabitCard habit={habit} onToggle={toggleToday} toneIndex={i} />
+              </MotiView>
             ))}
           </>
         )}

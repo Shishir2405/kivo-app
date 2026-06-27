@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 
 export type DotGridBackgroundProps = {
   children?: React.ReactNode;
-  /** Canvas fill. Steep default is pure white. */
+  /** Canvas fill. Defaults to the ACTIVE theme canvas (cream / warm dark). */
   background?: string;
-  /** @deprecated Steep has no dot grid; ignored. */
+  /** @deprecated Kivo has no dot grid; ignored. */
   dotColor?: string;
   /** @deprecated ignored. */
   spacing?: number;
@@ -14,16 +14,22 @@ export type DotGridBackgroundProps = {
 };
 
 /**
- * Steep canvas — a plain flat surface. The old "working-surface" dot-grid
- * texture is gone (Steep lets data + typography do the talking). Kept as a
- * no-op wrapper so existing screens keep working; renders a clean white canvas.
+ * Kivo canvas — a plain warm surface. The old "working-surface" dot-grid
+ * texture is gone (Kivo lets data + typography do the talking). Kept as a
+ * thin wrapper so existing screens keep working; fills the ACTIVE theme canvas
+ * (cream in light, warm dark in dark) unless `background` overrides it.
  */
 export function DotGridBackground({
   children,
-  background = colors.white,
+  background,
   style,
 }: DotGridBackgroundProps) {
-  return <View style={[{ flex: 1, backgroundColor: background }, style]}>{children}</View>;
+  const { colors } = useTheme();
+  return (
+    <View style={[{ flex: 1, backgroundColor: background ?? colors.canvas }, style]}>
+      {children}
+    </View>
+  );
 }
 
 export default DotGridBackground;

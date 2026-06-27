@@ -4,7 +4,8 @@ import { MotiView } from 'moti';
 import { Card } from '@/components/ui/SoftCard';
 import { AppText } from '@/components/ui/Typography';
 import { Icon } from '@/components/ui/Icon';
-import { colors, radii, spacing, pressOpacity } from '@/theme/tokens';
+import { radii, spacing, pressOpacity, toneAt } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import type { Habit } from '@/types/models';
 
 const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -12,22 +13,32 @@ const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 export type HabitCardProps = {
   habit: Habit;
   onToggleToday: (id: string, next: boolean) => void;
+  /**
+   * Position in the list — rotates the soft wash so the habit stack reads as an
+   * intentionally colorful set, each habit with its own calm voice.
+   */
+  index?: number;
 };
 
 /**
- * A flat Steep habit row.
+ * A flat Steep habit row on a rotating soft wash.
  *
- * Title + a small streak line (a tiny Rust flame as the one warm punctuation),
- * a flat circular complete toggle (Ink when done, Dove hairline when not), and a
- * compact row of weekly completion squares — filled Ink for done days, a Dove
- * hairline outline for misses, Rust ring on today. No neumorphism, no emoji.
+ * Title + a small streak line (a tiny flame in the wash accent), a circular
+ * complete toggle (filled in the wash accent when done, matching hairline when
+ * not), and a compact row of weekly completion squares — filled accent for done
+ * days, a matching hairline outline for misses, accent ring on today. No
+ * neumorphism, no emoji — calm-but-colorful.
  */
-export function HabitCard({ habit, onToggleToday }: HabitCardProps) {
+export function HabitCard({ habit, onToggleToday, index = 0 }: HabitCardProps) {
+  const { colors, toneStyle } = useTheme();
   const completedThisWeek = habit.weekHistory.filter(Boolean).length;
   const done = habit.completedToday;
 
+  const tone = toneAt(index);
+  const ts = toneStyle(tone);
+
   return (
-    <Card padding={spacing.md} style={{ marginBottom: spacing.sm }}>
+    <Card tone={tone} padding={spacing.md} style={{ marginBottom: spacing.sm }}>
       <View className="flex-row items-center" style={{ gap: spacing.md }}>
         <View style={{ flex: 1 }}>
           <AppText variant="body" weight="medium" color={colors.ink} numberOfLines={1}>
@@ -37,7 +48,7 @@ export function HabitCard({ habit, onToggleToday }: HabitCardProps) {
             className="flex-row items-center"
             style={{ gap: 5, marginTop: 3, flexWrap: 'wrap' }}
           >
-            <Icon name="flame" size={12} color="rust" weight="fill" />
+            <Icon name="flame" size={12} color={ts.accent} weight="fill" />
             <AppText variant="caption" weight="medium" color={colors.ink}>
               {habit.streak}-day streak
             </AppText>
@@ -66,15 +77,15 @@ export function HabitCard({ habit, onToggleToday }: HabitCardProps) {
               borderRadius: radii.pill,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: done ? colors.ink : colors.white,
+              backgroundColor: done ? ts.accent : colors.white,
               borderWidth: 1,
-              borderColor: done ? colors.ink : colors.dove,
+              borderColor: done ? ts.accent : ts.border,
             }}
           >
             <Icon
               name={done ? 'check' : 'plus'}
               size={16}
-              color={done ? 'white' : 'graphite'}
+              color={done ? colors.white : ts.accent}
               weight={done ? 'bold' : 'regular'}
             />
           </MotiView>
@@ -95,13 +106,13 @@ export function HabitCard({ habit, onToggleToday }: HabitCardProps) {
                   width: 22,
                   height: 22,
                   borderRadius: 7,
-                  backgroundColor: completed ? colors.ink : colors.white,
+                  backgroundColor: completed ? ts.accent : colors.white,
                   borderWidth: 1,
                   borderColor: completed
-                    ? colors.ink
+                    ? ts.accent
                     : isToday
-                      ? colors.rust
-                      : colors.dove,
+                      ? ts.accent
+                      : ts.border,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
@@ -111,7 +122,7 @@ export function HabitCard({ habit, onToggleToday }: HabitCardProps) {
               <AppText
                 variant="caption"
                 weight={isToday ? 'medium' : 'regular'}
-                color={isToday ? colors.ink : colors.dove}
+                color={isToday ? colors.ink : colors.graphite}
                 style={{ fontSize: 10 }}
               >
                 {WEEK_LABELS[i]}

@@ -9,7 +9,8 @@ import { Pressable, View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppText } from '@/components/ui/Typography';
-import { colors, spacing, interaction } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type MenuRowProps = {
   icon: IconName;
@@ -22,6 +23,7 @@ export type MenuRowProps = {
 };
 
 export function MenuRow({ icon, title, value, onPress, last }: MenuRowProps) {
+  const { colors, isDark } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -29,9 +31,14 @@ export function MenuRow({ icon, title, value, onPress, last }: MenuRowProps) {
       accessibilityLabel={title}
       style={({ pressed, hovered }) => ({
         borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: colors.dove,
+        borderBottomColor: colors.hairline,
         opacity: pressed ? 0.55 : 1,
-        backgroundColor: hovered && !pressed ? interaction.hoverWash : 'transparent',
+        backgroundColor:
+          hovered && !pressed
+            ? isDark
+              ? 'rgba(255,255,255,0.04)'
+              : 'rgba(33,28,23,0.035)'
+            : 'transparent',
       })}
     >
       <View
@@ -42,16 +49,16 @@ export function MenuRow({ icon, title, value, onPress, last }: MenuRowProps) {
           paddingVertical: spacing.md,
         }}
       >
-        <Icon name={icon} size={17} color="graphite" weight="light" />
+        <Icon name={icon} size={17} color="muted" weight="light" />
         <AppText variant="subheading" weight="regular" style={{ flex: 1 }} numberOfLines={1}>
           {title}
         </AppText>
         {value ? (
-          <AppText variant="caption" color={colors.graphite}>
+          <AppText variant="caption" color={colors.muted}>
             {value}
           </AppText>
         ) : null}
-        <Icon name="chevron-right" size={16} color="dove" weight="light" />
+        <Icon name="chevron-right" size={16} color="muted" weight="light" />
       </View>
     </Pressable>
   );

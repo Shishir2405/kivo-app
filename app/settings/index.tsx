@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, ScrollView, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { MotiView } from 'moti';
 
 import { AppText } from '@/components/ui/Typography';
 import { TextLink } from '@/components/ui/PillButton';
@@ -32,7 +33,8 @@ import {
 import { Eyebrow, StateBlock } from '@/components/account/SteepParts';
 import { useAccount, type RawThemeMode } from '@/components/account/accountApi';
 
-import { colors, spacing } from '@/theme/tokens';
+import { spacing, motion } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import {
   requestNotificationPermissions,
   cancelAllReminders,
@@ -45,9 +47,9 @@ import type { AppLanguage } from '@/types/models';
 /* ------------------------------------------------------------------ */
 
 const THEME_OPTIONS: { label: string; value: RawThemeMode; icon: 'sun' | 'moon' | 'settings' }[] = [
+  { label: 'System', value: 'system', icon: 'settings' },
   { label: 'Light', value: 'light', icon: 'sun' },
   { label: 'Dark', value: 'dark', icon: 'moon' },
-  { label: 'Auto', value: 'system', icon: 'settings' },
 ];
 
 const LANGUAGE_OPTIONS: { label: string; value: AppLanguage; icon: 'globe' }[] = [
@@ -65,6 +67,22 @@ const HOUR_OPTIONS: { label: string; value: string }[] = Array.from({ length: 24
 });
 
 /* ------------------------------------------------------------------ */
+/* A subtle staggered entrance wrapper                                  */
+/* ------------------------------------------------------------------ */
+
+function Enter({ delay = 0, children }: { delay?: number; children: React.ReactNode }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 8 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: motion.duration.transition, delay }}
+    >
+      {children}
+    </MotiView>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Screen                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -75,8 +93,11 @@ export default function SettingsScreen() {
   const account = useAccount();
   const logout = useAuthStore((s) => s.logout);
 
+  // Theme preference is driven by the live ThemeProvider so toggling it here
+  // re-skins the whole app instantly (and persists via the UI store).
+  const { colors, mode: theme, setMode: setTheme } = useTheme();
+
   // Local preference state — seeded from the live account once it loads.
-  const [theme, setTheme] = useState<RawThemeMode>('system');
   const [language, setLanguage] = useState<AppLanguage>('en');
   const [dailyGoal, setDailyGoal] = useState(3);
   const [focusMinutes, setFocusMinutes] = useState(25);
@@ -92,7 +113,8 @@ export default function SettingsScreen() {
   useEffect(() => {
     const a = account.data;
     if (!a || seeded) return;
-    setTheme(a.theme);
+    // Theme preference is owned by the local ThemeProvider/store (persisted),
+    // so we don't overwrite it from the account here.
     setDailyGoal(a.dailyProblemGoal);
     setFocusMinutes(Math.max(5, Math.round(a.dailyStudyGoalMinutes / 4)));
     setPushEnabled(a.pushEnabled);
@@ -139,7 +161,7 @@ export default function SettingsScreen() {
   }, [logout, router]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -151,12 +173,14 @@ export default function SettingsScreen() {
         <AppHeader title="Settings" onBack={() => router.back()} />
 
         {/* ---------- Intro ---------- */}
-        <View style={{ marginTop: spacing.md, marginBottom: spacing.xl, gap: 2 }}>
-          <Eyebrow label="Preferences" />
-          <AppText variant="headingLg" display weight="medium">
-            Tune Kivo to you
-          </AppText>
-        </View>
+        <Enter>
+          <View style={{ marginTop: spacing.md, marginBottom: spacing.xl, gap: 2 }}>
+            <Eyebrow label="Preferences" />
+            <AppText variant="headingLg" display weight="medium">
+              Tune Kivo to you
+            </AppText>
+          </View>
+        </Enter>
 
         {account.isError && !account.data ? (
           <StateBlock
@@ -171,6 +195,7 @@ export default function SettingsScreen() {
         {/* ============================================================ */}
         {/* Notifications                                                  */}
         {/* ============================================================ */}
+        <Enter delay={60}>
         <SectionHeader title="Notifications" />
         <SectionCard tone="cool">
           <ToggleRow
@@ -205,10 +230,12 @@ export default function SettingsScreen() {
             onValueChange={(v) => void enableWithPermission(setWeeklyReport, v)}
           />
         </SectionCard>
+        </Enter>
 
         {/* ============================================================ */}
         {/* Quiet hours                                                   */}
         {/* ============================================================ */}
+        <Enter delay={120}>
         <SectionHeader title="Quiet hours" />
         <SectionCard tone="warm">
           <ToggleRow
@@ -250,10 +277,12 @@ export default function SettingsScreen() {
             />
           </View>
         </SectionCard>
+        </Enter>
 
         {/* ============================================================ */}
         {/* Appearance                                                    */}
         {/* ============================================================ */}
+        <Enter delay={180}>
         <SectionHeader title="Appearance" />
         <SectionCard>
           <ControlRow icon="sun" title="Theme" subtitle="Auto follows your device" align="block">
@@ -270,10 +299,12 @@ export default function SettingsScreen() {
             />
           </ControlRow>
         </SectionCard>
+        </Enter>
 
         {/* ============================================================ */}
         {/* Study                                                         */}
         {/* ============================================================ */}
+        <Enter delay={240}>
         <SectionHeader title="Study" />
         <SectionCard>
           <ControlRow icon="target" title="Daily goal" subtitle="Problems to solve each day" align="center">
@@ -284,22 +315,25 @@ export default function SettingsScreen() {
             <Stepper value={focusMinutes} onChange={setFocusMinutes} min={5} max={90} step={5} suffix="min" />
           </ControlRow>
         </SectionCard>
+        </Enter>
 
         {/* ============================================================ */}
         {/* Account                                                       */}
         {/* ============================================================ */}
+        <Enter delay={300}>
         <SectionHeader title="Account" />
         <View style={{ alignItems: 'center', gap: spacing.md, marginTop: spacing.xs }}>
           <TextLink
             label="Sign out"
             onPress={confirmLogout}
             muted
-            icon={<Icon name="log-out" size={16} color="ash" weight="light" />}
+            icon={<Icon name="log-out" size={16} color="muted" weight="light" />}
           />
-          <AppText variant="caption" color={colors.dove}>
+          <AppText variant="caption" color={colors.muted}>
             {account.data?.email ?? 'Kivo'} · v1.0.0
           </AppText>
         </View>
+        </Enter>
       </ScrollView>
     </View>
   );

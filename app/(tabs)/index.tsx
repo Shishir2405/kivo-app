@@ -1,16 +1,16 @@
 /**
- * Dashboard (Home) tab — STEEP.
+ * Dashboard (Home) tab — Kivo.
  *
- * A calm, editorial morning view: a small serif greeting, ONE warm data card
- * (today's goal on the apricot wash with the streak as a rust key stat),
- * compact white stat tiles, a single cool focus card, and a tight "continue"
- * list. Color is punctuation — the chrome is monochrome Ink/Graphite; the two
- * washes + Rust carry the only data accents. Exactly one filled Ink pill CTA
- * (Start focus timer); every other action is a TextLink.
+ * A calm, warm editorial morning view, matching the HTML "Dashboard & live
+ * navigation" frame: a small serif greeting with a streak chip + avatar, an
+ * italic quote card, a peach "Today" goal card (stat row + daily-goal bar), a
+ * 2x2 grid of soft-wash "At a glance" tiles (each with a matching accent icon
+ * chip), a quiet "Up next" timeline, and a dark "Continue" banner. Exactly one
+ * filled terracotta CTA (Start focus timer); every other action is a TextLink.
  *
- * Wired to the live `useDashboard` hook with loading skeleton + error + empty
- * states. An API failure can never crash the screen — the hook normalises
- * errors and we render from its flags.
+ * Fully dark-aware — all color comes from useTheme(); every section fades + lifts
+ * in with a small stagger. Wired to the live `useDashboard` hook with loading
+ * skeleton + error + empty states. An API failure can never crash the screen.
  */
 import React, { useCallback, useMemo } from 'react';
 import { View, ScrollView, RefreshControl } from 'react-native';
@@ -18,24 +18,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { AppText } from '@/components/ui/Typography';
-import { Card, WarmCard, CoolCard } from '@/components/ui/SoftCard';
-import { Icon } from '@/components/ui/Icon';
 import { PillButton, TextLink } from '@/components/ui/PillButton';
 import { GrayMark } from '@/components/ui/AppHeader';
 
 import {
+  Entrance,
   SectionHeader,
   StreakChip,
-  StatCard,
-  GoalRing,
-  ProgressBar,
+  AvatarInitial,
+  QuoteCard,
+  TodayCard,
+  GlanceTile,
+  QuickAddChip,
+  TimelineRow,
+  ContinueBanner,
   ContinueRow,
   EmptyState,
   ErrorState,
   DashboardSkeleton,
 } from '@/components/dashboard/DashboardParts';
 
-import { colors, spacing, radii } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { useDashboard } from '@/hooks/api';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -52,11 +56,11 @@ function greetingForHour(hour: number): string {
   return 'Winding down';
 }
 
-/** "Friday, Jun 27" from the real device clock. */
+/** "Mon 12 May" from the real device clock. */
 function formatToday(d: Date): string {
-  const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
   const month = d.toLocaleDateString('en-US', { month: 'short' });
-  return `${weekday}, ${month} ${d.getDate()}`;
+  return `${weekday} ${d.getDate()} ${month}`;
 }
 
 function firstName(name?: string | null): string {
@@ -73,6 +77,7 @@ function firstName(name?: string | null): string {
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const user = useAuthStore((s) => s.user);
   const { data, isLoading, isError, error, refetch, isRefetching } = useDashboard();
@@ -93,7 +98,6 @@ export default function DashboardScreen() {
     return (data.focusMinutesToday / 60).toFixed(1);
   }, [data]);
 
-  const remaining = data ? Math.max(0, data.dailyGoal - data.solvedToday) : 0;
   const continueTopics = data?.continueTopics ?? [];
 
   /* ---- Navigation ------------------------------------------------- */
@@ -104,13 +108,12 @@ export default function DashboardScreen() {
   const goMore = useCallback(() => router.push('/more'), [router]);
   const goFocusTimer = useCallback(() => router.push('/focus-timer'), [router]);
 
-  /* ---- Shared chrome (header + scroll frame) ---------------------- */
+  /* ---- Body ------------------------------------------------------- */
 
   const renderBody = () => {
     if (isLoading) return <DashboardSkeleton />;
 
     if (isError) {
-      // Never surface a raw error object — derive a plain string message only.
       const errorMessage = error?.isNetwork
         ? 'Check your connection and try again.'
         : typeof error?.message === 'string' && error.message
@@ -121,147 +124,165 @@ export default function DashboardScreen() {
 
     if (!data) {
       return (
-        <Card variant="inset" padding={spacing.xl}>
-          <EmptyState
-            icon="rocket"
-            title="Nothing here yet"
-            subtitle="Solve a problem or start a session to see your day take shape."
-          />
-        </Card>
+        <EmptyState
+          icon="rocket"
+          title="Nothing here yet"
+          subtitle="Solve a problem or start a session to see your day take shape."
+          iconColor={colors.lavenderAccent}
+        />
       );
     }
 
+    const nextTopic = continueTopics[0];
+
     return (
       <View style={{ gap: spacing.xl }}>
-        {/* ============================================================ */}
-        {/* Today — the single warm data card                            */}
-        {/* ============================================================ */}
-        <View>
-          <SectionHeader title="Today" actionLabel="Revisions" onAction={goRevisions} />
-          <WarmCard radius={radii.cardLg} padding={spacing.md}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
-              <GoalRing progress={goalPct} size={60} stroke={5}>
-                <View style={{ alignItems: 'center' }}>
-                  <AppText variant="heading" display weight="medium" color={colors.rust} style={{ lineHeight: 20 }}>
-                    {data.solvedToday}
-                  </AppText>
-                  <AppText variant="caption" color={colors.rust} style={{ fontSize: 10, marginTop: -1 }}>
-                    of {data.dailyGoal}
-                  </AppText>
-                </View>
-              </GoalRing>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Icon name="target" size={14} color="rust" weight="light" />
-                  <AppText variant="subheading" weight="medium" color={colors.ink}>
-                    {goalPct >= 100 ? 'Daily goal complete' : 'Daily goal in progress'}
-                  </AppText>
-                </View>
-                <AppText variant="caption" color={colors.ash} style={{ marginTop: 2 }}>
-                  {goalPct >= 100
-                    ? 'Nicely done — the goal is in the bag.'
-                    : `${remaining} more problem${remaining === 1 ? '' : 's'} to go.`}
-                </AppText>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 9 }}>
-                  <Icon name="flame" size={13} color="rust" weight="fill" />
-                  <AppText variant="caption" weight="medium" color={colors.rust} style={{ fontSize: 11 }}>
-                    {data.streak}-day streak
-                  </AppText>
-                </View>
-              </View>
-            </View>
-          </WarmCard>
-        </View>
+        {/* ---- Quote --------------------------------------------------- */}
+        <Entrance index={0}>
+          <QuoteCard text={data.quote.text} author={data.quote.author} />
+        </Entrance>
 
-        {/* ============================================================ */}
-        {/* At a glance — compact white stat tiles                       */}
-        {/* ============================================================ */}
-        <View>
-          <SectionHeader title="At a glance" />
-          <View style={{ flexDirection: 'row', gap: spacing.md }}>
-            <StatCard
-              value={data.revisionsDueToday}
-              label="Revisions due"
-              icon="repeat"
-              tone="warm"
-              accent={data.revisionsDueToday > 0}
-              onPress={goRevisions}
-            />
-            <StatCard
-              value={data.openTasks}
-              label="Open tasks"
-              icon="check-square"
-              tone="cool"
-              onPress={goTracker}
-            />
-            <StatCard
-              value={data.solvedToday}
-              unit={`/ ${data.dailyGoal}`}
-              label="Solved"
-              icon="check-circle"
-            />
-          </View>
-        </View>
+        {/* ---- Today goal card ---------------------------------------- */}
+        <Entrance index={1}>
+          <TodayCard
+            dateLabel={formatToday(now)}
+            stats={[
+              { value: data.revisionsDueToday, label: 'revisions' },
+              { value: data.openTasks, label: 'tasks' },
+              { value: `${focusHours}h`, label: 'focus' },
+            ]}
+            goalPct={goalPct}
+          />
+        </Entrance>
 
-        {/* ============================================================ */}
-        {/* Focus — the single cool data card                            */}
-        {/* ============================================================ */}
-        <View>
-          <SectionHeader title="Focus" actionLabel="Tracker" onAction={goTracker} />
-          <CoolCard radius={radii.cardLg} padding={spacing.md}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-              <View>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-                  <AppText variant="headingLg" display weight="medium" color={colors.ink}>
-                    {focusHours}
-                  </AppText>
-                  <AppText variant="caption" color={colors.ash} style={{ fontSize: 11 }}>
-                    hrs
-                  </AppText>
-                </View>
-                <AppText variant="caption" color={colors.ash} style={{ marginTop: 2 }}>
-                  Focused today
-                </AppText>
-              </View>
-              <Icon name="timer" size={16} color="rust" weight="light" />
-            </View>
-            <View style={{ marginTop: spacing.md }}>
-              <PillButton label="Start focus timer" onPress={goFocusTimer} size="sm" />
-            </View>
-          </CoolCard>
-        </View>
-
-        {/* ============================================================ */}
-        {/* Continue — tight DSA list                                    */}
-        {/* ============================================================ */}
-        <View>
-          <SectionHeader title="Continue" actionLabel="All topics" onAction={goDsa} />
-          <Card padding={spacing.md}>
-            {continueTopics.length > 0 ? (
-              continueTopics.slice(0, 3).map((topic, i, arr) => (
-                <ContinueRow
-                  key={topic.id}
-                  title={topic.title}
-                  progress={topic.progress}
-                  icon={topic.emoji}
-                  showDivider={i < arr.length - 1}
-                  onPress={() => router.push(`/dsa-topic/${topic.id}`)}
+        {/* ---- At a glance — 2x2 wash grid ---------------------------- */}
+        <Entrance index={2}>
+          <View>
+            <SectionHeader title="At a glance" />
+            <View style={{ gap: spacing.md }}>
+              <View style={{ flexDirection: 'row', gap: spacing.md }}>
+                <GlanceTile
+                  value={focusHours}
+                  unit="h"
+                  label="studied today"
+                  icon="clock"
+                  tone="sky"
+                  onPress={goTracker}
                 />
-              ))
+                <GlanceTile
+                  value={data.solvedToday}
+                  label="problems solved"
+                  icon="check-circle"
+                  tone="mint"
+                  onPress={goDsa}
+                />
+              </View>
+              <View style={{ flexDirection: 'row', gap: spacing.md }}>
+                <GlanceTile
+                  value={data.openTasks}
+                  label="open tasks"
+                  icon="check-square"
+                  tone="lavender"
+                  onPress={goTracker}
+                />
+                <GlanceTile
+                  value={`${goalPct}%`}
+                  label="daily goal"
+                  icon="repeat"
+                  tone="butter"
+                  onPress={goRevisions}
+                />
+              </View>
+            </View>
+          </View>
+        </Entrance>
+
+        {/* ---- Quick add ---------------------------------------------- */}
+        <Entrance index={3}>
+          <View>
+            <SectionHeader title="Quick add" />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+              <QuickAddChip label="Task" onPress={goTracker} />
+              <QuickAddChip label="Note" onPress={goMore} />
+              <QuickAddChip label="Timer" onPress={goFocusTimer} />
+              <QuickAddChip label="Reminder" onPress={goTracker} />
+            </View>
+          </View>
+        </Entrance>
+
+        {/* ---- Continue — DSA progress list --------------------------- */}
+        <Entrance index={4}>
+          <View>
+            <SectionHeader title="Continue" actionLabel="All topics" onAction={goDsa} />
+            {continueTopics.length > 0 ? (
+              <View>
+                {continueTopics.slice(0, 3).map((topic, i, arr) => (
+                  <ContinueRow
+                    key={topic.id}
+                    title={topic.title}
+                    progress={topic.progress}
+                    icon={topic.emoji}
+                    showDivider={i < arr.length - 1}
+                    onPress={() => router.push(`/dsa-topic/${topic.id}`)}
+                  />
+                ))}
+              </View>
             ) : (
               <EmptyState
                 title="You're all caught up"
                 subtitle="No topics in progress — pick a new one to begin."
               />
             )}
-          </Card>
-        </View>
+          </View>
+        </Entrance>
+
+        {/* ---- Up next timeline --------------------------------------- */}
+        <Entrance index={5}>
+          <View>
+            <SectionHeader title="Up next" />
+            <TimelineRow
+              title={`Revise · ${data.revisionsDueToday} due`}
+              meta="Spaced review queue"
+              time="9:30"
+              active
+              onPress={goRevisions}
+            />
+            <TimelineRow
+              title={`${data.openTasks} open task${data.openTasks === 1 ? '' : 's'}`}
+              meta="Tracker"
+              time="11:00"
+              onPress={goTracker}
+            />
+            <TimelineRow
+              title="Deep focus block"
+              meta={`Goal · ${focusHours}h today`}
+              time="16:00"
+              isLast
+              onPress={goFocusTimer}
+            />
+          </View>
+        </Entrance>
+
+        {/* ---- Continue banner + the single CTA ----------------------- */}
+        <Entrance index={6}>
+          <View style={{ gap: spacing.md }}>
+            {nextTopic ? (
+              <ContinueBanner
+                eyebrow="Continue where you left off"
+                title={nextTopic.title}
+                icon={nextTopic.emoji}
+                onPress={() => router.push(`/dsa-topic/${nextTopic.id}`)}
+              />
+            ) : null}
+            <PillButton label="Start focus timer" onPress={goFocusTimer} fullWidth />
+          </View>
+        </Entrance>
       </View>
     );
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -273,13 +294,11 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={() => void refetch()}
-            tintColor={colors.graphite}
+            tintColor={colors.muted}
           />
         }
       >
-        {/* ============================================================ */}
-        {/* Header — gray mark + streak chip + menu link                 */}
-        {/* ============================================================ */}
+        {/* ---- Header — gray mark + menu link ------------------------- */}
         <View
           style={{
             flexDirection: 'row',
@@ -288,28 +307,34 @@ export default function DashboardScreen() {
           }}
         >
           <GrayMark size={22} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            {data ? <StreakChip count={data.streak} /> : null}
-            <TextLink label="Menu" onPress={goMore} muted size="sm" />
-          </View>
+          <TextLink label="Menu" onPress={goMore} muted size="sm" />
         </View>
 
-        {/* ============================================================ */}
-        {/* Greeting — small serif headline                              */}
-        {/* ============================================================ */}
-        <View style={{ marginTop: spacing.lg, marginBottom: spacing.xl }}>
-          <AppText
-            variant="caption"
-            weight="medium"
-            color={colors.graphite}
-            style={{ textTransform: 'uppercase', letterSpacing: 1, fontSize: 11 }}
+        {/* ---- Greeting — eyebrow + serif name + streak + avatar ------ */}
+        <Entrance index={0}>
+          <View
+            style={{
+              marginTop: spacing.lg,
+              marginBottom: spacing.xl,
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+            }}
           >
-            {formatToday(now)}
-          </AppText>
-          <AppText variant="display" display weight="medium" style={{ marginTop: 6 }}>
-            {greeting}, {name}
-          </AppText>
-        </View>
+            <View style={{ flex: 1 }}>
+              <AppText variant="caption" weight="medium" color={colors.muted} style={{ fontSize: 13 }}>
+                {greeting}
+              </AppText>
+              <AppText variant="headingLg" display weight="medium" style={{ marginTop: 4 }}>
+                {name}
+              </AppText>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              {data ? <StreakChip count={data.streak} /> : null}
+              <AvatarInitial name={name} />
+            </View>
+          </View>
+        </Entrance>
 
         {renderBody()}
       </ScrollView>

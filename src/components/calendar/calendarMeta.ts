@@ -9,7 +9,7 @@
  * we never construct a `Date` from a date-only string for comparisons, we just
  * compare/format the string parts directly.
  */
-import { colors } from '@/theme/tokens';
+import type { AppColors, CardTone } from '@/theme/tokens';
 import type { TagTone } from '@/components/ui/Tag';
 import type { CalendarEvent, CalendarEventType, IconName } from '@/types/models';
 
@@ -21,30 +21,41 @@ export const TODAY_KEY = '2026-06-26';
 /* Accent + type theming (STEEP — color as punctuation)                */
 /* ------------------------------------------------------------------ */
 
+/** Map a legacy calendar accent token onto a curated wash tone. */
+export function accentToTone(accent: Accent): CardTone {
+  switch (accent) {
+    case 'highlighter':
+      return 'lavender';
+    case 'signal':
+      return 'sky';
+    case 'success':
+      return 'mint';
+    case 'peach':
+    case 'annotation':
+    default:
+      return 'peach';
+  }
+}
+
 /**
- * A small accent dot color per legacy accent token. Chrome stays monochrome;
- * Rust + the two washes are the only chromatic voices, so accents collapse onto
- * Rust / Ink / Graphite rather than bright hues.
+ * A small accent dot color per accent token, resolved from the ACTIVE palette
+ * (theme-aware). Each accent maps to its wash's deeper accent color so the dots
+ * read as the colorful punctuation the design uses.
  */
-export const ACCENT_DOT: Record<Accent, string> = {
-  highlighter: colors.ink,
-  signal: colors.rust,
-  peach: colors.rust,
-  annotation: colors.rust,
-  success: colors.graphite,
-};
-
-/** Back-compat alias (older imports used ACCENT_HEX). */
-export const ACCENT_HEX = ACCENT_DOT;
-
-/** A Steep wash background for an accent glyph well (apricot / sky / fog). */
-export const ACCENT_WASH: Record<Accent, string> = {
-  highlighter: colors.fog,
-  signal: colors.sky,
-  peach: colors.apricot,
-  annotation: colors.apricot,
-  success: colors.fog,
-};
+export function accentDot(accent: Accent, colors: AppColors): string {
+  switch (accent) {
+    case 'highlighter':
+      return colors.lavenderAccent;
+    case 'signal':
+      return colors.skyAccent;
+    case 'success':
+      return colors.mintAccent;
+    case 'peach':
+    case 'annotation':
+    default:
+      return colors.primary;
+  }
+}
 
 /** Steep Tag tone per legacy accent token. */
 export const ACCENT_TONE: Record<Accent, TagTone> = {

@@ -10,11 +10,12 @@
  */
 import React, { useState } from 'react';
 import { View, ScrollView } from 'react-native';
+import { MotiView } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { AppText } from '@/components/ui/Typography';
-import { Card, WarmCard, CoolCard } from '@/components/ui/SoftCard';
+import { Card, CoolCard } from '@/components/ui/SoftCard';
 import { TextLink } from '@/components/ui/PillButton';
 import { Icon } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
@@ -30,7 +31,8 @@ import {
   type HeatmapRange,
 } from '@/components/account/accountApi';
 
-import { colors, spacing } from '@/theme/tokens';
+import { useTheme, motion } from '@/theme';
+import { spacing } from '@/theme/tokens';
 
 const RANGE_OPTIONS: SegmentedOption<HeatmapRange>[] = [
   { value: '30', label: '30d' },
@@ -41,6 +43,7 @@ const RANGE_OPTIONS: SegmentedOption<HeatmapRange>[] = [
 export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const weekly = useWeeklyReport();
   const streaks = useStreaks();
@@ -50,7 +53,7 @@ export default function AnalyticsScreen() {
   const w = weekly.data;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -82,14 +85,18 @@ export default function AnalyticsScreen() {
             style={{ marginTop: spacing.lg }}
           />
         ) : w ? (
-          <>
+          <MotiView
+            from={{ opacity: 0, translateY: 8 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: motion.duration.transition }}
+          >
             <View style={{ marginTop: spacing.md, marginBottom: spacing.xl, gap: 2 }}>
               <Eyebrow label={`Week of ${w.label}`} />
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
                 <AppText variant="display" display weight="medium">
                   {w.productivityScore}
                 </AppText>
-                <AppText variant="subheading" color={colors.graphite}>
+                <AppText variant="subheading" color={colors.muted}>
                   / 100 productivity
                 </AppText>
               </View>
@@ -98,29 +105,37 @@ export default function AnalyticsScreen() {
             {/* ---------- Key data cards ---------- */}
             <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl }}>
               <CoolCard style={{ flex: 1 }} padding={spacing.lg}>
-                <Icon name="clock" size={16} color="ink" weight="light" />
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: spacing.sm }}>
-                  <AppText variant="headingLg" display weight="medium">
-                    {w.studyHours.toFixed(1)}
-                  </AppText>
-                  <AppText variant="caption" color={colors.ash}>
-                    h
-                  </AppText>
-                </View>
-                <AppText variant="caption" color={colors.ash} style={{ marginTop: 1 }}>
-                  {w.focusSessions} focus sessions
-                </AppText>
+                {({ accent }) => (
+                  <>
+                    <Icon name="clock" size={16} color={accent} weight="light" />
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: spacing.sm }}>
+                      <AppText variant="headingLg" display weight="medium" color={accent}>
+                        {w.studyHours.toFixed(1)}
+                      </AppText>
+                      <AppText variant="caption" color={accent}>
+                        h
+                      </AppText>
+                    </View>
+                    <AppText variant="caption" color={accent} style={{ marginTop: 1 }}>
+                      {w.focusSessions} focus sessions
+                    </AppText>
+                  </>
+                )}
               </CoolCard>
 
-              <WarmCard style={{ flex: 1 }} padding={spacing.lg}>
-                <Icon name="code" size={16} color="rust" weight="light" />
-                <AppText variant="headingLg" display weight="medium" color={colors.rust} style={{ marginTop: spacing.sm }}>
-                  {w.problemsSolved}
-                </AppText>
-                <AppText variant="caption" color={colors.rust} style={{ marginTop: 1 }}>
-                  problems · {w.topicsCompleted} topics
-                </AppText>
-              </WarmCard>
+              <Card tone="mint" style={{ flex: 1 }} padding={spacing.lg}>
+                {({ accent }) => (
+                  <>
+                    <Icon name="code" size={16} color={accent} weight="light" />
+                    <AppText variant="headingLg" display weight="medium" color={accent} style={{ marginTop: spacing.sm }}>
+                      {w.problemsSolved}
+                    </AppText>
+                    <AppText variant="caption" color={accent} style={{ marginTop: 1 }}>
+                      problems · {w.topicsCompleted} topics
+                    </AppText>
+                  </>
+                )}
+              </Card>
             </View>
 
             {/* ---------- Completion rates ---------- */}
@@ -134,7 +149,7 @@ export default function AnalyticsScreen() {
                 ]}
               />
             </Card>
-          </>
+          </MotiView>
         ) : null}
 
         {/* ---------- Streaks ---------- */}
@@ -146,13 +161,13 @@ export default function AnalyticsScreen() {
             <StateBlock kind="error" message={streaks.error?.message} onRetry={() => streaks.refetch()} />
           ) : streaks.data ? (
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <StreakStat value={streaks.data.currentDailyStreak} label="current daily" />
-              <Sep />
-              <StreakStat value={streaks.data.longestDailyStreak} label="best daily" />
-              <Sep />
-              <StreakStat value={streaks.data.currentWeeklyStreak} label="current weekly" />
-              <Sep />
-              <StreakStat value={streaks.data.longestWeeklyStreak} label="best weekly" />
+              <StreakStat value={streaks.data.currentDailyStreak} label="current daily" mutedColor={colors.muted} />
+              <Sep color={colors.hairline} />
+              <StreakStat value={streaks.data.longestDailyStreak} label="best daily" mutedColor={colors.muted} />
+              <Sep color={colors.hairline} />
+              <StreakStat value={streaks.data.currentWeeklyStreak} label="current weekly" mutedColor={colors.muted} />
+              <Sep color={colors.hairline} />
+              <StreakStat value={streaks.data.longestWeeklyStreak} label="best weekly" mutedColor={colors.muted} />
             </View>
           ) : null}
         </Card>
@@ -171,10 +186,10 @@ export default function AnalyticsScreen() {
                     paddingTop: i === 0 ? 0 : spacing.md,
                     paddingBottom: i === Math.min(4, w.recommendations.length - 1) ? 0 : spacing.md,
                     borderTopWidth: i === 0 ? 0 : 1,
-                    borderTopColor: colors.dove,
+                    borderTopColor: colors.hairline,
                   }}
                 >
-                  <AppText variant="caption" display weight="medium" color={colors.rust} style={{ width: 16 }}>
+                  <AppText variant="caption" display weight="medium" color={colors.primary} style={{ width: 16 }}>
                     {i + 1}
                   </AppText>
                   <AppText variant="body" color={colors.ash} style={{ flex: 1 }}>
@@ -201,14 +216,14 @@ export default function AnalyticsScreen() {
               <AppText variant="subheading" weight="medium" color={colors.ash}>
                 No activity yet
               </AppText>
-              <AppText variant="caption" color={colors.graphite} style={{ textAlign: 'center' }}>
+              <AppText variant="caption" color={colors.muted} style={{ textAlign: 'center' }}>
                 Your contribution grid fills as you study.
               </AppText>
             </View>
           ) : (
             <>
               <SteepHeatmap cells={heatmap.data!.cells} range={Number(range)} />
-              <AppText variant="caption" color={colors.graphite} style={{ marginTop: spacing.md }}>
+              <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.md }}>
                 {heatmap.data!.totalContributions} contributions · {heatmap.data!.activeDays} active days
               </AppText>
             </>
@@ -223,19 +238,19 @@ export default function AnalyticsScreen() {
 /* Local streak stat                                                   */
 /* ------------------------------------------------------------------ */
 
-function StreakStat({ value, label }: { value: number; label: string }) {
+function StreakStat({ value, label, mutedColor }: { value: number; label: string; mutedColor: string }) {
   return (
     <View style={{ alignItems: 'center', gap: 1, flex: 1 }}>
       <AppText variant="heading" display weight="medium">
         {value}
       </AppText>
-      <AppText variant="caption" color={colors.graphite} numberOfLines={1} style={{ fontSize: 10 }}>
+      <AppText variant="caption" color={mutedColor} numberOfLines={1} style={{ fontSize: 10 }}>
         {label}
       </AppText>
     </View>
   );
 }
 
-function Sep() {
-  return <View style={{ width: 1, backgroundColor: colors.dove, marginVertical: 2 }} />;
+function Sep({ color }: { color: string }) {
+  return <View style={{ width: 1, backgroundColor: color, marginVertical: 2 }} />;
 }

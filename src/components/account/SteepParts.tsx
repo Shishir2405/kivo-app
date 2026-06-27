@@ -14,19 +14,21 @@ import { AppText } from '@/components/ui/Typography';
 import { Card } from '@/components/ui/SoftCard';
 import { TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors, spacing } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 /* ------------------------------------------------------------------ */
 /* Eyebrow — a small uppercase tertiary label above a serif title      */
 /* ------------------------------------------------------------------ */
 
 export function Eyebrow({ label }: { label: string }) {
+  const { colors } = useTheme();
   return (
     <AppText
       variant="caption"
-      weight="medium"
-      color={colors.graphite}
-      style={{ textTransform: 'uppercase', letterSpacing: 1.4, fontSize: 11 }}
+      weight="bold"
+      color={colors.primaryOnWash}
+      style={{ textTransform: 'uppercase', letterSpacing: 1.1, fontSize: 11 }}
     >
       {label}
     </AppText>
@@ -46,6 +48,7 @@ export function SectionLabel({
   right?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { colors } = useTheme();
   return (
     <View
       style={[
@@ -56,7 +59,7 @@ export function SectionLabel({
       <AppText variant="subheading" display weight="medium">
         {title}
       </AppText>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.dove }} />
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.hairline }} />
       {right ?? null}
     </View>
   );
@@ -69,14 +72,15 @@ export function SectionLabel({
 export function IconChip({
   icon,
   size = 34,
-  color = 'graphite',
-  surface = colors.fog,
+  color = 'muted',
+  surface,
 }: {
   icon: IconName;
   size?: number;
   color?: string;
   surface?: string;
 }) {
+  const { colors } = useTheme();
   return (
     <View
       style={{
@@ -85,9 +89,9 @@ export function IconChip({
         borderRadius: 9999,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: surface,
+        backgroundColor: surface ?? colors.surfaceAlt,
         borderWidth: 1,
-        borderColor: colors.dove,
+        borderColor: colors.hairline,
       }}
     >
       <Icon name={icon} size={Math.round(size * 0.46)} color={color} weight="light" />
@@ -104,7 +108,7 @@ export function DataStat({
   label,
   unit,
   align = 'flex-start',
-  valueColor = colors.ink,
+  valueColor,
 }: {
   value: string;
   label: string;
@@ -112,19 +116,20 @@ export function DataStat({
   align?: 'flex-start' | 'center';
   valueColor?: string;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={{ alignItems: align, gap: 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
-        <AppText variant="heading" display weight="medium" color={valueColor} numberOfLines={1}>
+        <AppText variant="heading" display weight="medium" color={valueColor ?? colors.ink} numberOfLines={1}>
           {value}
         </AppText>
         {unit ? (
-          <AppText variant="caption" weight="medium" color={colors.graphite}>
+          <AppText variant="caption" weight="medium" color={colors.muted}>
             {unit}
           </AppText>
         ) : null}
       </View>
-      <AppText variant="caption" color={colors.graphite} numberOfLines={1}>
+      <AppText variant="caption" color={colors.muted} numberOfLines={1}>
         {label}
       </AppText>
     </View>
@@ -163,23 +168,24 @@ export function StateBlock({
   retryLabel = 'Try again',
   style,
 }: StateBlockProps) {
+  const { colors } = useTheme();
   return (
     <Card variant="inset" padding={spacing.xl} style={style}>
       <View style={{ alignItems: 'center', gap: spacing.sm }}>
         {kind === 'loading' ? (
-          <ActivityIndicator color={colors.graphite} />
+          <ActivityIndicator color={colors.muted} />
         ) : (
           <IconChip icon={icon ?? (kind === 'error' ? 'alert' : 'sparkles')} size={36} />
         )}
         {title ? (
-          <AppText variant="subheading" weight="medium" color={colors.ash} style={{ marginTop: 2 }}>
+          <AppText variant="subheading" weight="medium" color={colors.ink} style={{ marginTop: 2 }}>
             {title}
           </AppText>
         ) : null}
         {message ? (
           <AppText
             variant="caption"
-            color={colors.graphite}
+            color={colors.muted}
             style={{ textAlign: 'center', maxWidth: 260 }}
           >
             {message}

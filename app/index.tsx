@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Redirect } from 'expo-router';
 
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { useAuthStore } from '@/store';
 import { useUiStore } from '@/store';
 
@@ -12,11 +12,14 @@ import { useUiStore } from '@/store';
  * The animated in-app splash is rendered globally by the root layout and flips
  * `useUiStore.splashDone` when it finishes. Until then we hold on a blank
  * canvas (the splash sits on top). Once done, we redirect:
- *   - authenticated  -> (tabs) dashboard
- *   - otherwise       -> (auth)/welcome
+ *   - authenticated                       -> (tabs) dashboard
+ *   - not authed & onboarding not seen     -> (auth)/onboarding
+ *   - otherwise                            -> (auth)/login
  */
 export default function Index() {
+  const { colors } = useTheme();
   const splashDone = useUiStore((s) => s.splashDone);
+  const onboardingSeen = useUiStore((s) => s.onboardingSeen);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   if (!splashDone) {
@@ -27,5 +30,9 @@ export default function Index() {
     return <Redirect href="/(tabs)" />;
   }
 
-  return <Redirect href="/(auth)/welcome" />;
+  if (!onboardingSeen) {
+    return <Redirect href="/(auth)/onboarding" />;
+  }
+
+  return <Redirect href="/(auth)/login" />;
 }

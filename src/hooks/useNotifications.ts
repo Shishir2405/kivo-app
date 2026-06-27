@@ -36,9 +36,13 @@ export function useNotifications(): void {
 
     // Best-effort remote-push registration (no-op in Expo Go / simulators).
     void (async () => {
-      const token = await registerForPushNotificationsAsync();
-      if (!cancelled && token) {
-        await registerDeviceToken(token);
+      try {
+        const token = await registerForPushNotificationsAsync();
+        if (!cancelled && token) {
+          await registerDeviceToken(token);
+        }
+      } catch {
+        /* never let push setup surface an error / crash the app */
       }
     })();
 

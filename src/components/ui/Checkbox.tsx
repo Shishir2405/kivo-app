@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, View, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { Icon } from './Icon';
-import { colors, fonts, pressOpacity } from '@/theme/tokens';
+import { fonts, pressOpacity } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 
 export type CheckboxProps = {
   checked: boolean;
@@ -14,17 +15,19 @@ export type CheckboxProps = {
 };
 
 /**
- * Steep checkbox — a simple small square. Unchecked: white with a Dove
- * hairline. Checked: filled Ink with a white check. Flat, no neumorphism.
+ * Kivo checkbox — a small rounded square. Unchecked: surface with a hairline.
+ * Checked: filled TERRACOTTA with an inverted check (the HTML checkbox). Flat,
+ * theme-aware.
  */
 export function Checkbox({
   checked,
   onChange,
   label,
   disabled,
-  size = 20,
+  size = 22,
   style,
 }: CheckboxProps) {
+  const { colors } = useTheme();
   return (
     <Pressable
       onPress={() => !disabled && onChange(!checked)}
@@ -49,21 +52,21 @@ export function Checkbox({
             style={{
               width: size,
               height: size,
-              borderRadius: 6,
+              borderRadius: 7,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: checked ? colors.ink : colors.white,
-              borderWidth: 1,
-              borderColor: checked ? colors.ink : pressed ? colors.ink : colors.dove,
+              backgroundColor: checked ? colors.primary : colors.surface,
+              borderWidth: checked ? 1 : 1.5,
+              borderColor: checked ? colors.primary : pressed ? colors.primary : colors.hairline,
             }}
           >
-            {checked ? <Icon name="check" size={size * 0.7} color="white" weight="bold" /> : null}
+            {checked ? <Icon name="check" size={size * 0.62} color={colors.inkInverted} weight="bold" /> : null}
           </View>
           {label ? (
             <Text
               style={{
                 fontFamily: fonts.sans,
-                fontSize: 13,
+                fontSize: 15,
                 color: colors.ink,
                 flexShrink: 1,
               }}

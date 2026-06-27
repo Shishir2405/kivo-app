@@ -9,7 +9,18 @@ import { AppText } from '@/components/ui/Typography';
 import { Card } from '@/components/ui/SoftCard';
 import { TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors, spacing } from '@/theme/tokens';
+import { spacing, radii, type CardTone } from '@/theme/tokens';
+import { useTheme } from '@/theme';
+
+/** Accepted StatTile tones — the wash palette plus legacy warm/cool aliases. */
+export type StatTileTone = CardTone | 'warm' | 'cool';
+
+/** Normalise a StatTile tone (incl. legacy warm/cool) to a wash CardTone. */
+function resolveStatTone(tone: StatTileTone): CardTone {
+  if (tone === 'warm') return 'peach';
+  if (tone === 'cool') return 'sky';
+  return tone;
+}
 
 /* ================================================================== */
 /* Section header                                                      */
@@ -39,6 +50,7 @@ export function SectionHeader({
   trailing,
   style,
 }: SectionHeaderProps) {
+  const { colors } = useTheme();
   return (
     <View
       className="flex-row items-end justify-between"
@@ -75,18 +87,44 @@ export type EmptyStateProps = {
   icon: IconName;
   title: string;
   body: string;
+  /**
+   * Optional wash voice for the icon — a colored phosphor glyph sitting on a
+   * matching wash chip warms up the empty state without leaving the quiet Fog
+   * well. Omit for the plain Dove icon.
+   */
+  tone?: CardTone;
   style?: StyleProp<ViewStyle>;
 };
 
 /**
  * A calm Steep empty state — a quiet Fog well, one small thin icon, a short
- * title + a line of muted copy. No medallions, no decoration.
+ * title + a line of muted copy. Pass a `tone` to give the icon a colored wash
+ * chip so the empty state feels lively (the well itself stays Fog).
  */
-export function EmptyState({ icon, title, body, style }: EmptyStateProps) {
+export function EmptyState({ icon, title, body, tone, style }: EmptyStateProps) {
+  const { colors, toneStyle } = useTheme();
+  const ts = tone ? toneStyle(tone) : null;
   return (
     <Card variant="inset" padding={20} style={style}>
       <View className="items-center" style={{ gap: 8 }}>
-        <Icon name={icon} size={20} color="dove" />
+        {ts ? (
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radii.sm,
+              backgroundColor: ts.bg,
+              borderWidth: 1,
+              borderColor: ts.border,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Icon name={icon} size={20} color={ts.accent} />
+          </View>
+        ) : (
+          <Icon name={icon} size={20} color="dove" />
+        )}
         <AppText variant="subheading" weight="medium" color={colors.ink}>
           {title}
         </AppText>
@@ -114,6 +152,7 @@ export type LoadingStateProps = {
 
 /** A small, quiet loading row for a list section. */
 export function LoadingState({ label, style }: LoadingStateProps) {
+  const { colors } = useTheme();
   return (
     <Card variant="inset" padding={20} style={style}>
       <View className="items-center" style={{ gap: 8 }}>
@@ -145,6 +184,7 @@ export type ErrorStateProps = {
  * data hook reports `isError`; tapping retry calls `refetch`.
  */
 export function ErrorState({ message, onRetry, style }: ErrorStateProps) {
+  const { colors } = useTheme();
   return (
     <Card variant="inset" padding={20} style={style}>
       <View className="items-center" style={{ gap: 8 }}>
@@ -171,43 +211,55 @@ export type StatTileProps = {
   value: string;
   /** A short caption under the figure. */
   label: string;
-  /** Wash voice — 'warm' (apricot) or 'cool' (sky). */
-  tone?: 'warm' | 'cool';
+  /**
+   * Wash voice — any of the soft washes ('peach' | 'sky' | 'mint' | 'lavender'
+   * | 'butter'). The figure + label stroke in that wash's deeper accent so the
+   * tile reads as a colored key-stat. Legacy 'warm'→peach, 'cool'→sky.
+   */
+  tone?: StatTileTone;
+  /** Optional small phosphor glyph above the figure, in the tone accent. */
+  icon?: IconName;
   style?: StyleProp<ViewStyle>;
 };
 
 /**
- * A compact data tile on one of the two washes (Apricot / Sky). The figure is
- * the loudest thing; on the warm wash it strokes in Rust (the key-data accent).
- * Used for the tracker's quick-stat row.
+ * A compact data tile on one of the soft washes. The figure is the loudest
+ * thing and strokes in the wash's deeper accent (the key-data color); the
+ * matching hairline pairs with the wash. Used for the tracker's quick-stat row.
  */
-export function StatTile({ value, label, tone = 'warm', style }: StatTileProps) {
-  const warm = tone === 'warm';
+export function StatTile({ value, label, tone = 'peach', icon, style }: StatTileProps) {
+  const { toneStyle } = useTheme();
+  const ts = toneStyle(resolveStatTone(tone));
   return (
     <View
       style={[
         {
           flex: 1,
-          backgroundColor: warm ? colors.apricot : colors.sky,
-          borderRadius: 16,
+          backgroundColor: ts.bg,
+          borderRadius: radii.card,
+          borderWidth: 1,
+          borderColor: ts.border,
           paddingVertical: spacing.md,
           paddingHorizontal: spacing.lg,
         },
         style,
       ]}
     >
+      {icon ? (
+        <Icon name={icon} size={16} color={ts.accent} weight="fill" />
+      ) : null}
       <AppText
         variant="headingLg"
         display
         weight="medium"
-        color={warm ? colors.rust : colors.ink}
-        style={{ fontVariant: ['tabular-nums'] }}
+        color={ts.accent}
+        style={{ fontVariant: ['tabular-nums'], marginTop: icon ? 4 : 0 }}
       >
         {value}
       </AppText>
       <AppText
         variant="caption"
-        color={warm ? colors.rust : colors.ash}
+        color={ts.accent}
         style={{ marginTop: 1 }}
       >
         {label}
@@ -218,17 +270,17 @@ export function StatTile({ value, label, tone = 'warm', style }: StatTileProps) 
 
 /**
  * Legacy alias — old screen code imported `StatPill`. Maps onto the Steep
- * {@link StatTile}; the legacy `icon`/`accent` props are accepted and ignored.
+ * {@link StatTile}; the legacy `accent` prop is accepted and ignored.
  */
 export type StatPillProps = {
   icon?: IconName;
   value: string;
   label: string;
   accent?: string;
-  tone?: 'warm' | 'cool';
+  tone?: StatTileTone;
   style?: StyleProp<ViewStyle>;
 };
 
-export function StatPill({ value, label, tone, style }: StatPillProps) {
-  return <StatTile value={value} label={label} tone={tone} style={style} />;
+export function StatPill({ value, label, tone, icon, style }: StatPillProps) {
+  return <StatTile value={value} label={label} tone={tone} icon={icon} style={style} />;
 }

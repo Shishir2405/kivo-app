@@ -6,7 +6,8 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { Tag, type TagTone } from '@/components/ui/Tag';
 import { AppText } from '@/components/ui/Typography';
 import { Icon } from '@/components/ui/Icon';
-import { colors, spacing, pressOpacity } from '@/theme/tokens';
+import { spacing, pressOpacity, toneAt } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import type { Task, Priority } from '@/types/models';
 
 /** Today, for relative due labels. Injected so the card stays deterministic. */
@@ -36,19 +37,26 @@ export type TaskCardProps = {
   task: Task;
   onToggle: (id: string, next: boolean) => void;
   onToggleChecklistItem?: (taskId: string, itemId: string, next: boolean) => void;
+  /**
+   * Position in the list — rotates the soft wash so a stack of open tasks looks
+   * intentionally colorful. Completed rows fall back to plain white (quiet).
+   */
+  index?: number;
 };
 
 /**
- * A flat Steep task row.
+ * A flat Steep task row on a rotating soft wash.
  *
  * - Complete is the small flat {@link Checkbox} (Ink square + white check). When
- *   done, the title strikes through and the row dims; the surface itself stays
- *   flat white (no inset well, no neumorphism).
+ *   done, the title strikes through, the row dims and drops back to plain white
+ *   (finished work goes quiet); open rows wear a rotating wash + matching
+ *   hairline so the stack feels lively, never childish.
  * - Priority / due tags are small Steep chips (color as punctuation only).
  * - If the task has a checklist or notes, the row expands (animated) to reveal
- *   sub-step checkboxes + notes behind a thin Dove divider.
+ *   sub-step checkboxes + notes behind a thin wash-tinted divider.
  */
-export function TaskCard({ task, onToggle, onToggleChecklistItem }: TaskCardProps) {
+export function TaskCard({ task, onToggle, onToggleChecklistItem, index = 0 }: TaskCardProps) {
+  const { colors, toneStyle } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const checklist = task.checklist ?? [];
@@ -58,8 +66,12 @@ export function TaskCard({ task, onToggle, onToggleChecklistItem }: TaskCardProp
 
   const due = task.dueDate ? dueLabel(task.dueDate) : null;
 
+  // Open rows rotate the wash; done rows go quiet white.
+  const tone = task.done ? 'default' : toneAt(index);
+  const ts = toneStyle(tone);
+
   return (
-    <Card padding={spacing.md} style={{ marginBottom: spacing.sm }}>
+    <Card tone={tone} padding={spacing.md} style={{ marginBottom: spacing.sm }}>
       <View className="flex-row items-start" style={{ gap: spacing.md }}>
         <Checkbox
           checked={task.done}
@@ -116,7 +128,7 @@ export function TaskCard({ task, onToggle, onToggleChecklistItem }: TaskCardProp
                 transition={{ type: 'timing', duration: 200 }}
                 style={{ marginTop: 2 }}
               >
-                <Icon name="chevron-down" size={16} color="graphite" />
+                <Icon name="chevron-down" size={16} color={ts.accent} />
               </MotiView>
             ) : null}
           </View>
@@ -134,7 +146,7 @@ export function TaskCard({ task, onToggle, onToggleChecklistItem }: TaskCardProp
             style={{ marginTop: spacing.md }}
           >
             <View
-              style={{ height: 1, backgroundColor: colors.dove, marginBottom: spacing.md }}
+              style={{ height: 1, backgroundColor: ts.border, marginBottom: spacing.md }}
             />
             {task.notes ? (
               <AppText

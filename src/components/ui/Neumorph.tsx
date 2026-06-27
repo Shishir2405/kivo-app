@@ -1,19 +1,20 @@
 import React from 'react';
 import { View, type ViewStyle, type StyleProp } from 'react-native';
-import { colors, shadow, type NeumorphIntensity } from '@/theme/tokens';
+import { type NeumorphIntensity } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 
 export type NeumorphProps = {
   children?: React.ReactNode;
   /**
-   * Legacy soft-UI variant — neutralised under Steep:
-   *  - 'raised' → a flat white surface with a 1px Dove hairline + ONE subtle shadow.
-   *  - 'inset' / 'flat' → a flat Fog surface with a 1px Dove hairline, no shadow.
+   * Legacy soft-UI variant — neutralised under Kivo:
+   *  - 'raised' → a flat surface with a 1px hairline + ONE soft shadow.
+   *  - 'inset' / 'flat' → a flat well surface with a 1px hairline, no shadow.
    */
   variant?: 'raised' | 'inset' | 'flat';
   radius?: number;
-  /** @deprecated Steep is flat; intensity is ignored. */
+  /** @deprecated Kivo is flat; intensity is ignored. */
   intensity?: NeumorphIntensity;
-  /** Base surface color (defaults to white for raised, Fog for inset). */
+  /** Base surface color (defaults to surface for raised, well for inset). */
   surface?: string;
   style?: StyleProp<ViewStyle>;
   /** Inner padding applied to the content container. */
@@ -21,14 +22,12 @@ export type NeumorphProps = {
 };
 
 /**
- * STEEP no-op flat surface (formerly the neumorphic wrapper).
+ * Kivo no-op flat surface (formerly the neumorphic wrapper).
  *
- * Neumorphism is gone. This now renders a single FLAT View so that the ~50
- * screens that still wrap content in <Neumorph> keep working — but they read as
- * clean Steep surfaces: white/fog fill, a 1px Dove hairline, and (for 'raised')
- * the one subtle shadow. No dual shadows, no puffy depth.
- *
- * Prefer <Card> for new code; this exists purely for back-compat.
+ * Neumorphism is gone. This renders a single FLAT View so the screens that
+ * still wrap content in <Neumorph> keep working — reading as clean Kivo
+ * surfaces: surface/well fill, a 1px hairline, and (for 'raised') the one soft
+ * shadow. Theme-aware. Prefer <Card> for new code; this exists for back-compat.
  */
 export function Neumorph({
   children,
@@ -38,8 +37,9 @@ export function Neumorph({
   style,
   padding,
 }: NeumorphProps) {
+  const { colors, shadow } = useTheme();
   const isRaised = variant === 'raised';
-  const bg = surface ?? (isRaised ? colors.white : colors.fog);
+  const bg = surface ?? (isRaised ? colors.surface : colors.surfaceAlt);
 
   return (
     <View
@@ -48,7 +48,7 @@ export function Neumorph({
           backgroundColor: bg,
           borderRadius: radius,
           borderWidth: 1,
-          borderColor: colors.dove,
+          borderColor: colors.hairline,
           ...(padding != null ? { padding } : null),
         },
         isRaised ? shadow : null,

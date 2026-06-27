@@ -14,7 +14,7 @@ import { DotGridBackground } from '@/components/ui/DotGridBackground';
 import { Icon, type IconName } from '@/components/ui';
 import { AppText } from '@/components/ui/Typography';
 import { BrandLogo } from '@/components/brand/BrandLogo';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type AuthScaffoldProps = {
   /** Icon shown in the raised badge tile above the heading. */
@@ -28,13 +28,6 @@ export type AuthScaffoldProps = {
   children: React.ReactNode;
   /** Pinned footer block (CTA + switch link). */
   footer: React.ReactNode;
-};
-
-const BADGE_WASH: Record<NonNullable<AuthScaffoldProps['badgeTone']>, string> = {
-  highlighter: '#fbfbcf',
-  signal: '#e1e8ff',
-  peach: '#ffe6dd',
-  success: '#dff5e8',
 };
 
 /**
@@ -55,6 +48,15 @@ export function AuthScaffold({
   footer,
 }: AuthScaffoldProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+
+  // Wash the badge tile from the active palette (dark-aware).
+  const badgeWash: Record<NonNullable<AuthScaffoldProps['badgeTone']>, string> = {
+    highlighter: colors.butter,
+    signal: colors.sky,
+    peach: colors.peach,
+    success: colors.successWash,
+  };
 
   return (
     <DotGridBackground>
@@ -93,7 +95,7 @@ export function AuthScaffold({
               transition={{ type: 'spring', damping: 13, stiffness: 180, delay: 80 }}
               style={{ alignSelf: 'flex-start' }}
             >
-              <Neumorph variant="raised" radius={20} intensity="md" surface={BADGE_WASH[badgeTone]}>
+              <Neumorph variant="raised" radius={20} intensity="md" surface={badgeWash[badgeTone]}>
                 <View
                   style={{
                     width: 58,

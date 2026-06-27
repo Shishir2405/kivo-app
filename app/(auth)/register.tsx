@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Pressable,
@@ -9,8 +9,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MotiView } from 'moti';
 
-import { colors, spacing } from '@/theme/tokens';
+import { spacing, radii, motion } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { useAuthStore } from '@/store';
 import {
   AppText,
@@ -23,31 +25,33 @@ import {
 } from '@/components/ui';
 import { GoogleSignInButton } from '@/components/auth';
 
-/** Small Steep "or" divider — two Dove hairlines with a quiet caption. */
-function OrDivider() {
-  return (
-    <View className="flex-row items-center" style={{ gap: spacing.md }}>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.dove, opacity: 0.6 }} />
-      <AppText variant="caption" color={colors.graphite}>
-        or
-      </AppText>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.dove, opacity: 0.6 }} />
-    </View>
-  );
-}
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Three-segment password strength, matching the HTML register meter. */
+function scoreThree(pw: string): number {
+  if (!pw) return 0;
+  let s = 0;
+  if (pw.length >= 8) s += 1;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s += 1;
+  if (/\d/.test(pw) || /[^A-Za-z0-9]/.test(pw)) s += 1;
+  return Math.min(s, 3);
+}
+
 /**
- * Register — a small Steep form wired to the REAL auth store.
+ * Register — matches the HTML "Create account" mockup, wired to the REAL auth
+ * store.
  *
- * Name / email / password fields and a Terms checkbox. Validation shows inline
+ * Back chevron, serif "Create your account" heading, name / email / password
+ * fields with a three-segment strength meter, a Terms checkbox, the single
+ * terracotta CTA, Continue with Google, and the Terms & Privacy footnote.
+ * Dark-aware via useTheme() with a staggered entrance. Validation shows inline
  * field errors; an auth failure shows inline form error text. The store's
- * `register` NEVER throws, so submit can't crash the app — on success we
- * `router.replace('/(tabs)')`.
+ * `register` NEVER throws, so submit can't crash — on success we replace to
+ * (tabs).
  */
 export default function RegisterScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const register = useAuthStore((s) => s.register);
   const loading = useAuthStore((s) => s.loading);
 
@@ -68,11 +72,13 @@ export default function RegisterScreen() {
   const passwordRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
 
+  const strength = useMemo(() => scoreThree(password), [password]);
+
   const validate = () => {
     const next: typeof errors = {};
     if (name.trim().length < 2) next.name = 'Tell us your name';
     if (!EMAIL_RE.test(email.trim())) next.email = 'Enter a valid email address';
-    if (password.length < 6) next.password = 'Use at least 6 characters';
+    if (password.length < 8) next.password = 'Use at least 8 characters';
     if (!agreed) next.agreed = 'Please accept the Terms to continue';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -95,11 +101,27 @@ export default function RegisterScreen() {
     else router.replace('/(auth)/welcome');
   };
 
+  // Memoized once so each MotiView keeps a STABLE prop reference across
+  // re-renders. Recreating these objects on every keystroke can make Moti
+  // re-process and steal focus from the field you're typing in.
+  const ENTER = useMemo(() => {
+    const e = (delay: number) =>
+      ({
+        from: { opacity: 0, translateY: 8 },
+        animate: { opacity: 1, translateY: 0 },
+        transition: { type: 'timing', duration: motion.duration.transition, delay },
+      }) as const;
+    return { head: e(60), form: e(140), actions: e(220), footer: e(300) };
+  }, []);
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        // iOS: pad for the keyboard. Android: rely on native windowSoftInputMode
+        // `adjustResize` + the ScrollView — using `height` here double-resizes the
+        // container and makes the focused field jump around while typing.
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           contentContainerStyle={{
@@ -113,30 +135,23 @@ export default function RegisterScreen() {
           <AppHeader onBack={goBack} hideMark />
 
           {/* Heading block */}
-          <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
+          <MotiView {...ENTER.head} style={{ marginTop: spacing.lg, gap: spacing.xs }}>
             <AppText variant="headingLg" display>
-              Start your streak
+              Create your account
             </AppText>
-            <AppText variant="body" color={colors.ash} style={{ maxWidth: 320 }}>
-              Create your account and solve your first problem today.
+            <AppText variant="body" color={colors.muted} style={{ maxWidth: 320 }}>
+              Start building your study habit today.
             </AppText>
-          </View>
+          </MotiView>
 
-          {/* Continue with Google — primary social option, on top */}
+          {/* Form — NOT wrapped in an animated view: re-rendering a MotiView on
+              every keystroke remounts the focused TextInput on Android and bounces
+              focus to the next field. A plain View keeps focus rock-solid. */}
           <View style={{ marginTop: spacing.xl, gap: spacing.lg }}>
-            <GoogleSignInButton
-              disabled={loading}
-              onError={(msg) => setFormError(msg || null)}
-              onSuccess={() => router.replace('/(tabs)')}
-            />
-            <OrDivider />
-          </View>
-
-          {/* Form */}
-          <View style={{ marginTop: spacing.lg, gap: spacing.lg }}>
             <SoftInput
+              key="register-name"
               label="Name"
-              placeholder="Aarav Mehta"
+              placeholder="Aanya Sharma"
               value={name}
               onChangeText={(t) => {
                 setName(t);
@@ -151,6 +166,7 @@ export default function RegisterScreen() {
             />
 
             <SoftInput
+              key="register-email"
               ref={emailRef}
               label="Email"
               placeholder="you@kivo.app"
@@ -169,34 +185,52 @@ export default function RegisterScreen() {
               onSubmitEditing={() => passwordRef.current?.focus()}
             />
 
-            <SoftInput
-              ref={passwordRef}
-              label="Password"
-              placeholder="At least 6 characters"
-              value={password}
-              onChangeText={(t) => {
-                setPassword(t);
-                if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
-                if (formError) setFormError(null);
-              }}
-              error={errors.password}
-              secureTextEntry={!show}
-              autoCapitalize="none"
-              autoComplete="password-new"
-              autoCorrect={false}
-              returnKeyType="done"
-              onSubmitEditing={handleSubmit}
-              trailing={
-                <Pressable
-                  onPress={() => setShow((v) => !v)}
-                  hitSlop={10}
-                  accessibilityRole="button"
-                  accessibilityLabel={show ? 'Hide password' : 'Show password'}
-                >
-                  <Icon name={show ? 'eye-off' : 'eye'} size={17} color="graphite" />
-                </Pressable>
-              }
-            />
+            <View style={{ gap: spacing.md }}>
+              <SoftInput
+                key="register-password"
+                ref={passwordRef}
+                label="Password"
+                placeholder="At least 8 characters"
+                value={password}
+                onChangeText={(t) => {
+                  setPassword(t);
+                  if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
+                  if (formError) setFormError(null);
+                }}
+                error={errors.password}
+                secureTextEntry={!show}
+                autoCapitalize="none"
+                autoComplete="password-new"
+                autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={handleSubmit}
+                trailing={
+                  <Pressable
+                    onPress={() => setShow((v) => !v)}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel={show ? 'Hide password' : 'Show password'}
+                  >
+                    <Icon name={show ? 'eye-off' : 'eye'} size={17} color={colors.muted} />
+                  </Pressable>
+                }
+              />
+
+              {/* Three-segment strength meter — matches the HTML register meter */}
+              <View className="flex-row" style={{ gap: spacing.xs }}>
+                {[1, 2, 3].map((seg) => (
+                  <MotiView
+                    key={seg}
+                    animate={{
+                      backgroundColor:
+                        seg <= strength ? colors.success : colors.hairline,
+                    }}
+                    transition={{ type: 'timing', duration: motion.duration.micro }}
+                    style={{ flex: 1, height: 4, borderRadius: radii.pill }}
+                  />
+                ))}
+              </View>
+            </View>
 
             {/* Terms agreement */}
             <View style={{ gap: spacing.xs }}>
@@ -216,7 +250,7 @@ export default function RegisterScreen() {
                     if (errors.agreed) setErrors((e) => ({ ...e, agreed: undefined }));
                   }}
                 >
-                  <AppText variant="caption" color={colors.ash} style={{ lineHeight: 18 }}>
+                  <AppText variant="caption" color={colors.muted} style={{ lineHeight: 18 }}>
                     I agree to Kivo&apos;s{' '}
                     <AppText variant="caption" weight="medium" color={colors.ink}>
                       Terms
@@ -231,7 +265,7 @@ export default function RegisterScreen() {
               </View>
               {errors.agreed ? (
                 <View className="flex-row items-center" style={{ gap: spacing.sm }}>
-                  <Icon name="alert" size={14} color="danger" />
+                  <Icon name="alert" size={14} color={colors.danger} />
                   <AppText variant="caption" color={colors.danger}>
                     {errors.agreed}
                   </AppText>
@@ -241,7 +275,7 @@ export default function RegisterScreen() {
 
             {formError ? (
               <View className="flex-row items-center" style={{ gap: spacing.sm }}>
-                <Icon name="alert" size={15} color="danger" />
+                <Icon name="alert" size={15} color={colors.danger} />
                 <AppText variant="caption" color={colors.danger} style={{ flex: 1 }}>
                   {formError}
                 </AppText>
@@ -249,11 +283,11 @@ export default function RegisterScreen() {
             ) : null}
           </View>
 
-          {/* Primary action — sits directly under the form so it stays visible above the keyboard */}
-          <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
+          {/* Primary action + social */}
+          <MotiView {...ENTER.actions} style={{ marginTop: spacing.lg, gap: spacing.md }}>
             <PillButton
               label={loading ? 'Creating account…' : 'Create account'}
-              variant="black"
+              variant="primary"
               size="lg"
               fullWidth
               disabled={loading}
@@ -261,14 +295,26 @@ export default function RegisterScreen() {
             />
             <AppText
               variant="caption"
-              color={colors.graphite}
-              style={{ textAlign: 'center' }}
+              color={colors.muted}
+              style={{ textAlign: 'center', lineHeight: 18 }}
             >
-              By continuing you agree to our Terms and Privacy Policy.
+              By continuing you agree to our Terms &amp; Privacy Policy.
             </AppText>
 
+            <GoogleSignInButton
+              disabled={loading}
+              onError={(msg) => setFormError(msg || null)}
+              onSuccess={() => router.replace('/(tabs)')}
+            />
+          </MotiView>
+
+          {/* Footer */}
+          <MotiView
+            {...ENTER.footer}
+            style={{ marginTop: 'auto', paddingTop: spacing.xl }}
+          >
             <View className="flex-row items-center justify-center" style={{ gap: spacing.xs }}>
-              <AppText variant="caption" color={colors.graphite}>
+              <AppText variant="caption" color={colors.muted}>
                 Already have an account?
               </AppText>
               <TextLink
@@ -277,7 +323,7 @@ export default function RegisterScreen() {
                 onPress={() => router.replace('/(auth)/login')}
               />
             </View>
-          </View>
+          </MotiView>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

@@ -12,28 +12,10 @@
  * screens; these aliases exist only as a temporary compile shim.
  */
 
-// --- The ONLY real brand assets Steep keeps ---------------------------------
-export { default as KivoMarkSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as LogoPrimarySvg } from "../../assets/brand/logo-primary.svg";
-
-// --- Legacy decorative SVG names → re-pointed at the Kivo mark (no doodles) --
-export { default as DiscordSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as TwitterSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as LinkedInSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as MediumSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as IconAddSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as IconMessageAddSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as ArrowLeftSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as ArrowRightSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as VectorMark1Svg } from "../../assets/brand/kivo-mark.svg";
-export { default as VectorMark2Svg } from "../../assets/brand/kivo-mark.svg";
-export { default as UnionShapeSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as WaveDecorationSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as FrameBadgeSvg } from "../../assets/brand/kivo-mark.svg";
-export { default as FrameBadge2Svg } from "../../assets/brand/kivo-mark.svg";
-export { default as GroupIllustration53Svg } from "../../assets/brand/kivo-mark.svg";
-export { default as GroupIllustration361Svg } from "../../assets/brand/kivo-mark.svg";
-export { default as GroupIllustration431Svg } from "../../assets/brand/kivo-mark.svg";
+// NOTE: the old brand SVGs (kivo-mark.svg / logo-primary.svg) have been removed.
+// The official mark + lockup are PNGs now (assets/brand/kivo-mark.png +
+// kivo-logo.png) — render them via `BrandLogo` / `KIVO_MARK`. The legacy SVG
+// component exports were unused (nothing rendered them), so they are gone.
 
 // --- Legacy raster maps → re-pointed at the Kivo logo (no avatars/mockups) ---
 const kivoLogo = require("../../assets/brand/kivo-logo.png");

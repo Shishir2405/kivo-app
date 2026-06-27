@@ -101,7 +101,8 @@ import {
   type Icon as PhosphorIcon,
   type IconWeight,
 } from 'phosphor-react-native';
-import { colors, type ColorToken } from '@/theme/tokens';
+import { type ColorToken, type AppColors } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 
 /**
  * The Steep icon registry — FEW, small, thin-outline, monochrome.
@@ -242,11 +243,11 @@ export type IconName = keyof typeof REGISTRY;
 export type IconProps = {
   /** Semantic icon name from the curated registry. */
   name: IconName;
-  /** Glyph size in px (square). Steep default ~17. */
+  /** Glyph size in px (square). Kivo default ~18. */
   size?: number;
-  /** A color token (e.g. 'ink') OR any hex/rgba string. Defaults to Graphite. */
+  /** A color token (e.g. 'ink', 'primary', 'muted') OR any hex/rgba string. Defaults to muted. */
   color?: ColorToken | (string & {});
-  /** Phosphor weight. Steep default is 'light' (thin outline). */
+  /** Phosphor weight. Kivo default is 'regular' (clean outline). */
   weight?: IconWeight;
   /**
    * @deprecated Legacy lucide prop. Mapped onto phosphor `weight`:
@@ -260,25 +261,31 @@ export type IconProps = {
   fill?: ColorToken | (string & {});
 };
 
-function resolveColor(value: string): string {
-  return value in colors ? colors[value as ColorToken] : value;
+function resolveColor(value: string, palette: AppColors): string {
+  // Legacy 'white'/'paper' on icons means "on a filled chip" → use the
+  // inverted ink so it stays light on terracotta/ink fills in BOTH themes.
+  if (value === 'white' || value === 'paper') return palette.inkInverted;
+  return value in palette ? palette[value as ColorToken] : value;
 }
 
 /**
- * The single icon wrapper for the whole app (Steep).
+ * The single icon wrapper for the whole app (Kivo).
  *
- * Renders a curated phosphor-react-native glyph at the LIGHT weight — small,
- * thin, monochrome. Always reach for this instead of an emoji or a raw import
- * so the icon language stays consistent and centrally swappable.
+ * Renders a curated phosphor-react-native glyph — clean outline, small, calm.
+ * Color tokens resolve against the ACTIVE theme palette (dark-aware); pass a
+ * hex/rgba string for anything off-palette (e.g. a wash accent). Always reach
+ * for this instead of an emoji or a raw import so the icon language stays
+ * consistent and centrally swappable.
  */
 export function Icon({
   name,
-  size = 17,
-  color = 'graphite',
+  size = 18,
+  color = 'muted',
   weight,
   strokeWidth,
   fill,
 }: IconProps) {
+  const { colors } = useTheme();
   const Glyph = REGISTRY[name];
 
   let resolvedWeight: IconWeight =
@@ -287,9 +294,9 @@ export function Icon({
       ? 'fill'
       : strokeWidth != null && strokeWidth >= 2.4
         ? 'regular'
-        : 'light');
+        : 'regular');
 
-  return <Glyph size={size} color={resolveColor(color)} weight={resolvedWeight} />;
+  return <Glyph size={size} color={resolveColor(color, colors)} weight={resolvedWeight} />;
 }
 
 export default Icon;

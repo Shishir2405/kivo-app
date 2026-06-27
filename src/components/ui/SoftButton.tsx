@@ -7,18 +7,19 @@ import {
   type ViewStyle,
   type PressableProps,
 } from 'react-native';
-import { colors, fonts, radii, pressOpacity } from '@/theme/tokens';
+import { fonts, radii, pressOpacity } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 
-export type SoftButtonVariant = 'neutral' | 'yellow' | 'carbon';
+export type SoftButtonVariant = 'neutral' | 'yellow' | 'carbon' | 'primary';
 
 export type SoftButtonProps = {
   label?: string;
   children?: React.ReactNode;
   onPress?: PressableProps['onPress'];
   /**
-   * Steep mapping:
-   *  - 'carbon' / 'yellow' → the ONE filled INK pill (primary CTA).
-   *  - 'neutral' → a TEXT LINK (Ink text, no bg/border) for secondary actions.
+   * Kivo mapping:
+   *  - 'carbon' / 'yellow' / 'primary' → the ONE filled TERRACOTTA pill (CTA).
+   *  - 'neutral' → a TEXT LINK (terracotta text, no bg/border) for secondary.
    */
   variant?: SoftButtonVariant;
   icon?: React.ReactNode;
@@ -29,26 +30,23 @@ export type SoftButtonProps = {
   size?: 'sm' | 'md' | 'lg';
 };
 
-// Compact Steep padding — tight, small ~12–13 label.
+// Kivo padding.
 const PAD = {
-  sm: { py: 6, px: 13, font: 12 },
-  md: { py: 8, px: 16, font: 13 },
-  lg: { py: 10, px: 20, font: 14 },
+  sm: { py: 9, px: 16, font: 13 },
+  md: { py: 12, px: 20, font: 14 },
+  lg: { py: 14, px: 24, font: 15 },
 };
 
 /**
- * The Steep button.
- *
- * There is exactly ONE filled button style: an Ink pill (Ink bg, white text,
- * small label, tight padding). Both 'carbon' and 'yellow' map to it. The
- * 'neutral' variant renders a TEXT LINK — secondary actions are links, not
- * extra filled/ghost buttons. One filled Ink CTA per screen.
+ * The Kivo button. There is exactly ONE filled style: a terracotta pill.
+ * 'carbon'/'yellow'/'primary' map to it. 'neutral' renders a TEXT LINK —
+ * secondary actions are links, not extra filled/ghost buttons. Theme-aware.
  */
 export function SoftButton({
   label,
   children,
   onPress,
-  variant = 'carbon',
+  variant = 'primary',
   icon,
   fullWidth,
   disabled,
@@ -56,6 +54,7 @@ export function SoftButton({
   style,
   size = 'md',
 }: SoftButtonProps) {
+  const { colors } = useTheme();
   const pad = PAD[size];
   const isLink = variant === 'neutral';
 
@@ -74,12 +73,16 @@ export function SoftButton({
         ]}
       >
         <View
-          className="flex-row items-center"
-          style={{ gap: icon ? 6 : 0, justifyContent: fullWidth ? 'center' : 'flex-start' }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: icon ? 6 : 0,
+            justifyContent: fullWidth ? 'center' : 'flex-start',
+          }}
         >
           {icon}
           {label ? (
-            <Text style={{ fontFamily: fonts.sansMedium, fontSize: pad.font, color: colors.ink }}>
+            <Text style={{ fontFamily: fonts.sansSemibold, fontSize: pad.font, color: colors.primary }}>
               {label}
             </Text>
           ) : (
@@ -90,28 +93,38 @@ export function SoftButton({
     );
   }
 
-  // The single filled Ink pill. Hover (web): faint lift via opacity.
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed, hovered }) => [
+      style={({ pressed }) => [
         {
           borderRadius: radius,
-          backgroundColor: colors.ink,
-          opacity: pressOpacity({ pressed }, { disabled, solid: true }) * (hovered && !pressed ? 0.94 : 1),
+          backgroundColor: pressed && !disabled ? colors.primaryPressed : colors.primary,
+          opacity: pressOpacity({ pressed }, { disabled, solid: true }),
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: disabled ? 0 : 0.45,
+          shadowRadius: 18,
+          elevation: disabled ? 0 : 4,
         },
         style,
       ]}
     >
       <View
-        className="flex-row items-center justify-center"
-        style={{ paddingVertical: pad.py, paddingHorizontal: pad.px, gap: icon ? 6 : 0 }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: pad.py,
+          paddingHorizontal: pad.px,
+          gap: icon ? 7 : 0,
+        }}
       >
         {icon}
         {label ? (
-          <Text style={{ fontFamily: fonts.sansMedium, fontSize: pad.font, color: colors.white }}>
+          <Text style={{ fontFamily: fonts.sansSemibold, fontSize: pad.font, color: colors.inkInverted }}>
             {label}
           </Text>
         ) : (

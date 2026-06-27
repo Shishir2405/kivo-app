@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type ProgressRingProps = {
   /** Completion fraction 0..1. Clamped. */
@@ -10,7 +10,7 @@ export type ProgressRingProps = {
   size?: number;
   /** Stroke thickness in px. */
   stroke?: number;
-  /** Progress arc color (hex or rgba). Defaults to highlighter-yellow. */
+  /** Progress arc color (hex or rgba). Defaults to the terracotta primary. */
   color?: string;
   /** Track (unfilled) color. */
   trackColor?: string;
@@ -31,11 +31,15 @@ export function ProgressRing({
   progress,
   size = 56,
   stroke = 6,
-  color = colors.highlighter,
-  trackColor = 'rgba(174,174,192,0.28)',
+  color,
+  trackColor,
   children,
   style,
 }: ProgressRingProps) {
+  const { colors, isDark } = useTheme();
+  const arcColor = color ?? colors.primary;
+  const track =
+    trackColor ?? (isDark ? 'rgba(255,255,255,0.10)' : 'rgba(33,28,23,0.08)');
   const clamped = Math.max(0, Math.min(1, progress));
   const r = (size - stroke) / 2;
   const cx = size / 2;
@@ -63,7 +67,7 @@ export function ProgressRing({
           cx={cx}
           cy={cy}
           r={r}
-          stroke={trackColor}
+          stroke={track}
           strokeWidth={stroke}
           fill="none"
         />
@@ -72,7 +76,7 @@ export function ProgressRing({
             cx={cx}
             cy={cy}
             r={r}
-            stroke={color}
+            stroke={arcColor}
             strokeWidth={stroke}
             fill="none"
             strokeLinecap="round"

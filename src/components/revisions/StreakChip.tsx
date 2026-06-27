@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { Icon } from '@/components/ui';
-import { colors, fonts, radii, hairline } from '@/theme/tokens';
+import { fonts, radii } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type StreakChipProps = {
   count: number;
@@ -10,32 +11,36 @@ export type StreakChipProps = {
 };
 
 /**
- * A flat Steep streak pill for the revisions header. White surface, 1px Dove
- * hairline, a small thin flame glyph in Rust (the one warm voice) and the count
- * in Ink. No neumorphism, no fill, no yellow.
+ * A flat Kivo streak pill for the revisions header. A soft peach wash with a
+ * matching hairline reads as a warm little achievement badge; the flame glyph
+ * and count take the peach accent, the label stays muted. Flat — no fill, no
+ * neumorphism. Fully dark-aware.
  */
 export function StreakChip({ count, label = 'day streak', style }: StreakChipProps) {
+  const { colors, toneStyle } = useTheme();
+  const peach = toneStyle('peach');
   return (
     <View
       className="flex-row items-center self-start"
       style={[
         {
-          backgroundColor: colors.white,
+          backgroundColor: peach.bg,
           borderRadius: radii.pill,
           paddingVertical: 6,
           paddingHorizontal: 11,
           gap: 6,
-          ...hairline,
+          borderWidth: 1,
+          borderColor: peach.border,
         },
         style,
       ]}
     >
-      <Icon name="flame" size={14} color="rust" />
+      <Icon name="flame" size={14} color={peach.accent} />
       <View className="flex-row items-baseline" style={{ gap: 4 }}>
         <Text style={{ fontFamily: fonts.sansMedium, fontSize: 14, color: colors.ink, letterSpacing: -0.2 }}>
           {count}
         </Text>
-        <Text style={{ fontFamily: fonts.sans, fontSize: 11, color: colors.graphite, letterSpacing: -0.1 }}>
+        <Text style={{ fontFamily: fonts.sans, fontSize: 11, color: colors.muted, letterSpacing: -0.1 }}>
           {label}
         </Text>
       </View>

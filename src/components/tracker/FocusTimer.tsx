@@ -6,7 +6,8 @@ import { SegmentedTabs, type SegmentedOption } from '@/components/ui/SegmentedTa
 import { AppText } from '@/components/ui/Typography';
 import { Icon } from '@/components/ui/Icon';
 import { FocusTimerRing } from '@/components/tracker/FocusTimerRing';
-import { colors, spacing } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 type TimerMode = 'pomodoro' | 'deep';
 
@@ -45,6 +46,7 @@ export type FocusTimerProps = {
  * completion the parent is notified so it can log a study-session.
  */
 export function FocusTimer({ focusedTodayMinutes, onSessionComplete }: FocusTimerProps) {
+  const { colors, accentForTone } = useTheme();
   const [mode, setMode] = useState<TimerMode>('pomodoro');
   const [running, setRunning] = useState(false);
   const totalSeconds = MODES[mode].minutes * 60;
@@ -106,7 +108,7 @@ export function FocusTimer({ focusedTodayMinutes, onSessionComplete }: FocusTime
   const started = remaining < totalSeconds && !finished;
 
   return (
-    <Card padding={spacing.lg}>
+    <Card tone="peach" padding={spacing.lg}>
       <SegmentedTabs options={MODE_OPTIONS} value={mode} onChange={switchMode} />
 
       <View style={{ alignItems: 'center', marginTop: spacing.xl, marginBottom: spacing.lg }}>
@@ -148,7 +150,7 @@ export function FocusTimer({ focusedTodayMinutes, onSessionComplete }: FocusTime
           className="flex-row items-center justify-center"
           style={{ gap: 6, marginTop: spacing.md }}
         >
-          <Icon name="zap" size={13} color="graphite" />
+          <Icon name="zap" size={13} color={accentForTone('peach')} weight="fill" />
           <AppText variant="caption" color={colors.graphite}>
             {focusedTodayMinutes} min focused today
           </AppText>

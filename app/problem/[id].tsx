@@ -15,19 +15,21 @@ import { ScreenHeader } from '@/components/dsa/ScreenHeader';
 import { SectionHeading } from '@/components/dsa/SectionHeading';
 import { InfoTile } from '@/components/dsa/InfoTile';
 import { JournalField } from '@/components/dsa/JournalField';
+import { ApproachCard } from '@/components/dsa/ApproachCard';
 import { LoadingState, ErrorState, EmptyState } from '@/components/dsa/StateViews';
 import {
   DIFFICULTY_ICON,
   DIFFICULTY_LABEL,
   DIFFICULTY_TONE,
-  STATUS_COLOR,
+  statusColor,
   STATUS_ICON,
   STATUS_LABEL,
   STATUS_TONE,
   formatShortDate,
 } from '@/components/dsa/dsaMeta';
 import { useDsaProblems, useDsaTopics } from '@/hooks/api';
-import { colors, pressOpacity } from '@/theme/tokens';
+import { motion, pressOpacity } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import type { Problem, ProblemStatus } from '@/types/models';
 
 /* ================================================================== */
@@ -38,17 +40,20 @@ type Journal = {
   approach: string;
   mistakes: string;
   optimal: string;
-  edgeCases: string;
+  interviewTip: string;
   timeComplexity: string;
   spaceComplexity: string;
 };
 
 function seedJournal(problem: Problem): Journal {
   return {
-    approach: problem.approach ?? '',
+    // problem.approach is surfaced in the dedicated dark Approach card above the
+    // journal, so the editable "Initial approach" entry starts as a clean
+    // capture surface (matches the design's coding-journal).
+    approach: '',
     mistakes: '',
     optimal: '',
-    edgeCases: '',
+    interviewTip: '',
     timeComplexity: problem.timeComplexity ?? '',
     spaceComplexity: problem.spaceComplexity ?? '',
   };
@@ -73,6 +78,7 @@ export default function ProblemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors, accentForTone } = useTheme();
 
   const problemsQuery = useDsaProblems();
   const topicsQuery = useDsaTopics();
@@ -92,7 +98,7 @@ export default function ProblemDetailScreen() {
     approach: '',
     mistakes: '',
     optimal: '',
-    edgeCases: '',
+    interviewTip: '',
     timeComplexity: '',
     spaceComplexity: '',
   });
@@ -117,7 +123,7 @@ export default function ProblemDetailScreen() {
   /* ---- Loading ---- */
   if (problemsQuery.isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 16 }}>
           <ScreenHeader eyebrow="Problem" title="Loading…" onBack={handleBack} style={{ marginBottom: 20 }} />
           <LoadingState label="Loading problem" />
@@ -129,7 +135,7 @@ export default function ProblemDetailScreen() {
   /* ---- Error ---- */
   if (problemsQuery.isError) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 16 }}>
           <ScreenHeader eyebrow="Problem" title="Couldn't load" onBack={handleBack} style={{ marginBottom: 20 }} />
           <ErrorState
@@ -145,7 +151,7 @@ export default function ProblemDetailScreen() {
   /* ---- Not found ---- */
   if (!problem) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 16 }}>
           <ScreenHeader eyebrow="Problem" title="Not found" onBack={handleBack} style={{ marginBottom: 20 }} />
           <EmptyState
@@ -172,7 +178,7 @@ export default function ProblemDetailScreen() {
   const platform = problem.platform ?? (problem.source ?? 'Practice').split(' ')[0];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -197,7 +203,7 @@ export default function ProblemDetailScreen() {
               <Icon
                 name="bookmark"
                 size={20}
-                color={bookmarked ? 'rust' : 'graphite'}
+                color={bookmarked ? 'primary' : 'muted'}
                 weight={bookmarked ? 'fill' : 'light'}
               />
             </Pressable>
@@ -209,17 +215,17 @@ export default function ProblemDetailScreen() {
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 320 }}
+          transition={{ type: 'timing', duration: motion.duration.transition }}
         >
           <SoftCard radius={18} padding={16} style={{ marginBottom: 16 }}>
             <View className="flex-row items-center" style={{ gap: 10 }}>
-              <Icon name={STATUS_ICON[status]} size={18} color={STATUS_COLOR[status]} />
+              <Icon name={STATUS_ICON[status]} size={18} color={statusColor(status, colors, accentForTone)} />
               <View style={{ flex: 1 }}>
                 {problem.source ? (
                   <AppText
                     variant="caption"
                     weight="medium"
-                    color={colors.graphite}
+                    color={colors.muted}
                     style={{ fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase' }}
                   >
                     {problem.source}
@@ -236,7 +242,7 @@ export default function ProblemDetailScreen() {
                 label={DIFFICULTY_LABEL[problem.difficulty]}
                 tone={DIFFICULTY_TONE[problem.difficulty]}
                 size="sm"
-                icon={<Icon name={DIFFICULTY_ICON[problem.difficulty]} size={11} color={colors.graphite} />}
+                icon={<Icon name={DIFFICULTY_ICON[problem.difficulty]} size={11} color={colors.muted} />}
               />
               <Tag label={STATUS_LABEL[status]} tone={STATUS_TONE[status]} size="sm" />
               {(problem.tags ?? []).map((t) => (
@@ -258,6 +264,14 @@ export default function ProblemDetailScreen() {
           <InfoTile icon="code" value={platform} label="Platform" style={{ flex: 1 }} />
         </View>
 
+        {/* ---------- Approach snapshot (dark code card) ---------- */}
+        {problem.approach ? (
+          <View style={{ marginBottom: 24 }}>
+            <SectionHeading icon="lightbulb" title="Approach" />
+            <ApproachCard approach={problem.approach} />
+          </View>
+        ) : null}
+
         {/* ---------- Status selector (segmented) ---------- */}
         <SectionHeading icon="flag" title="Status" />
         <SegmentedTabs
@@ -276,35 +290,43 @@ export default function ProblemDetailScreen() {
         />
 
         <JournalField
+          key="journal-approach"
           icon="lightbulb"
-          title="Approach"
+          title="Initial approach"
+          accent={accentForTone('peach')}
           body={journal.approach}
           onChangeBody={patchJournal('approach')}
           placeholder="How did you crack it? Name the pattern."
           style={{ marginBottom: 18 }}
         />
         <JournalField
+          key="journal-mistakes"
           icon="alert"
-          title="Mistakes"
+          title="Mistakes made"
+          accent={accentForTone('butter')}
           body={journal.mistakes}
           onChangeBody={patchJournal('mistakes')}
           placeholder="Where did you slip — TLE, off-by-one, wrong invariant?"
           style={{ marginBottom: 18 }}
         />
         <JournalField
+          key="journal-optimal"
           icon="sparkles"
           title="Optimal solution"
+          accent={accentForTone('mint')}
           body={journal.optimal}
           onChangeBody={patchJournal('optimal')}
           placeholder="The clean, intended approach."
           style={{ marginBottom: 18 }}
         />
         <JournalField
-          icon="target"
-          title="Edge cases"
-          body={journal.edgeCases}
-          onChangeBody={patchJournal('edgeCases')}
-          placeholder="Empty input, duplicates, overflow…"
+          key="journal-interview-tip"
+          icon="brain"
+          title="Interview tip"
+          accent={accentForTone('lavender')}
+          body={journal.interviewTip}
+          onChangeBody={patchJournal('interviewTip')}
+          placeholder="What to mention out loud — trade-offs, follow-ups, the name-drop."
           style={{ marginBottom: 24 }}
         />
 
@@ -313,6 +335,7 @@ export default function ProblemDetailScreen() {
         <View className="flex-row" style={{ gap: 10, marginBottom: 24 }}>
           <View style={{ flex: 1 }}>
             <SoftInput
+              key="problem-time-complexity"
               label="Time"
               value={journal.timeComplexity}
               onChangeText={patchJournal('timeComplexity')}
@@ -323,6 +346,7 @@ export default function ProblemDetailScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <SoftInput
+              key="problem-space-complexity"
               label="Space"
               value={journal.spaceComplexity}
               onChangeText={patchJournal('spaceComplexity')}
@@ -332,6 +356,19 @@ export default function ProblemDetailScreen() {
             />
           </View>
         </View>
+
+        {/* ---------- Spaced-repetition note (mint wash) ---------- */}
+        <SoftCard tone="mint" radius={13} padding={14} style={{ marginBottom: 24 }}>
+          {({ accent }) => (
+            <View className="flex-row items-center" style={{ gap: 10 }}>
+              <Icon name="repeat" size={18} color={accent} />
+              <AppText variant="caption" color={colors.ash} style={{ flex: 1, lineHeight: 17 }}>
+                Mark this solved and the first revision is auto-scheduled — the
+                spacing ladder adapts as you recall it.
+              </AppText>
+            </View>
+          )}
+        </SoftCard>
 
         {/* ---------- Notes ---------- */}
         {problem.notes ? (

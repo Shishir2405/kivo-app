@@ -15,6 +15,7 @@
  */
 import React, { useMemo, useState, useCallback } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
+import { MotiView } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -26,13 +27,14 @@ import { Icon } from '@/components/ui/Icon';
 import { Tag } from '@/components/ui/Tag';
 import { AppHeader } from '@/components/ui/AppHeader';
 
-import { colors, radii, interaction, pressOpacity } from '@/theme/tokens';
+import { useTheme, motion } from '@/theme';
+import { radii, interaction, pressOpacity } from '@/theme/tokens';
 import { mockCalendarEvents } from '@/data/mock';
 import type { CalendarEvent, CalendarEventType } from '@/types/models';
 
 import { EventRow } from '@/components/calendar/EventRow';
 import {
-  ACCENT_DOT,
+  accentDot,
   TYPE_META,
   TYPE_ORDER,
   TODAY_KEY,
@@ -79,6 +81,7 @@ function pad(n: number): string {
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const [view, setView] = useState<ViewMode>('month');
   const [filter, setFilter] = useState<TypeFilter>(null);
@@ -147,7 +150,7 @@ export default function CalendarScreen() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
         <AppHeader
           onBack={() => router.back()}
@@ -175,7 +178,12 @@ export default function CalendarScreen() {
         }}
       >
         {/* Header */}
-        <View style={{ marginBottom: 16 }}>
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition }}
+          style={{ marginBottom: 16 }}
+        >
           <AppText variant="display" display weight="semibold">
             Calendar
           </AppText>
@@ -184,7 +192,7 @@ export default function CalendarScreen() {
               ? `${todaysEvents.length} today · ${totalUpcoming} upcoming`
               : `Nothing today · ${totalUpcoming} upcoming`}
           </AppText>
-        </View>
+        </MotiView>
 
         {/* View switch */}
         <SegmentedTabs<ViewMode> options={VIEW_OPTIONS} value={view} onChange={setView} style={{ marginBottom: 12 }} />
@@ -252,6 +260,7 @@ function MonthView({
   onStep: (dir: -1 | 1) => void;
   selectedEvents: CalendarEvent[];
 }) {
+  const { colors } = useTheme();
   return (
     <View>
       <SoftCard radius={radii.card} padding={14}>
@@ -282,7 +291,7 @@ function MonthView({
         <View className="flex-row" style={{ marginBottom: 4 }}>
           {WEEKDAY_INITIALS.map((d, i) => (
             <View key={`${d}-${i}`} style={{ flex: 1, alignItems: 'center' }}>
-              <AppText variant="caption" color={colors.graphite}>
+              <AppText variant="caption" color={colors.muted}>
                 {d}
               </AppText>
             </View>
@@ -321,6 +330,7 @@ function DayCell({
   selected: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   const { isToday, inMonth, day } = cell;
   const dotAccents = events.slice(0, 3).map((e) => e.accent as Accent);
   const overflow = events.length > 3;
@@ -339,15 +349,15 @@ function DayCell({
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: 10,
-          backgroundColor: isToday ? colors.ink : selected ? colors.fog : 'transparent',
+          backgroundColor: isToday ? colors.primary : selected ? colors.surfaceAlt : 'transparent',
           borderWidth: selected && !isToday ? 1 : 0,
-          borderColor: colors.dove,
+          borderColor: colors.hairline,
         }}
       >
         <AppText
           variant="body"
           weight={isToday || selected ? 'medium' : 'regular'}
-          color={isToday ? colors.white : inMonth ? colors.ink : colors.dove}
+          color={isToday ? colors.inkInverted : inMonth ? colors.ink : colors.muted}
         >
           {day}
         </AppText>
@@ -361,12 +371,12 @@ function DayCell({
                 width: 4,
                 height: 4,
                 borderRadius: 999,
-                backgroundColor: isToday ? colors.white : ACCENT_DOT[accent],
+                backgroundColor: isToday ? colors.inkInverted : accentDot(accent, colors),
               }}
             />
           ))}
           {overflow ? (
-            <AppText variant="caption" color={isToday ? colors.white : colors.graphite} style={{ fontSize: 8, lineHeight: 8 }}>
+            <AppText variant="caption" color={isToday ? colors.inkInverted : colors.muted} style={{ fontSize: 8, lineHeight: 8 }}>
               +
             </AppText>
           ) : null}
@@ -469,6 +479,7 @@ function WeekView({
 }
 
 function WeekDayCard({ dayKey, events }: { dayKey: string; events: CalendarEvent[] }) {
+  const { colors } = useTheme();
   const today = dayKey === TODAY_KEY;
   const p = parseKey(dayKey);
   const wd = new Date(p.y, p.m0, p.d).getDay();
@@ -485,15 +496,15 @@ function WeekDayCard({ dayKey, events }: { dayKey: string; events: CalendarEvent
             borderRadius: radii.sm,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: today ? colors.ink : colors.fog,
+            backgroundColor: today ? colors.primary : colors.surfaceAlt,
             borderWidth: today ? 0 : 1,
-            borderColor: colors.dove,
+            borderColor: colors.hairline,
           }}
         >
-          <AppText variant="caption" color={today ? colors.white : colors.graphite} style={{ textTransform: 'uppercase' }}>
+          <AppText variant="caption" color={today ? colors.inkInverted : colors.muted} style={{ textTransform: 'uppercase' }}>
             {wdLabel}
           </AppText>
-          <AppText variant="heading" display weight="medium" color={today ? colors.white : colors.ink}>
+          <AppText variant="heading" display weight="medium" color={today ? colors.inkInverted : colors.ink}>
             {p.d}
           </AppText>
         </View>
@@ -501,7 +512,7 @@ function WeekDayCard({ dayKey, events }: { dayKey: string; events: CalendarEvent
         {/* Events */}
         <View style={{ flex: 1 }}>
           {events.length === 0 ? (
-            <AppText variant="caption" color={colors.graphite}>
+            <AppText variant="caption" color={colors.muted}>
               No events
             </AppText>
           ) : (
@@ -518,23 +529,24 @@ function WeekDayCard({ dayKey, events }: { dayKey: string; events: CalendarEvent
 }
 
 function WeekEventLine({ event }: { event: CalendarEvent }) {
+  const { colors } = useTheme();
   const accent = event.accent as Accent;
   const done = !!event.done;
   return (
     <View className="flex-row items-center" style={{ gap: 8 }}>
       <View
-        style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: done ? colors.dove : ACCENT_DOT[accent] }}
+        style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: done ? colors.hairline : accentDot(accent, colors) }}
       />
       <AppText
         variant="body"
         weight="regular"
-        color={done ? colors.graphite : colors.ink}
+        color={done ? colors.muted : colors.ink}
         numberOfLines={1}
         style={{ flex: 1 }}
       >
         {event.title}
       </AppText>
-      <AppText variant="caption" color={colors.graphite}>
+      <AppText variant="caption" color={colors.muted}>
         {event.time ? timeLabel(event.time) : 'All day'}
       </AppText>
     </View>
@@ -546,6 +558,7 @@ function WeekEventLine({ event }: { event: CalendarEvent }) {
 /* ================================================================== */
 
 function AgendaView({ sections }: { sections: ReturnType<typeof buildAgenda> }) {
+  const { colors } = useTheme();
   if (sections.length === 0) {
     return <CalendarEmpty title="No events match" body="Try a different filter — your study events will appear here." />;
   }
@@ -556,10 +569,10 @@ function AgendaView({ sections }: { sections: ReturnType<typeof buildAgenda> }) 
       {sections.map((section) => (
         <View key={section.key} style={{ marginBottom: 20 }}>
           <View className="flex-row items-center" style={{ gap: 8, marginBottom: 12 }}>
-            <AppText variant="caption" color={colors.graphite} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+            <AppText variant="caption" color={colors.muted} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
               {section.title}
             </AppText>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.fog }} />
+            <View style={{ flex: 1, height: 1, backgroundColor: colors.hairline }} />
             <Tag
               label={`${section.days.reduce((n, d) => n + d.events.length, 0)}`}
               tone={section.key === 'today' ? 'ink' : 'neutral'}
@@ -570,7 +583,7 @@ function AgendaView({ sections }: { sections: ReturnType<typeof buildAgenda> }) 
           {section.days.map((dayGroup) => (
             <View key={dayGroup.key} style={{ marginBottom: 12 }}>
               {section.key !== 'today' ? (
-                <AppText variant="caption" color={colors.graphite} style={{ marginBottom: 8 }}>
+                <AppText variant="caption" color={colors.muted} style={{ marginBottom: 8 }}>
                   {longDayLabel(dayGroup.key)}
                 </AppText>
               ) : null}
@@ -592,10 +605,11 @@ function AgendaView({ sections }: { sections: ReturnType<typeof buildAgenda> }) 
 /* ================================================================== */
 
 function CalendarEmpty({ title, body }: { title: string; body: string }) {
+  const { colors } = useTheme();
   return (
     <SoftCard variant="inset" radius={radii.card} padding={22}>
       <View className="items-center" style={{ gap: 8 }}>
-        <Icon name="calendar" size={22} color="graphite" />
+        <Icon name="calendar" size={22} color={colors.muted} />
         <AppText variant="subheading" weight="medium">
           {title}
         </AppText>

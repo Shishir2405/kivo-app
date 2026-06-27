@@ -1,19 +1,21 @@
 /**
- * Resource library (STEEP).
+ * Resource library (Kivo).
  *
  * A saved-links workspace wired to the live `/resources` endpoint via
- * `useResources()`. Editorial + flat: serif title, search, a flat-Chip type
- * filter, and white Cards (Dove hairline + one subtle shadow). Tapping a card
- * opens the URL; a small thin star toggles a favorite locally. Loading / error /
- * empty states come from the query flags so a failed request never crashes.
+ * `useResources()`. Warm-editorial + flat: a count eyebrow + serif title, a
+ * search field, a flat-Chip type filter, and white Cards (hairline + one soft
+ * shadow) — each leads with a rounded wash icon tile colored to its type.
+ * Tapping a card opens the URL; a small star toggles a favorite locally. ONE
+ * terracotta CTA. Loading / error / empty states come from the query flags so a
+ * failed request never crashes. Fully theme-aware via useTheme() + entrance.
  *
- * Adding a resource is a local-only optimistic prepend (the create endpoint is
- * out of scope here) layered on top of the fetched list.
+ * Favoriting is a local-only optimistic override layered on the fetched list.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, ScrollView, Pressable, Linking, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Pressable, Linking, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { MotiView } from 'moti';
 
 import { AppText } from '@/components/ui/Typography';
 import { SoftCard, WarmCard, CoolCard } from '@/components/ui/SoftCard';
@@ -23,8 +25,10 @@ import { Tag } from '@/components/ui/Tag';
 import { TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { Skeleton, SkeletonText } from '@/components/ui/Skeleton';
 
-import { colors, radii, interaction, pressOpacity } from '@/theme/tokens';
+import { radii, motion, interaction, pressOpacity, toneAt } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { useResources } from '@/hooks/api';
 import type { Resource, ResourceType } from '@/types/models';
 
@@ -33,11 +37,11 @@ import type { Resource, ResourceType } from '@/types/models';
 /* ------------------------------------------------------------------ */
 
 const TYPE_META: Record<ResourceType, { label: string; icon: IconName }> = {
-  youtube: { label: 'YouTube', icon: 'play' },
+  youtube: { label: 'Video', icon: 'play' },
   playlist: { label: 'Playlist', icon: 'list' },
   article: { label: 'Article', icon: 'file-text' },
   documentation: { label: 'Docs', icon: 'book-open' },
-  github: { label: 'GitHub', icon: 'code-xml' },
+  github: { label: 'Repo', icon: 'code-xml' },
   pdf: { label: 'PDF', icon: 'book' },
   blog: { label: 'Blog', icon: 'pen' },
 };
@@ -68,77 +72,108 @@ function ResourceCard({
   resource,
   onOpen,
   onToggleFavorite,
+  toneIndex,
+  index,
 }: {
   resource: Resource;
   onOpen: (r: Resource) => void;
   onToggleFavorite: (id: string) => void;
+  toneIndex: number;
+  index: number;
 }) {
+  const { colors, toneStyle } = useTheme();
   const meta = TYPE_META[resource.type];
+  const ts = toneStyle(toneAt(toneIndex));
 
   return (
-    <Pressable
-      onPress={() => onOpen(resource)}
-      accessibilityRole="link"
-      accessibilityLabel={`Open ${resource.title}`}
-      style={({ pressed }) => ({
-        opacity: pressOpacity({ pressed }, { solid: true }),
-        transform: [{ scale: pressed ? interaction.pressScale : 1 }],
-      })}
+    <MotiView
+      from={{ opacity: 0, translateY: 8 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: motion.duration.transition, delay: Math.min(index, 8) * 45 }}
     >
-      <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 10 }}>
-        <View className="flex-row items-start" style={{ gap: 11 }}>
-          {/* Type glyph — small, thin, monochrome */}
-          <View style={{ marginTop: 1 }}>
-            <Icon name={resource.icon} size={17} color="graphite" />
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <View className="flex-row items-start justify-between" style={{ gap: 10 }}>
-              <AppText variant="subheading" weight="medium" numberOfLines={2} style={{ flex: 1 }}>
-                {resource.title}
-              </AppText>
-              <Pressable
-                onPress={() => onToggleFavorite(resource.id)}
-                hitSlop={10}
-                accessibilityRole="button"
-                accessibilityLabel={resource.favorite ? 'Unstar' : 'Star'}
-                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
-              >
-                <Icon name="star" size={17} color={resource.favorite ? 'rust' : 'dove'} weight={resource.favorite ? 'fill' : 'light'} />
-              </Pressable>
+      <Pressable
+        onPress={() => onOpen(resource)}
+        accessibilityRole="link"
+        accessibilityLabel={`Open ${resource.title}`}
+        style={({ pressed }) => ({
+          opacity: pressOpacity({ pressed }, { solid: true }),
+          transform: [{ scale: pressed ? interaction.pressScale : 1 }],
+        })}
+      >
+        <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 10 }}>
+          <View className="flex-row items-center" style={{ gap: 12 }}>
+            {/* Rounded wash icon tile, colored to its type */}
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 11,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: ts.bg,
+                borderWidth: 1,
+                borderColor: ts.border,
+              }}
+            >
+              <Icon name={resource.icon ?? meta.icon} size={18} color={ts.accent} />
             </View>
 
-            {/* Source / host */}
-            <AppText variant="caption" color={colors.graphite} numberOfLines={1} style={{ marginTop: 3 }}>
-              {resource.source ? `${resource.source} · ` : ''}
-              {hostOf(resource.url)}
-            </AppText>
+            <View style={{ flex: 1 }}>
+              <View className="flex-row items-start justify-between" style={{ gap: 10 }}>
+                <AppText
+                  variant="subheading"
+                  weight="semibold"
+                  color={colors.ink}
+                  numberOfLines={2}
+                  style={{ flex: 1 }}
+                >
+                  {resource.title}
+                </AppText>
+                <Pressable
+                  onPress={() => onToggleFavorite(resource.id)}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel={resource.favorite ? 'Unstar' : 'Star'}
+                  style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+                >
+                  <Icon
+                    name="star"
+                    size={17}
+                    color={resource.favorite ? colors.primary : colors.hairline}
+                    weight={resource.favorite ? 'fill' : 'regular'}
+                  />
+                </Pressable>
+              </View>
 
-            {resource.description ? (
-              <AppText variant="body" color={colors.ash} numberOfLines={2} style={{ marginTop: 7 }}>
-                {resource.description}
-              </AppText>
-            ) : null}
-
-            {/* Footer */}
-            <View className="flex-row items-center flex-wrap" style={{ gap: 8, marginTop: 10 }}>
-              <Tag label={resource.topic} tone="neutral" size="sm" />
-              <AppText variant="caption" color={colors.graphite}>
+              {/* Source / type / host */}
+              <AppText variant="caption" color={colors.muted} numberOfLines={1} style={{ marginTop: 3 }}>
+                {resource.source ? `${resource.source} · ` : ''}
                 {resource.duration ? `${meta.label} · ${resource.duration}` : meta.label}
               </AppText>
-              {resource.completed ? (
-                <View className="flex-row items-center" style={{ gap: 4 }}>
-                  <Icon name="check-circle" size={13} color="graphite" />
-                  <AppText variant="caption" color={colors.graphite}>
-                    Done
-                  </AppText>
-                </View>
-              ) : null}
             </View>
           </View>
-        </View>
-      </SoftCard>
-    </Pressable>
+
+          {resource.description ? (
+            <AppText variant="body" color={colors.muted} numberOfLines={2} style={{ marginTop: 10 }}>
+              {resource.description}
+            </AppText>
+          ) : null}
+
+          {/* Footer */}
+          <View className="flex-row items-center flex-wrap" style={{ gap: 8, marginTop: 10 }}>
+            <Tag label={resource.topic} tone="neutral" size="sm" />
+            {resource.completed ? (
+              <View className="flex-row items-center" style={{ gap: 4 }}>
+                <Icon name="check-circle" size={13} color={colors.success} weight="fill" />
+                <AppText variant="caption" color={colors.muted}>
+                  Done
+                </AppText>
+              </View>
+            ) : null}
+          </View>
+        </SoftCard>
+      </Pressable>
+    </MotiView>
   );
 }
 
@@ -150,21 +185,38 @@ function CenterNote({
   icon,
   title,
   body,
+  tone = 'lavender',
   action,
 }: {
   icon: IconName;
   title: string;
   body: string;
+  tone?: 'sky' | 'peach' | 'mint' | 'lavender' | 'default';
   action?: React.ReactNode;
 }) {
+  const { colors, toneStyle } = useTheme();
+  const t = toneStyle(tone);
   return (
-    <SoftCard variant="inset" radius={radii.cardLg} padding={24}>
-      <View style={{ alignItems: 'center', gap: 10 }}>
-        <Icon name={icon} size={22} color="graphite" />
-        <AppText variant="subheading" weight="medium" style={{ textAlign: 'center' }}>
+    <SoftCard variant="inset" radius={radii.cardLg} padding={28}>
+      <View style={{ alignItems: 'center', gap: 12 }}>
+        <View
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: t.bg,
+            borderWidth: 1,
+            borderColor: t.border,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon name={icon} size={28} color={t.accent} />
+        </View>
+        <AppText variant="heading" display weight="medium" color={colors.ink} style={{ textAlign: 'center' }}>
           {title}
         </AppText>
-        <AppText variant="body" color={colors.ash} style={{ textAlign: 'center', maxWidth: 280 }}>
+        <AppText variant="body" color={colors.muted} style={{ textAlign: 'center', maxWidth: 280 }}>
           {body}
         </AppText>
         {action ? <View style={{ marginTop: 4 }}>{action}</View> : null}
@@ -173,17 +225,40 @@ function CenterNote({
   );
 }
 
+function LoadingBlock() {
+  const { colors } = useTheme();
+  return (
+    <View>
+      {[0, 1, 2, 3].map((i) => (
+        <SoftCard key={i} radius={radii.card} padding={14} style={{ marginBottom: 10 }}>
+          <View className="flex-row items-center" style={{ gap: 12 }}>
+            <Skeleton width={40} height={40} radius={11} />
+            <View style={{ flex: 1 }}>
+              <Skeleton width="70%" height={14} radius={7} style={{ marginBottom: 6 }} />
+              <Skeleton width="45%" height={11} radius={6} />
+            </View>
+          </View>
+        </SoftCard>
+      ))}
+      <AppText variant="caption" color={colors.muted} style={{ textAlign: 'center', marginTop: 4 }}>
+        Loading your library…
+      </AppText>
+    </View>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Wash stat figure                                                    */
 /* ------------------------------------------------------------------ */
 
-function StatFigure({ value, label }: { value: number; label: string }) {
+function StatFigure({ value, label, accent }: { value: number; label: string; accent: string }) {
+  const { colors } = useTheme();
   return (
     <>
-      <AppText variant="headingLg" display weight="semibold">
+      <AppText variant="headingLg" display weight="semibold" color={accent}>
         {value}
       </AppText>
-      <AppText variant="caption" color={colors.ash} style={{ marginTop: 2 }}>
+      <AppText variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
         {label}
       </AppText>
     </>
@@ -197,6 +272,7 @@ function StatFigure({ value, label }: { value: number; label: string }) {
 export default function ResourcesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const { data, isLoading, isError, error, refetch, isFetching } = useResources();
 
@@ -208,9 +284,7 @@ export default function ResourcesScreen() {
 
   const resources = useMemo<Resource[]>(() => {
     const list = Array.isArray(data) ? data.filter(Boolean) : [];
-    return list.map((r) =>
-      r.id in favOverrides ? { ...r, favorite: favOverrides[r.id] } : r,
-    );
+    return list.map((r) => (r.id in favOverrides ? { ...r, favorite: favOverrides[r.id] } : r));
   }, [data, favOverrides]);
 
   const counts = useMemo(() => {
@@ -252,14 +326,17 @@ export default function ResourcesScreen() {
     });
   }, []);
 
-  const toggleFavorite = useCallback((id: string) => {
-    setFavOverrides((prev) => {
-      const current = prev[id];
-      const base = resources.find((r) => r.id === id)?.favorite ?? false;
-      const next = current === undefined ? !base : !current;
-      return { ...prev, [id]: next };
-    });
-  }, [resources]);
+  const toggleFavorite = useCallback(
+    (id: string) => {
+      setFavOverrides((prev) => {
+        const current = prev[id];
+        const base = resources.find((r) => r.id === id)?.favorite ?? false;
+        const next = current === undefined ? !base : !current;
+        return { ...prev, [id]: next };
+      });
+    },
+    [resources],
+  );
 
   const resetFilters = () => {
     setFilter('all');
@@ -279,7 +356,7 @@ export default function ResourcesScreen() {
   const hasFilters = filter !== 'all' || favoritesOnly || query.length > 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
         <AppHeader onBack={() => router.back()} />
       </View>
@@ -296,101 +373,98 @@ export default function ResourcesScreen() {
           <RefreshControl
             refreshing={isFetching && !isLoading}
             onRefresh={() => void refetch()}
-            tintColor={colors.graphite}
+            tintColor={colors.muted}
           />
         }
       >
         {/* Header */}
-        <View style={{ marginBottom: 16 }}>
-          <AppText variant="display" display weight="semibold">
-            Resources
-          </AppText>
-          <AppText variant="body" color={colors.ash} style={{ marginTop: 4 }}>
-            {isError ? 'Couldn’t load your library' : 'Saved links, playlists & docs'}
-          </AppText>
-        </View>
-
-        {/* Wash stat pair */}
-        {!isError ? (
-          <View className="flex-row" style={{ gap: 10, marginBottom: 16 }}>
-            <WarmCard style={{ flex: 1 }} padding={14}>
-              <StatFigure value={favoriteCount} label="Starred" />
-            </WarmCard>
-            <CoolCard style={{ flex: 1 }} padding={14}>
-              <StatFigure value={completedCount} label="Completed" />
-            </CoolCard>
+        <View>
+          <View style={{ marginBottom: 16 }}>
+            <AppText variant="caption" weight="medium" color={colors.muted}>
+              {isError ? 'Couldn’t load your library' : `${resources.length} saved`}
+            </AppText>
+            <AppText variant="display" display weight="semibold" color={colors.ink} style={{ marginTop: 2 }}>
+              Resources
+            </AppText>
           </View>
-        ) : null}
 
-        {/* Search */}
-        <SoftInput
-          placeholder="Search links, topics, sources…"
-          value={query}
-          onChangeText={setQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-          leading={<Icon name="search" size={16} color="graphite" />}
-          trailing={
-            query.length > 0 ? (
-              <Pressable
-                onPress={() => setQuery('')}
-                hitSlop={8}
-                accessibilityLabel="Clear search"
-                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
-              >
-                <Icon name="x-circle" size={16} color="graphite" />
-              </Pressable>
-            ) : undefined
-          }
-          containerStyle={{ marginBottom: 12 }}
-        />
+          {/* Wash stat pair */}
+          {!isError ? (
+            <View className="flex-row" style={{ gap: 10, marginBottom: 16 }}>
+              <WarmCard style={{ flex: 1 }} padding={14}>
+                {({ accent }) => <StatFigure value={favoriteCount} label="Starred" accent={accent} />}
+              </WarmCard>
+              <CoolCard style={{ flex: 1 }} padding={14}>
+                {({ accent }) => <StatFigure value={completedCount} label="Completed" accent={accent} />}
+              </CoolCard>
+            </View>
+          ) : null}
 
-        {/* Type filter */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingBottom: 10 }}
-        >
-          {filterChips.map((c) => (
-            <Chip
-              key={c.value}
-              label={c.label}
-              icon={c.icon}
-              selected={filter === c.value}
-              onPress={() => setFilter(c.value)}
-            />
-          ))}
-        </ScrollView>
-
-        {/* Favorites toggle + reset */}
-        <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
-          <Chip
-            label="Starred only"
-            icon="star"
-            selected={favoritesOnly}
-            onPress={() => setFavoritesOnly((v) => !v)}
+          {/* Search */}
+          <SoftInput
+            key="resources-search"
+            placeholder="Search links, topics, sources…"
+            value={query}
+            onChangeText={setQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            leading={<Icon name="search" size={16} color={colors.muted} />}
+            trailing={
+              query.length > 0 ? (
+                <Pressable
+                  onPress={() => setQuery('')}
+                  hitSlop={8}
+                  accessibilityLabel="Clear search"
+                  style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+                >
+                  <Icon name="x-circle" size={16} color={colors.muted} />
+                </Pressable>
+              ) : undefined
+            }
+            containerStyle={{ marginBottom: 12 }}
           />
-          {hasFilters ? <TextLink label="Reset" onPress={resetFilters} size="sm" muted /> : null}
+
+          {/* Type filter */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingBottom: 10 }}
+          >
+            {filterChips.map((c) => (
+              <Chip
+                key={c.value}
+                label={c.label}
+                icon={c.icon}
+                selected={filter === c.value}
+                onPress={() => setFilter(c.value)}
+              />
+            ))}
+          </ScrollView>
+
+          {/* Favorites toggle + reset */}
+          <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
+            <Chip
+              label="Starred only"
+              icon="star"
+              selected={favoritesOnly}
+              onPress={() => setFavoritesOnly((v) => !v)}
+            />
+            {hasFilters ? <TextLink label="Reset" onPress={resetFilters} size="sm" muted /> : null}
+          </View>
         </View>
 
         {/* States */}
         {isError ? (
           <CenterNote
             icon="alert"
+            tone="peach"
             title="Something went wrong"
             body={error?.message ?? 'We couldn’t reach the server. Pull to refresh or try again.'}
-            action={<TextLink label="Try again" onPress={() => void refetch()} icon={<Icon name="repeat" size={14} color="ink" />} />}
+            action={<TextLink label="Try again" onPress={() => void refetch()} icon={<Icon name="repeat" size={14} color={colors.ink} />} />}
           />
         ) : isLoading ? (
-          <SoftCard variant="inset" radius={radii.cardLg} padding={28}>
-            <View style={{ alignItems: 'center', gap: 12 }}>
-              <ActivityIndicator color={colors.ink} />
-              <AppText variant="caption" color={colors.graphite}>
-                Loading your library…
-              </AppText>
-            </View>
-          </SoftCard>
+          <LoadingBlock />
         ) : filtered.length === 0 ? (
           <CenterNote
             icon="book-open"
@@ -404,11 +478,18 @@ export default function ResourcesScreen() {
           />
         ) : (
           <>
-            <AppText variant="caption" color={colors.graphite} style={{ marginBottom: 10 }}>
+            <AppText variant="caption" color={colors.muted} style={{ marginBottom: 10 }}>
               {filtered.length} {filtered.length === 1 ? 'resource' : 'resources'}
             </AppText>
-            {filtered.map((r) => (
-              <ResourceCard key={r.id} resource={r} onOpen={openResource} onToggleFavorite={toggleFavorite} />
+            {filtered.map((r, i) => (
+              <ResourceCard
+                key={r.id}
+                resource={r}
+                onOpen={openResource}
+                onToggleFavorite={toggleFavorite}
+                toneIndex={i}
+                index={i}
+              />
             ))}
           </>
         )}

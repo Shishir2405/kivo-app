@@ -3,7 +3,8 @@ import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { Neumorph } from '@/components/ui/Neumorph';
 import { Icon, type IconName } from '@/components/ui';
 import { AppText } from '@/components/ui/Typography';
-import { colors, type ColorToken } from '@/theme/tokens';
+import { useTheme } from '@/theme';
+import { type ColorToken } from '@/theme/tokens';
 
 export type FeatureItem = {
   icon: IconName;
@@ -24,6 +25,7 @@ export type FeatureRowProps = {
  * single line of copy — strong, scannable hierarchy under the headline.
  */
 export function FeatureRow({ items, style }: FeatureRowProps) {
+  const { colors } = useTheme();
   return (
     <View style={[{ gap: 14 }, style]}>
       {items.map((item) => (

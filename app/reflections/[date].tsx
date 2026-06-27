@@ -12,6 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { View, ScrollView, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { MotiView } from 'moti';
 
 import { AppText } from '@/components/ui/Typography';
 import { SoftCard } from '@/components/ui/SoftCard';
@@ -24,7 +25,8 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { RatingControl } from '@/components/reflections/RatingControl';
 
-import { colors, radii, pressOpacity } from '@/theme/tokens';
+import { radii, motion, pressOpacity } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { TODAY } from '@/data/mock';
 import { useReflections } from '@/hooks/api';
 import type { Mood, Rating, Reflection } from '@/types/models';
@@ -37,13 +39,28 @@ type Goal = { id: string; label: string; done: boolean };
 /* ------------------------------------------------------------------ */
 
 function SectionLabel({ icon, title }: { icon: IconName; title: string }) {
+  const { colors } = useTheme();
   return (
     <View className="flex-row items-center" style={{ gap: 7, marginBottom: 8 }}>
-      <Icon name={icon} size={15} color="graphite" />
-      <AppText variant="subheading" weight="medium">
+      <Icon name={icon} size={15} color={colors.muted} />
+      <AppText variant="subheading" weight="medium" color={colors.ink}>
         {title}
       </AppText>
     </View>
+  );
+}
+
+/** Wrap a form section with the subtle staggered entrance. */
+function Section({ index, children, style }: { index: number; children: React.ReactNode; style?: object }) {
+  return (
+    <MotiView
+      from={{ opacity: 0, translateY: 8 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: motion.duration.transition, delay: Math.min(index, 8) * 50 }}
+      style={style}
+    >
+      {children}
+    </MotiView>
   );
 }
 
@@ -54,6 +71,7 @@ function SectionLabel({ icon, title }: { icon: IconName; title: string }) {
 export default function ReflectionDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
   const params = useLocalSearchParams<{ date: string }>();
   const dayKey = typeof params.date === 'string' ? params.date : TODAY;
 
@@ -102,7 +120,7 @@ export default function ReflectionDetailScreen() {
   const moodM = moodMeta(mood);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ paddingHorizontal: 20 }}>
           <AppHeader
@@ -121,132 +139,146 @@ export default function ReflectionDetailScreen() {
           }}
         >
           {/* Header */}
-          <View style={{ marginBottom: 16 }}>
-            <AppText variant="caption" color={colors.graphite} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+          <Section index={0} style={{ marginBottom: 16 }}>
+            <AppText variant="overline" uppercase color={colors.muted}>
               {isNew ? 'New entry' : 'Daily review'}
             </AppText>
-            <AppText variant="headingLg" display weight="semibold" style={{ marginTop: 4 }}>
+            <AppText variant="headingLg" display weight="semibold" color={colors.ink} style={{ marginTop: 4 }}>
               {longDate(dayKey)}
             </AppText>
-          </View>
+          </Section>
 
           {/* Mood */}
-          <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 12 }}>
-            <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
-              <SectionLabel icon="smile" title="How did today feel?" />
-              <Tag label={moodM.label} tone={moodM.tone} size="sm" />
-            </View>
-            <View className="flex-row flex-wrap" style={{ gap: 8 }}>
-              {MOODS.map((m) => (
-                <Chip key={m.mood} label={m.label} icon={m.icon} selected={mood === m.mood} onPress={() => setMood(m.mood)} />
-              ))}
-            </View>
-          </SoftCard>
-
-          {/* Ratings */}
-          <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 12 }}>
-            <RatingControl
-              label="Focus"
-              icon="target"
-              value={focus}
-              onChange={setFocus}
-              captions={['Scattered', 'Distracted', 'Steady', 'Locked in', 'Deep flow']}
-            />
-            <View style={{ height: 16 }} />
-            <RatingControl
-              label="Confidence"
-              icon="trending-up"
-              value={confidence}
-              onChange={setConfidence}
-              captions={['Shaky', 'Unsure', 'Okay', 'Solid', 'Sharp']}
-            />
-          </SoftCard>
-
-          {/* Prose */}
-          <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 12 }}>
-            <SectionLabel icon="lightbulb" title="What I learned" />
-            <SoftInput
-              placeholder="A concept that clicked, a pattern you spotted…"
-              value={learned}
-              onChangeText={setLearned}
-              multiline
-              style={{ minHeight: 76, textAlignVertical: 'top', paddingTop: 4 }}
-            />
-            <View style={{ height: 16 }} />
-            <SectionLabel icon="flag" title="What challenged me" />
-            <SoftInput
-              placeholder="Where you got stuck or what felt hard…"
-              value={challenged}
-              onChangeText={setChallenged}
-              multiline
-              style={{ minHeight: 76, textAlignVertical: 'top', paddingTop: 4 }}
-            />
-          </SoftCard>
-
-          {/* Goals */}
-          <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 12 }}>
-            <View className="flex-row items-center justify-between" style={{ marginBottom: 10 }}>
-              <SectionLabel icon="check-square" title="Goals completed" />
-              {goalCount > 0 ? <Tag label={`${doneCount}/${goalCount}`} tone="neutral" size="sm" /> : null}
-            </View>
-
-            {goals.length > 0 ? (
-              <View style={{ gap: 10, marginBottom: 12 }}>
-                {goals.map((g) => (
-                  <View key={g.id} className="flex-row items-center justify-between" style={{ gap: 12 }}>
-                    <Checkbox checked={g.done} onChange={() => toggleGoal(g.id)} label={g.label} style={{ flex: 1 }} />
-                    <Pressable
-                      onPress={() => removeGoal(g.id)}
-                      hitSlop={8}
-                      accessibilityLabel={`Remove ${g.label}`}
-                      style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
-                    >
-                      <Icon name="x" size={15} color="graphite" />
-                    </Pressable>
-                  </View>
+          <Section index={1}>
+            <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 12 }}>
+              <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
+                <SectionLabel icon="smile" title="How did today feel?" />
+                <Tag label={moodM.label} tone={moodM.tone} size="sm" />
+              </View>
+              <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+                {MOODS.map((m) => (
+                  <Chip key={m.mood} label={m.label} icon={m.icon} selected={mood === m.mood} onPress={() => setMood(m.mood)} />
                 ))}
               </View>
-            ) : (
-              <View style={{ paddingVertical: 8, marginBottom: 12 }}>
-                <AppText variant="caption" color={colors.graphite} style={{ textAlign: 'center' }}>
-                  No goals logged yet — add what you shipped today.
-                </AppText>
-              </View>
-            )}
+            </SoftCard>
+          </Section>
 
-            <SoftInput
-              placeholder="Add a goal you completed"
-              value={newGoal}
-              onChangeText={setNewGoal}
-              returnKeyType="done"
-              onSubmitEditing={addGoal}
-              leading={<Icon name="plus-circle" size={16} color="graphite" />}
-              trailing={
-                newGoal.trim().length > 0 ? (
-                  <Pressable
-                    onPress={addGoal}
-                    hitSlop={8}
-                    accessibilityLabel="Add goal"
-                    style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
-                  >
-                    <Icon name="check-circle" size={18} color="ink" />
-                  </Pressable>
-                ) : undefined
-              }
-            />
-          </SoftCard>
+          {/* Ratings */}
+          <Section index={2}>
+            <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 12 }}>
+              <RatingControl
+                label="Focus"
+                icon="target"
+                value={focus}
+                onChange={setFocus}
+                captions={['Scattered', 'Distracted', 'Steady', 'Locked in', 'Deep flow']}
+              />
+              <View style={{ height: 16 }} />
+              <RatingControl
+                label="Confidence"
+                icon="trending-up"
+                value={confidence}
+                onChange={setConfidence}
+                captions={['Shaky', 'Unsure', 'Okay', 'Solid', 'Sharp']}
+              />
+            </SoftCard>
+          </Section>
+
+          {/* Prose */}
+          <View>
+            <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 12 }}>
+              <SectionLabel icon="lightbulb" title="What I learned" />
+              <SoftInput
+                key="reflection-learned"
+                placeholder="A concept that clicked, a pattern you spotted…"
+                value={learned}
+                onChangeText={setLearned}
+                multiline
+                style={{ minHeight: 76, textAlignVertical: 'top', paddingTop: 4 }}
+              />
+              <View style={{ height: 16 }} />
+              <SectionLabel icon="flag" title="What challenged me" />
+              <SoftInput
+                key="reflection-challenged"
+                placeholder="Where you got stuck or what felt hard…"
+                value={challenged}
+                onChangeText={setChallenged}
+                multiline
+                style={{ minHeight: 76, textAlignVertical: 'top', paddingTop: 4 }}
+              />
+            </SoftCard>
+          </View>
+
+          {/* Goals */}
+          <View>
+            <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 12 }}>
+              <View className="flex-row items-center justify-between" style={{ marginBottom: 10 }}>
+                <SectionLabel icon="check-square" title="Goals completed" />
+                {goalCount > 0 ? <Tag label={`${doneCount}/${goalCount}`} tone="neutral" size="sm" /> : null}
+              </View>
+
+              {goals.length > 0 ? (
+                <View style={{ gap: 10, marginBottom: 12 }}>
+                  {goals.map((g) => (
+                    <View key={g.id} className="flex-row items-center justify-between" style={{ gap: 12 }}>
+                      <Checkbox checked={g.done} onChange={() => toggleGoal(g.id)} label={g.label} style={{ flex: 1 }} />
+                      <Pressable
+                        onPress={() => removeGoal(g.id)}
+                        hitSlop={8}
+                        accessibilityLabel={`Remove ${g.label}`}
+                        style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+                      >
+                        <Icon name="x" size={15} color={colors.muted} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={{ paddingVertical: 8, marginBottom: 12 }}>
+                  <AppText variant="caption" color={colors.muted} style={{ textAlign: 'center' }}>
+                    No goals logged yet — add what you shipped today.
+                  </AppText>
+                </View>
+              )}
+
+              <SoftInput
+                key="reflection-new-goal"
+                placeholder="Add a goal you completed"
+                value={newGoal}
+                onChangeText={setNewGoal}
+                returnKeyType="done"
+                onSubmitEditing={addGoal}
+                leading={<Icon name="plus-circle" size={16} color={colors.muted} />}
+                trailing={
+                  newGoal.trim().length > 0 ? (
+                    <Pressable
+                      onPress={addGoal}
+                      hitSlop={8}
+                      accessibilityLabel="Add goal"
+                      style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+                    >
+                      <Icon name="check-circle" size={18} color={colors.primary} weight="fill" />
+                    </Pressable>
+                  ) : undefined
+                }
+              />
+            </SoftCard>
+          </View>
 
           {/* Tomorrow */}
-          <SoftCard radius={radii.card} padding={14}>
-            <SectionLabel icon="arrow-right" title="Plan for tomorrow" />
-            <SoftInput
-              placeholder="The one thing to start with…"
-              value={tomorrowPlan}
-              onChangeText={setTomorrowPlan}
-              multiline
-              style={{ minHeight: 64, textAlignVertical: 'top', paddingTop: 4 }}
-            />
-          </SoftCard>
+          <View>
+            <SoftCard radius={radii.card} padding={14}>
+              <SectionLabel icon="arrow-right" title="Plan for tomorrow" />
+              <SoftInput
+                key="reflection-tomorrow-plan"
+                placeholder="The one thing to start with…"
+                value={tomorrowPlan}
+                onChangeText={setTomorrowPlan}
+                multiline
+                style={{ minHeight: 64, textAlignVertical: 'top', paddingTop: 4 }}
+              />
+            </SoftCard>
+          </View>
         </ScrollView>
 
         {/* Save bar */}
@@ -255,9 +287,9 @@ export default function ReflectionDetailScreen() {
             paddingHorizontal: 20,
             paddingTop: 12,
             paddingBottom: insets.bottom + 14,
-            backgroundColor: colors.white,
+            backgroundColor: colors.surface,
             borderTopWidth: 1,
-            borderTopColor: colors.fog,
+            borderTopColor: colors.hairline,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 16,
@@ -265,8 +297,8 @@ export default function ReflectionDetailScreen() {
         >
           {saved ? (
             <View className="flex-row items-center" style={{ gap: 8, flex: 1, justifyContent: 'center', paddingVertical: 4 }}>
-              <Icon name="check-circle" size={18} color="ink" />
-              <AppText variant="subheading" weight="medium">
+              <Icon name="check-circle" size={18} color={colors.success} weight="fill" />
+              <AppText variant="subheading" weight="medium" color={colors.ink}>
                 Reflection saved
               </AppText>
             </View>
@@ -277,7 +309,7 @@ export default function ReflectionDetailScreen() {
               <PillButton
                 label={isNew ? 'Save reflection' : 'Update'}
                 onPress={onSave}
-                icon={<Icon name="check" size={15} color="white" />}
+                icon={<Icon name="check" size={15} color={colors.inkInverted} />}
               />
             </>
           )}

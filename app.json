@@ -6,7 +6,7 @@
     "scheme": "kivo",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kivo.app"
@@ -15,11 +15,11 @@
       "package": "com.kivo.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#F2F2F2",
+        "backgroundColor": "#F7F3ED",
         "foregroundImage": "./assets/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -31,16 +31,21 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F2F2F2",
+          "backgroundColor": "#F7F3ED",
           "image": "./assets/splash-icon.png",
-          "resizeMode": "contain"
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#181511",
+            "image": "./assets/splash-icon.png",
+            "resizeMode": "contain"
+          }
         }
       ],
       [
         "expo-notifications",
         {
           "icon": "./assets/favicon.png",
-          "color": "#e6e51e"
+          "color": "#C46A3D"
         }
       ],
       "expo-web-browser"

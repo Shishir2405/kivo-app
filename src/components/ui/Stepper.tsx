@@ -3,7 +3,8 @@ import { Pressable, View, Text, type StyleProp, type ViewStyle } from 'react-nat
 import { AnimatePresence, MotiView } from 'moti';
 import { Neumorph } from './Neumorph';
 import { Icon } from './Icon';
-import { colors, fonts } from '@/theme/tokens';
+import { fonts } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 
 export type StepperProps = {
   value: number;
@@ -24,6 +25,7 @@ type StepButtonProps = {
 };
 
 function StepButton({ icon, onPress, disabled }: StepButtonProps) {
+  const { colors } = useTheme();
   const [pressed, setPressed] = useState(false);
   const SIZE = 40;
   return (
@@ -34,9 +36,9 @@ function StepButton({ icon, onPress, disabled }: StepButtonProps) {
       onPressOut={() => setPressed(false)}
       accessibilityRole="button"
       accessibilityLabel={icon === 'plus' ? 'Increase' : 'Decrease'}
-      style={{ opacity: disabled ? 0.35 : 1 }}
+      style={{ opacity: disabled ? 0.4 : 1 }}
     >
-      <Neumorph variant={pressed ? 'inset' : 'raised'} radius={SIZE / 2} intensity="sm">
+      <Neumorph variant={pressed ? 'inset' : 'raised'} radius={SIZE / 2}>
         <View
           style={{
             width: SIZE,
@@ -45,7 +47,7 @@ function StepButton({ icon, onPress, disabled }: StepButtonProps) {
             justifyContent: 'center',
           }}
         >
-          <Icon name={icon} size={20} color="carbon" strokeWidth={2.6} />
+          <Icon name={icon} size={20} color={colors.primary} weight="bold" />
         </View>
       </Neumorph>
     </Pressable>
@@ -53,11 +55,8 @@ function StepButton({ icon, onPress, disabled }: StepButtonProps) {
 }
 
 /**
- * A compact +/- neumorphic numeric stepper for goals and counts.
- *
- * The two round buttons are raised neumorphic icon buttons that depress on
- * press; the value sits in a central inset well and animates a subtle
- * pop on every change. Clamps to [min, max].
+ * A compact +/- numeric stepper for goals and counts. The value sits in a
+ * central well and pops on every change. Clamps to [min, max]. Theme-aware.
  */
 export function Stepper({
   value,
@@ -69,6 +68,7 @@ export function Stepper({
   disabled,
   style,
 }: StepperProps) {
+  const { colors } = useTheme();
   const dec = () => onChange(Math.max(min, value - step));
   const inc = () => onChange(Math.min(max, value + step));
 
@@ -104,9 +104,9 @@ export function Stepper({
             >
               <Text
                 style={{
-                  fontFamily: fonts.displaySemibold,
-                  fontSize: 20,
-                  color: colors.carbon,
+                  fontFamily: fonts.serifSemibold,
+                  fontSize: 22,
+                  color: colors.ink,
                 }}
               >
                 {value}
@@ -116,9 +116,9 @@ export function Stepper({
           {suffix ? (
             <Text
               style={{
-                fontFamily: fonts.bodyMedium,
+                fontFamily: fonts.sansMedium,
                 fontSize: 13,
-                color: colors.textMuted,
+                color: colors.muted,
               }}
             >
               {suffix}

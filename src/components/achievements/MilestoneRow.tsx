@@ -2,17 +2,19 @@
  * MilestoneRow — one rung on the streak ladder (Steep).
  *
  * Cleared rungs show a small wash glyph chip, the requirement and the unlock
- * date. Pending rungs show a Fog chip, a thin Ink progress meter and the
- * remaining-days countdown. Flat, hairline-divided, monochrome with one wash.
+ * date. Pending rungs show an inset chip, a thin Ink progress meter and the
+ * remaining-days countdown. Flat, hairline-divided, with one wash per rung.
+ * Theme-aware (light/dark) via useTheme().
  */
 import React from 'react';
 import { View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppText } from '@/components/ui/Typography';
-import { colors, spacing } from '@/theme/tokens';
+import { useTheme } from '@/theme';
+import { spacing } from '@/theme/tokens';
 
-import { type Accent, ACCENT_INK, ACCENT_WASH } from './accents';
+import { type Accent, useAccentMaps } from './accents';
 
 export type MilestoneRowProps = {
   icon: IconName;
@@ -38,11 +40,14 @@ export function MilestoneRow({
   unlockedLabel,
   last,
 }: MilestoneRowProps) {
+  const { colors } = useTheme();
+  const maps = useAccentMaps();
   const cleared = bestStreak >= threshold;
   const pct = Math.max(0, Math.min(100, Math.round((bestStreak / threshold) * 100)));
   const remaining = Math.max(0, threshold - bestStreak);
-  const wash = ACCENT_WASH[tone];
-  const ink = ACCENT_INK[tone];
+  const wash = maps.wash[tone];
+  const ink = maps.ink[tone];
+  const washBorder = maps.border[tone];
 
   return (
     <View
@@ -52,7 +57,7 @@ export function MilestoneRow({
         gap: spacing.md,
         paddingVertical: spacing.md,
         borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: colors.dove,
+        borderBottomColor: colors.hairline,
       }}
     >
       <View
@@ -62,12 +67,12 @@ export function MilestoneRow({
           borderRadius: 9999,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: cleared ? wash : colors.fog,
+          backgroundColor: cleared ? wash : colors.surfaceAlt,
           borderWidth: 1,
-          borderColor: cleared ? 'transparent' : colors.dove,
+          borderColor: cleared ? washBorder : colors.hairline,
         }}
       >
-        <Icon name={icon} size={16} color={cleared ? ink : colors.dove} weight="light" />
+        <Icon name={icon} size={16} color={cleared ? ink : colors.muted} weight="light" />
       </View>
 
       <View style={{ flex: 1, gap: 4 }}>
@@ -80,11 +85,11 @@ export function MilestoneRow({
           >
             {title}
           </AppText>
-          {cleared ? <Icon name="check" size={13} color="ink" weight="light" /> : null}
+          {cleared ? <Icon name="check" size={13} color={ink} weight="light" /> : null}
         </View>
 
         {cleared ? (
-          <AppText variant="caption" color={colors.graphite}>
+          <AppText variant="caption" color={colors.muted}>
             {requirement}
           </AppText>
         ) : (
@@ -93,9 +98,9 @@ export function MilestoneRow({
               style={{
                 height: 4,
                 borderRadius: 9999,
-                backgroundColor: colors.white,
+                backgroundColor: colors.surface,
                 borderWidth: 1,
-                borderColor: colors.dove,
+                borderColor: colors.hairline,
                 overflow: 'hidden',
               }}
             >
@@ -108,7 +113,7 @@ export function MilestoneRow({
                 }}
               />
             </View>
-            <AppText variant="caption" color={colors.graphite}>
+            <AppText variant="caption" color={colors.muted}>
               {requirement} · {remaining} day{remaining === 1 ? '' : 's'} to go
             </AppText>
           </>
@@ -116,11 +121,11 @@ export function MilestoneRow({
       </View>
 
       {cleared && unlockedLabel ? (
-        <AppText variant="caption" color={colors.graphite}>
+        <AppText variant="caption" color={colors.muted}>
           {unlockedLabel}
         </AppText>
       ) : !cleared ? (
-        <Icon name="lock" size={15} color="dove" weight="light" />
+        <Icon name="lock" size={15} color={colors.muted} weight="light" />
       ) : null}
     </View>
   );

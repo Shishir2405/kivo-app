@@ -10,7 +10,7 @@ import React, { useMemo } from 'react';
 import { View, ScrollView, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/Typography';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type SteepHeatmapCell = { day: string; count: number };
 
@@ -24,16 +24,22 @@ export type SteepHeatmapProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-/** Empty → Apricot wash ramp → Rust at the peak. */
-const RAMP = ['#f0eee9', colors.apricot, '#f0bfa3', '#c87a5c', colors.rust] as const;
+/**
+ * Empty → Peach wash ramp → Primary (terracotta) at the peak.
+ * The active-day ramp is theme-derived so it deepens correctly in dark mode;
+ * empty days fall back to the surface-alt well.
+ */
+function buildRamp(c: { peach: string; primary: string }) {
+  return [c.peach, '#E6B08A', '#D98E5C', c.primary] as const;
+}
 
-function intensity(count: number, max: number): string {
-  if (count <= 0) return colors.fog;
+function intensity(count: number, max: number, ramp: readonly string[], empty: string): string {
+  if (count <= 0) return empty;
   const ratio = max > 0 ? count / max : 0;
-  if (ratio <= 0.25) return RAMP[1];
-  if (ratio <= 0.5) return RAMP[2];
-  if (ratio <= 0.75) return RAMP[3];
-  return RAMP[4];
+  if (ratio <= 0.25) return ramp[0];
+  if (ratio <= 0.5) return ramp[1];
+  if (ratio <= 0.75) return ramp[2];
+  return ramp[3];
 }
 
 export function SteepHeatmap({
@@ -44,6 +50,9 @@ export function SteepHeatmap({
   showLegend = true,
   style,
 }: SteepHeatmapProps) {
+  const { colors } = useTheme();
+  const RAMP = useMemo(() => buildRamp(colors), [colors]);
+  const legendRamp = useMemo(() => [colors.surfaceAlt, ...RAMP], [colors, RAMP]);
   const { weeks, max } = useMemo(() => {
     const sorted = [...cells].sort((a, b) => a.day.localeCompare(b.day));
     const sliced = sorted.slice(Math.max(0, sorted.length - range));
@@ -79,9 +88,11 @@ export function SteepHeatmap({
                     width: cellSize,
                     height: cellSize,
                     borderRadius: 3,
-                    backgroundColor: cell ? intensity(cell.count, max) : 'transparent',
+                    backgroundColor: cell
+                      ? intensity(cell.count, max, RAMP, colors.surfaceAlt)
+                      : 'transparent',
                     borderWidth: cell ? 1 : 0,
-                    borderColor: colors.dove,
+                    borderColor: colors.hairline,
                   }}
                 />
               );
@@ -100,23 +111,23 @@ export function SteepHeatmap({
             alignSelf: 'flex-end',
           }}
         >
-          <AppText variant="caption" color={colors.graphite} style={{ fontSize: 10 }}>
+          <AppText variant="caption" color={colors.muted} style={{ fontSize: 10 }}>
             Less
           </AppText>
-          {RAMP.map((c) => (
+          {legendRamp.map((c, i) => (
             <View
-              key={c}
+              key={`${c}-${i}`}
               style={{
                 width: 10,
                 height: 10,
                 borderRadius: 2,
                 backgroundColor: c,
                 borderWidth: 1,
-                borderColor: colors.dove,
+                borderColor: colors.hairline,
               }}
             />
           ))}
-          <AppText variant="caption" color={colors.graphite} style={{ fontSize: 10 }}>
+          <AppText variant="caption" color={colors.muted} style={{ fontSize: 10 }}>
             More
           </AppText>
         </View>

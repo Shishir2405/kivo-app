@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, ScrollView, type StyleProp, type ViewStyle } from 'react-native';
 import { AppText } from '@/components/ui/Typography';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import type { HeatCell } from './revisionUtils';
 
 export type RevisionHeatmapProps = {
@@ -12,12 +12,28 @@ export type RevisionHeatmapProps = {
 };
 
 /**
- * A compact, monochrome review-activity grid (Steep). Columns are weeks
- * (Sun→Sat, top→bottom), scrolled horizontally. Empty days are a Fog well with
- * a 1px Dove hairline; activity ramps up through tints of Ink. No color, no
- * neumorphism — the data does the talking.
+ * A compact review-activity grid (Kivo). Columns are weeks (Sun→Sat,
+ * top→bottom), scrolled horizontally. Empty days are a well with a 1px hairline;
+ * activity ramps from a soft peach wash up to its deeper terracotta accent so
+ * the grid reads as a calm-but-warm contribution graph — matching the dashboard
+ * heatmap in the HTML (#F0DDCC → #E6B08A → #C46A3D). Fully dark-aware.
  */
 export function RevisionHeatmap({ data, cellSize = 10, gap = 3, style }: RevisionHeatmapProps) {
+  const { colors, isDark, toneStyle } = useTheme();
+
+  // Peach → terracotta ramp. In dark we deepen toward the warm accent.
+  const RAMP = useMemo(() => {
+    const peach = toneStyle('peach');
+    return [
+      isDark ? peach.bg : '#F0DDCC',
+      isDark ? peach.border : '#E6B08A',
+      colors.primary,
+    ] as const;
+  }, [colors.primary, isDark, toneStyle]);
+
+  const emptyBg = colors.surfaceAlt;
+  const emptyBorder = colors.hairline;
+
   const { weeks, max } = useMemo(() => {
     const cells = Array.isArray(data) ? data : [];
     const peak = cells.reduce((m, d) => (d.count > m ? d.count : m), 0);
@@ -47,14 +63,8 @@ export function RevisionHeatmap({ data, cellSize = 10, gap = 3, style }: Revisio
               const cell = week[di] ?? null;
               const filled = cell && cell.count > 0;
               const ratio = filled && max > 0 ? cell.count / max : 0;
-              // Ink ramp via opacity tints — empty days are a Fog well.
-              const bg = !filled
-                ? colors.fog
-                : ratio <= 0.34
-                  ? 'rgba(23,25,28,0.28)'
-                  : ratio <= 0.67
-                    ? 'rgba(23,25,28,0.58)'
-                    : colors.ink;
+              const bg = !filled ? emptyBg : ratio <= 0.34 ? RAMP[0] : ratio <= 0.67 ? RAMP[1] : RAMP[2];
+              const hairlineCell = !filled || ratio <= 0.34;
               return (
                 <View
                   key={di}
@@ -63,8 +73,8 @@ export function RevisionHeatmap({ data, cellSize = 10, gap = 3, style }: Revisio
                     height: cellSize,
                     borderRadius: 2,
                     backgroundColor: bg,
-                    borderWidth: filled ? 0 : 1,
-                    borderColor: colors.dove,
+                    borderWidth: hairlineCell ? 1 : 0,
+                    borderColor: filled ? RAMP[1] : emptyBorder,
                   }}
                 />
               );
@@ -75,23 +85,23 @@ export function RevisionHeatmap({ data, cellSize = 10, gap = 3, style }: Revisio
 
       {/* Less → More legend */}
       <View className="flex-row items-center" style={{ marginTop: 10, gap: 4, alignSelf: 'flex-end' }}>
-        <AppText variant="caption" color={colors.graphite}>
+        <AppText variant="caption" color={colors.muted}>
           Less
         </AppText>
-        {[colors.fog, 'rgba(23,25,28,0.28)', 'rgba(23,25,28,0.58)', colors.ink].map((c, i) => (
+        {[emptyBg, RAMP[0], RAMP[1], RAMP[2]].map((c, i) => (
           <View
-            key={c}
+            key={`${c}-${i}`}
             style={{
               width: 10,
               height: 10,
               borderRadius: 2,
               backgroundColor: c,
-              borderWidth: i === 0 ? 1 : 0,
-              borderColor: colors.dove,
+              borderWidth: i <= 1 ? 1 : 0,
+              borderColor: i === 0 ? emptyBorder : RAMP[1],
             }}
           />
         ))}
-        <AppText variant="caption" color={colors.graphite}>
+        <AppText variant="caption" color={colors.muted}>
           More
         </AppText>
       </View>

@@ -10,7 +10,8 @@
  * crashes the app.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, RefreshControl } from 'react-native';
+import { MotiView } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href as RouterHref } from 'expo-router';
 
@@ -21,8 +22,10 @@ import { TextLink } from '@/components/ui/PillButton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Tag } from '@/components/ui/Tag';
+import { Skeleton, SkeletonText } from '@/components/ui/Skeleton';
 
-import { colors, radii } from '@/theme/tokens';
+import { useTheme, motion } from '@/theme';
+import { radii } from '@/theme/tokens';
 import { useNotifications } from '@/hooks/api';
 import type { AppNotification, NotificationType } from '@/types/models';
 import { NotificationRow, isToday } from '@/components/notifications/NotificationRow';
@@ -60,12 +63,13 @@ function byNewest(a: AppNotification, b: AppNotification): number {
 /* ------------------------------------------------------------------ */
 
 function SectionLabel({ label, count }: { label: string; count: number }) {
+  const { colors } = useTheme();
   return (
     <View className="flex-row items-center" style={{ gap: 10, marginBottom: 10 }}>
-      <AppText variant="caption" color={colors.graphite} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
+      <AppText variant="caption" color={colors.muted} style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}>
         {label}
       </AppText>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.fog }} />
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.hairline }} />
       <Tag label={`${count}`} tone="neutral" size="sm" />
     </View>
   );
@@ -76,10 +80,11 @@ function SectionLabel({ label, count }: { label: string; count: number }) {
 /* ------------------------------------------------------------------ */
 
 function CenterNote({ icon, title, body, action }: { icon: IconName; title: string; body: string; action?: React.ReactNode }) {
+  const { colors } = useTheme();
   return (
     <SoftCard variant="inset" radius={radii.cardLg} padding={24}>
       <View style={{ alignItems: 'center', gap: 10 }}>
-        <Icon name={icon} size={22} color="graphite" />
+        <Icon name={icon} size={22} color={colors.muted} />
         <AppText variant="subheading" weight="medium" style={{ textAlign: 'center' }}>
           {title}
         </AppText>
@@ -89,6 +94,30 @@ function CenterNote({ icon, title, body, action }: { icon: IconName; title: stri
         {action ? <View style={{ marginTop: 4 }}>{action}</View> : null}
       </View>
     </SoftCard>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Loading skeleton — matches the inbox row rhythm                     */
+/* ------------------------------------------------------------------ */
+
+function NotificationSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={{ gap: 10 }}>
+      {[0, 1, 2, 3].map((i) => (
+        <SoftCard key={i} variant="inset" radius={radii.card} padding={13}>
+          <View className="flex-row items-start" style={{ gap: 11 }}>
+            <Skeleton width={34} height={34} radius={10} />
+            <View style={{ flex: 1, gap: 8 }}>
+              <Skeleton width="70%" height={14} />
+              <SkeletonText lines={2} />
+              <Skeleton width={56} height={11} />
+            </View>
+          </View>
+        </SoftCard>
+      ))}
+    </View>
   );
 }
 
@@ -106,6 +135,7 @@ const EMPTY_COPY: Record<Filter, { icon: IconName; title: string; sub: string }>
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const { data, isLoading, isError, error, refetch, isFetching } = useNotifications();
 
@@ -140,7 +170,7 @@ export default function NotificationsScreen() {
   const isEmpty = filtered.length === 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
         <AppHeader
           onBack={() => router.back()}
@@ -161,12 +191,17 @@ export default function NotificationsScreen() {
           <RefreshControl
             refreshing={isFetching && !isLoading}
             onRefresh={() => void refetch()}
-            tintColor={colors.graphite}
+            tintColor={colors.muted}
           />
         }
       >
         {/* Header */}
-        <View style={{ marginBottom: 16 }}>
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition }}
+          style={{ marginBottom: 16 }}
+        >
           <AppText variant="display" display weight="semibold">
             Notifications
           </AppText>
@@ -177,7 +212,7 @@ export default function NotificationsScreen() {
                 ? `${unreadTotal} new ${unreadTotal === 1 ? 'update' : 'updates'} to catch up on`
                 : 'You are all caught up'}
           </AppText>
-        </View>
+        </MotiView>
 
         {/* States */}
         {isError ? (
@@ -188,20 +223,13 @@ export default function NotificationsScreen() {
             action={<TextLink label="Try again" onPress={() => void refetch()} icon={<Icon name="repeat" size={14} color="ink" />} />}
           />
         ) : isLoading ? (
-          <SoftCard variant="inset" radius={radii.cardLg} padding={28}>
-            <View style={{ alignItems: 'center', gap: 12 }}>
-              <ActivityIndicator color={colors.ink} />
-              <AppText variant="caption" color={colors.graphite}>
-                Loading notifications…
-              </AppText>
-            </View>
-          </SoftCard>
+          <NotificationSkeleton />
         ) : (
           <>
             <SegmentedTabs options={FILTER_OPTIONS} value={filter} onChange={setFilter} style={{ marginBottom: 14 }} />
 
             <View className="flex-row items-center justify-between" style={{ marginBottom: 14 }}>
-              <AppText variant="caption" color={colors.graphite}>
+              <AppText variant="caption" color={colors.muted}>
                 {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
               </AppText>
               <TextLink label="Mark all read" onPress={() => setAllRead(true)} size="sm" disabled={unreadTotal === 0} muted />

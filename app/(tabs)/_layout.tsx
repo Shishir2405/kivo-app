@@ -1,19 +1,21 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { NeumorphicTabBar } from '@/components/navigation/NeumorphicTabBar';
 
 /**
- * Main app tabs with the floating neumorphic bottom bar.
+ * Main app tabs with the floating bottom dock.
  *
  * Five tabs (order matters — matches NeumorphicTabBar):
  *   index=Dashboard, dsa=DSA, revisions=Revisions, tracker=Tracker, profile=Profile.
  *
  * Screen agents only add the corresponding screen files in this folder; all
- * five Tabs.Screen entries are declared here.
+ * five Tabs.Screen entries are declared here. The scene background reads the
+ * ACTIVE palette so the app is dark-aware.
  */
 export default function TabsLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       tabBar={(props: BottomTabBarProps) => <NeumorphicTabBar {...props} />}

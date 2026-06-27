@@ -1,19 +1,22 @@
-import React from 'react';
-import { View, Pressable, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Pressable, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MotiView } from 'moti';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
-import { colors, fonts } from '@/theme/tokens';
+import { fonts, motion } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 import { Icon, type IconName } from '@/components/ui/Icon';
 
 /**
- * Steep bottom tab bar — flat, calm, premium.
+ * Kivo floating-dock bottom nav.
  *
- * Every tab uses the SAME vertical layout (Rust dot indicator · phosphor icon ·
- * tiny label) so widths are equal and the bar never shifts when you switch tabs.
- * Active = Rust dot + Ink icon/label; inactive = Graphite, no dot. Flat white bar,
- * hairline top border, compact, with a pressed state. (Filename kept for the
- * existing import; it is NOT neumorphic.)
+ * A floating surface pill (hairline + one soft shadow) with a TERRACOTTA-WASH
+ * indicator that SPRING-slides under the active tab (the HTML dock's overshoot
+ * pill). The active icon/label go terracotta, inactive are muted. Geometry is
+ * measured (onLayout) so the indicator translateX is exact. Fully theme-aware:
+ * in dark it becomes a translucent warm-dark dock. (Filename kept for the
+ * existing import.)
  */
 type TabRouteName = 'index' | 'dsa' | 'revisions' | 'tracker' | 'profile';
 
@@ -25,94 +28,121 @@ const TABS: { name: TabRouteName; label: string; icon: IconName }[] = [
   { name: 'profile', label: 'Profile', icon: 'user' },
 ];
 
+const PAD = 6;
+
 export function NeumorphicTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { colors, shadow } = useTheme();
+  const [dockW, setDockW] = useState(0);
+  const count = TABS.length;
+  const tabW = dockW > 0 ? (dockW - PAD * 2) / count : 0;
+
+  const activeIndex = Math.max(
+    0,
+    TABS.findIndex((t) => {
+      const r = state.routes.find((rt) => rt.name === t.name);
+      return r ? state.routes.findIndex((x) => x.key === r.key) === state.index : false;
+    }),
+  );
+
+  // Active accents follow the HTML: terracotta for the active tab.
+  const activeColor = colors.primary;
+  const indicatorBg = colors.primaryWash;
 
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 6) }]}>
-      {TABS.map((tab) => {
-        const route = state.routes.find((r) => r.name === tab.name);
-        if (!route) return null;
+    <View
+      style={{
+        paddingHorizontal: 14,
+        paddingTop: 8,
+        paddingBottom: Math.max(insets.bottom, 10),
+        backgroundColor: 'transparent',
+      }}
+    >
+      <View
+        onLayout={(e) => setDockW(e.nativeEvent.layout.width)}
+        style={[
+          {
+            flexDirection: 'row',
+            position: 'relative',
+            padding: PAD,
+            backgroundColor: colors.surface,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: colors.hairline,
+          },
+          shadow,
+        ]}
+      >
+        {/* Sliding terracotta-wash indicator (spring overshoot). */}
+        {tabW > 0 ? (
+          <MotiView
+            animate={{ translateX: PAD + activeIndex * tabW }}
+            transition={motion.springSnappy}
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: PAD,
+              bottom: PAD,
+              left: 0,
+              width: tabW,
+              borderRadius: 999,
+              backgroundColor: indicatorBg,
+            }}
+          />
+        ) : null}
 
-        const routeIndex = state.routes.findIndex((r) => r.key === route.key);
-        const focused = state.index === routeIndex;
+        {TABS.map((tab) => {
+          const route = state.routes.find((r) => r.name === tab.name);
+          if (!route) return null;
+          const idx = state.routes.findIndex((r) => r.key === route.key);
+          const focused = state.index === idx;
 
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-          if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
-        };
-        const onLongPress = () =>
-          navigation.emit({ type: 'tabLongPress', target: route.key });
+          const onPress = () => {
+            const ev = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!focused && !ev.defaultPrevented) navigation.navigate(route.name);
+          };
 
-        return (
-          <Pressable
-            key={route.key}
-            onPress={onPress}
-            onLongPress={onLongPress}
-            accessibilityRole="button"
-            accessibilityState={focused ? { selected: true } : {}}
-            accessibilityLabel={tab.label}
-            hitSlop={6}
-            style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
-          >
-            <View style={[styles.dot, focused && styles.dotActive]} />
-            <Icon
-              name={tab.icon}
-              size={22}
-              color={focused ? 'ink' : 'graphite'}
-              weight={focused ? 'regular' : 'light'}
-            />
-            <Text
-              style={[styles.label, focused ? styles.labelActive : styles.labelInactive]}
-              numberOfLines={1}
+          return (
+            <Pressable
+              key={route.key}
+              onPress={onPress}
+              onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
+              accessibilityRole="button"
+              accessibilityState={focused ? { selected: true } : {}}
+              accessibilityLabel={tab.label}
+              hitSlop={4}
+              style={({ pressed }) => [
+                { flex: 1, height: 46, alignItems: 'center', justifyContent: 'center', gap: 3, zIndex: 1 },
+                pressed && { opacity: 0.6 },
+              ]}
             >
-              {tab.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+              <Icon
+                name={tab.icon}
+                size={20}
+                color={focused ? activeColor : colors.muted}
+                weight={focused ? 'regular' : 'regular'}
+              />
+              <Text
+                style={{
+                  fontFamily: fonts.sansSemibold,
+                  fontSize: 9.5,
+                  letterSpacing: -0.1,
+                  color: focused ? activeColor : colors.muted,
+                }}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-around',
-    backgroundColor: colors.white,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.dove,
-    paddingTop: 7,
-    paddingHorizontal: 4,
-  },
-  item: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    paddingVertical: 2,
-  },
-  itemPressed: { opacity: 0.5 },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 2,
-    backgroundColor: 'transparent',
-  },
-  dotActive: { backgroundColor: colors.rust },
-  label: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 10,
-    letterSpacing: -0.1,
-  },
-  labelActive: { color: colors.ink },
-  labelInactive: { color: colors.graphite },
-});
 
 export default NeumorphicTabBar;

@@ -1,13 +1,14 @@
 /**
  * XpProgressBar — a flat Steep progress meter.
  *
- * A Fog track with a 1px Dove hairline and a thin Ink fill. No neumorphism, no
- * gloss. Used for the level-progress bar on the achievements hero.
+ * A surfaceAlt track with a 1px hairline and a thin fill (Ink by default, or a
+ * passed accent). No neumorphism, no gloss. Theme-aware (light/dark) via
+ * useTheme(). Used for the level-progress bar on the achievements hero.
  */
 import React from 'react';
 import { View } from 'react-native';
 
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type XpProgressBarProps = {
   /** 0–1 fill ratio. */
@@ -18,7 +19,8 @@ export type XpProgressBarProps = {
   height?: number;
 };
 
-export function XpProgressBar({ progress, color = colors.ink, height = 8 }: XpProgressBarProps) {
+export function XpProgressBar({ progress, color, height = 8 }: XpProgressBarProps) {
+  const { colors } = useTheme();
   const pct = Math.max(0, Math.min(1, progress)) * 100;
 
   return (
@@ -26,9 +28,9 @@ export function XpProgressBar({ progress, color = colors.ink, height = 8 }: XpPr
       style={{
         height,
         borderRadius: 9999,
-        backgroundColor: colors.fog,
+        backgroundColor: colors.surfaceAlt,
         borderWidth: 1,
-        borderColor: colors.dove,
+        borderColor: colors.hairline,
         overflow: 'hidden',
       }}
     >
@@ -37,7 +39,7 @@ export function XpProgressBar({ progress, color = colors.ink, height = 8 }: XpPr
           height: '100%',
           width: `${pct}%`,
           borderRadius: 9999,
-          backgroundColor: color,
+          backgroundColor: color ?? colors.ink,
         }}
       />
     </View>

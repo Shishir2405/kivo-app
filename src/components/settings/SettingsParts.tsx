@@ -13,18 +13,22 @@ import { AppText } from '@/components/ui/Typography';
 import { Card, type CardTone } from '@/components/ui/SoftCard';
 import { SoftToggle } from '@/components/ui/SoftToggle';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors, radii, spacing } from '@/theme/tokens';
+import { radii, spacing } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 /** Legacy accent union — kept for the screen's row config; visually monochrome. */
 export type Accent = 'highlighter' | 'signal' | 'peach' | 'annotation' | 'success';
 
-/** Legacy map — all glyphs are Graphite in Steep (color is reserved for data). */
-export const ACCENT_HEX: Record<Accent, string> = {
-  highlighter: colors.graphite,
-  signal: colors.graphite,
-  peach: colors.graphite,
-  annotation: colors.graphite,
-  success: colors.graphite,
+/**
+ * Legacy accent → icon ColorToken map. All settings glyphs are the muted ink
+ * tone in Kivo (color is reserved for data), and resolve dark-aware via Icon.
+ */
+export const ACCENT_TOKEN: Record<Accent, 'muted'> = {
+  highlighter: 'muted',
+  signal: 'muted',
+  peach: 'muted',
+  annotation: 'muted',
+  success: 'muted',
 };
 
 /* ------------------------------------------------------------------ */
@@ -39,6 +43,7 @@ export function SectionHeader({
   accent?: Accent;
   index?: number;
 }) {
+  const { colors } = useTheme();
   return (
     <View
       style={{
@@ -51,7 +56,7 @@ export function SectionHeader({
       <AppText variant="subheading" display weight="medium">
         {title}
       </AppText>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.dove }} />
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.hairline }} />
     </View>
   );
 }
@@ -80,11 +85,12 @@ export function SectionCard({
 
 /** A thin hairline divider between rows inside a SectionCard. */
 export function RowDivider() {
+  const { colors } = useTheme();
   return (
     <View
       style={{
         height: 1,
-        backgroundColor: colors.dove,
+        backgroundColor: colors.hairline,
         marginLeft: spacing.md + 34,
         marginRight: spacing.md,
       }}
@@ -97,6 +103,7 @@ export function RowDivider() {
 /* ------------------------------------------------------------------ */
 
 export function GlyphChip({ icon }: { icon: IconName; accent?: Accent }) {
+  const { colors } = useTheme();
   return (
     <View
       style={{
@@ -105,12 +112,12 @@ export function GlyphChip({ icon }: { icon: IconName; accent?: Accent }) {
         borderRadius: 9999,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.fog,
+        backgroundColor: colors.surfaceAlt,
         borderWidth: 1,
-        borderColor: colors.dove,
+        borderColor: colors.hairline,
       }}
     >
-      <Icon name={icon} size={16} color="graphite" weight="light" />
+      <Icon name={icon} size={16} color="muted" weight="light" />
     </View>
   );
 }
@@ -133,6 +140,7 @@ export function ToggleRow({
   value: boolean;
   onValueChange: (next: boolean) => void;
 }) {
+  const { colors } = useTheme();
   return (
     <View
       style={{
@@ -149,7 +157,7 @@ export function ToggleRow({
           {title}
         </AppText>
         {subtitle ? (
-          <AppText variant="caption" color={colors.graphite} numberOfLines={2}>
+          <AppText variant="caption" color={colors.muted} numberOfLines={2}>
             {subtitle}
           </AppText>
         ) : null}
@@ -177,13 +185,14 @@ export function ControlRow({
   children: React.ReactNode;
   align?: 'center' | 'block';
 }) {
+  const { colors } = useTheme();
   const Label = (
     <View style={{ flex: 1, gap: 1 }}>
       <AppText variant="subheading" weight="regular" numberOfLines={1}>
         {title}
       </AppText>
       {subtitle ? (
-        <AppText variant="caption" color={colors.graphite} numberOfLines={2}>
+        <AppText variant="caption" color={colors.muted} numberOfLines={2}>
           {subtitle}
         </AppText>
       ) : null}

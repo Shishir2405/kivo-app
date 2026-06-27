@@ -4,18 +4,23 @@ import { MotiView } from 'moti';
 import { SoftInput, type SoftInputProps } from '@/components/ui/SoftInput';
 import { Icon } from '@/components/ui';
 import { AppText } from '@/components/ui/Typography';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
+import { type AppColors, type ColorToken } from '@/theme/tokens';
 
 export type PasswordStrength = {
   /** 0 (empty) .. 4 (strong). */
   score: number;
   label: string;
-  color: string;
+  /** A palette token; resolve to a hex via the ACTIVE theme at render time. */
+  tone: ColorToken;
 };
 
-/** Cheap, dependency-free password strength heuristic. */
+/** Per-score palette tokens — resolved against the active theme when rendered. */
+const STRENGTH_TONES: ColorToken[] = ['hairline', 'danger', 'peach', 'muted', 'success'];
+
+/** Cheap, dependency-free password strength heuristic (theme-independent). */
 export function scorePassword(pw: string): PasswordStrength {
-  if (!pw) return { score: 0, label: '', color: colors.hairline };
+  if (!pw) return { score: 0, label: '', tone: 'hairline' };
 
   let score = 0;
   if (pw.length >= 6) score += 1;
@@ -25,14 +30,12 @@ export function scorePassword(pw: string): PasswordStrength {
   score = Math.min(score, 4);
 
   const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-  const tones = [
-    colors.hairline,
-    colors.annotation,
-    colors.peach,
-    colors.signal,
-    colors.success,
-  ];
-  return { score, label: labels[score], color: tones[score] };
+  return { score, label: labels[score], tone: STRENGTH_TONES[score] };
+}
+
+/** Resolve a strength tone token to its active-palette hex. */
+function strengthColor(tone: ColorToken, colors: AppColors): string {
+  return colors[tone] as string;
 }
 
 export type PasswordFieldProps = Omit<SoftInputProps, 'trailing' | 'secureTextEntry'> & {
@@ -47,12 +50,14 @@ export type PasswordFieldProps = Omit<SoftInputProps, 'trailing' | 'secureTextEn
  */
 export const PasswordField = forwardRef<TextInput, PasswordFieldProps>(
   function PasswordField({ showStrength = false, value, ...rest }, ref) {
+    const { colors } = useTheme();
     const [visible, setVisible] = useState(false);
 
     const strength = useMemo(
       () => scorePassword(typeof value === 'string' ? value : ''),
       [value],
     );
+    const strengthHex = strengthColor(strength.tone, colors);
 
     return (
       <View>
@@ -73,7 +78,7 @@ export const PasswordField = forwardRef<TextInput, PasswordFieldProps>(
               <Icon
                 name={visible ? 'eye-off' : 'eye'}
                 size={20}
-                color="textMuted"
+                color={colors.muted}
                 strokeWidth={2}
               />
             </Pressable>
@@ -89,7 +94,7 @@ export const PasswordField = forwardRef<TextInput, PasswordFieldProps>(
                   <MotiView
                     key={seg}
                     animate={{
-                      backgroundColor: filled ? strength.color : colors.hairline,
+                      backgroundColor: filled ? strengthHex : colors.hairline,
                     }}
                     transition={{ type: 'timing', duration: 220 }}
                     style={{ flex: 1, height: 5, borderRadius: 3 }}
@@ -101,9 +106,9 @@ export const PasswordField = forwardRef<TextInput, PasswordFieldProps>(
               <Icon
                 name={strength.score >= 3 ? 'check-circle' : 'info'}
                 size={14}
-                color={strength.score >= 3 ? 'success' : 'textSubtle'}
+                color={strength.score >= 3 ? colors.success : colors.muted}
               />
-              <AppText variant="caption" weight="medium" color={strength.color}>
+              <AppText variant="caption" weight="medium" color={strengthHex}>
                 {strength.label} password
               </AppText>
             </View>

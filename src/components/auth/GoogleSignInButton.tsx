@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Pressable, View, Text, ActivityIndicator } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 
-import { colors, fonts, radii, interaction, pressOpacity } from '@/theme/tokens';
+import { fonts, radii, interaction, pressOpacity } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { useAuthStore } from '@/store';
 
 /**
@@ -67,13 +68,16 @@ function GoogleGlyph({ size = 16 }: { size?: number }) {
  * web hover wash, disabled opacity).
  */
 export function GoogleSignInButton({ onSuccess, onError, disabled }: GoogleSignInButtonProps) {
+  const { colors } = useTheme();
   const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle);
   const loading = useAuthStore((s) => s.loading);
   const [busy, setBusy] = React.useState(false);
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: GOOGLE_WEB_CLIENT_ID,
-  });
+  // Stable config reference — a NEW object each render makes expo-auth-session
+  // re-create the request and churn re-renders, which can disturb focus on the
+  // parent auth screens. Memoize so it's built exactly once.
+  const authConfig = useMemo(() => ({ clientId: GOOGLE_WEB_CLIENT_ID }), []);
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(authConfig);
 
   // Resolve the auth-session response (it returns out-of-band, not from prompt).
   useEffect(() => {
@@ -145,9 +149,9 @@ export function GoogleSignInButton({ onSuccess, onError, disabled }: GoogleSignI
             paddingVertical: 10,
             paddingHorizontal: 16,
             borderRadius: radii.pill,
-            backgroundColor: hovered && !pressed ? interaction.hoverWash : colors.white,
+            backgroundColor: hovered && !pressed ? interaction.hoverWash : colors.surface,
             borderWidth: 1,
-            borderColor: pressed ? colors.ink : colors.dove,
+            borderColor: pressed ? colors.ink : colors.hairline,
           }}
         >
           {busy ? (

@@ -4,7 +4,7 @@ import { SoftCard } from '@/components/ui/SoftCard';
 import { AppText } from '@/components/ui/Typography';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { TextLink } from '@/components/ui/PillButton';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import type { ApiError } from '@/services/api';
 
 /* ------------------------------------------------------------------ */
@@ -13,11 +13,12 @@ import type { ApiError } from '@/services/api';
 
 /** A quiet inline loading well — small spinner + caption. */
 export function LoadingState({ label = 'Loading…' }: { label?: string }) {
+  const { colors } = useTheme();
   return (
     <SoftCard variant="inset" radius={16} padding={24}>
       <View style={{ alignItems: 'center', gap: 10 }}>
-        <ActivityIndicator size="small" color={colors.graphite} />
-        <AppText variant="caption" color={colors.graphite}>
+        <ActivityIndicator size="small" color={colors.muted} />
+        <AppText variant="caption" color={colors.muted}>
           {label}
         </AppText>
       </View>
@@ -27,14 +28,15 @@ export function LoadingState({ label = 'Loading…' }: { label?: string }) {
 
 /** A row of skeleton bars for list placeholders (flat, quiet). */
 export function ListSkeleton({ rows = 3 }: { rows?: number }) {
+  const { colors } = useTheme();
   return (
     <View style={{ gap: 10 }}>
       {Array.from({ length: rows }).map((_, i) => (
         <SoftCard key={i} radius={16} padding={14}>
           <View style={{ gap: 10 }}>
-            <View style={{ height: 12, width: '55%', borderRadius: 6, backgroundColor: colors.fog }} />
-            <View style={{ height: 10, width: '80%', borderRadius: 6, backgroundColor: colors.fog }} />
-            <View style={{ height: 6, width: '100%', borderRadius: 6, backgroundColor: colors.fog }} />
+            <View style={{ height: 12, width: '55%', borderRadius: 6, backgroundColor: colors.surfaceAlt }} />
+            <View style={{ height: 10, width: '80%', borderRadius: 6, backgroundColor: colors.surfaceAlt }} />
+            <View style={{ height: 6, width: '100%', borderRadius: 6, backgroundColor: colors.surfaceAlt }} />
           </View>
         </SoftCard>
       ))}
@@ -59,6 +61,7 @@ export function ErrorState({
   onRetry?: () => void;
   title?: string;
 }) {
+  const { colors } = useTheme();
   const message =
     error?.message ?? 'Something went wrong. Please try again.';
   return (
@@ -99,10 +102,11 @@ export function EmptyState({
   title: string;
   body?: string;
 }) {
+  const { colors } = useTheme();
   return (
     <SoftCard variant="inset" radius={16} padding={22}>
       <View style={{ alignItems: 'center', gap: 8 }}>
-        <Icon name={icon} size={20} color="graphite" />
+        <Icon name={icon} size={20} color="muted" />
         <AppText variant="subheading" weight="medium" display style={{ textAlign: 'center' }}>
           {title}
         </AppText>

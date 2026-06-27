@@ -1,20 +1,23 @@
 /**
  * BadgeTile — one badge in the achievements grid (Steep).
  *
- * Earned → a flat white card (hairline + the one subtle shadow) with a small
- * wash medallion, the title, and an XP/date line. Locked → a quiet Fog well
+ * Earned → a flat wash card (hairline + the one subtle shadow) with a small
+ * wash medallion, the title, and an XP/date line. Locked → a quiet inset well
  * with a monochrome glyph, a thin Ink progress meter and the remaining
- * percentage. Flat, compact, monochrome with a single wash voice per badge.
+ * percentage. Flat, compact, with a single wash voice per badge. Theme-aware
+ * (light/dark) via useTheme(); enters with a small staggered fade-up.
  */
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import { MotiView } from 'moti';
 
 import { Card } from '@/components/ui/SoftCard';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppText } from '@/components/ui/Typography';
-import { colors, spacing, interaction } from '@/theme/tokens';
+import { useTheme, motion } from '@/theme';
+import { spacing, interaction } from '@/theme/tokens';
 
-import { type Accent, ACCENT_INK, ACCENT_WASH } from './accents';
+import { type Accent, resolveAccent, useAccentMaps } from './accents';
 
 export type BadgeTileProps = {
   title: string;
@@ -40,14 +43,27 @@ export function BadgeTile({
   unlocked,
   progress,
   unlockedLabel,
+  index,
   onPress,
 }: BadgeTileProps) {
-  const wash = ACCENT_WASH[tone];
-  const ink = ACCENT_INK[tone];
+  const { colors } = useTheme();
+  const maps = useAccentMaps();
+  const ink = maps.ink[tone];
+  const washBorder = maps.border[tone];
+  const cardTone = resolveAccent(tone);
   const pct = Math.max(0, Math.min(100, progress));
 
   return (
-    <View style={{ width: '47.5%', flexGrow: 1 }}>
+    <MotiView
+      from={{ opacity: 0, translateY: 8 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{
+        type: 'timing',
+        duration: motion.duration.transition,
+        delay: Math.min(index, 8) * 45,
+      }}
+      style={{ width: '47.5%', flexGrow: 1 }}
+    >
       <Pressable
         onPress={onPress}
         disabled={!onPress}
@@ -61,6 +77,7 @@ export function BadgeTile({
       >
         <Card
           variant={unlocked ? 'raised' : 'inset'}
+          tone={unlocked ? cardTone : 'default'}
           radius={18}
           padding={spacing.lg}
           style={{ minHeight: 150 }}
@@ -74,22 +91,22 @@ export function BadgeTile({
                 borderRadius: 9999,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: unlocked ? wash : colors.white,
+                backgroundColor: colors.surface,
                 borderWidth: 1,
-                borderColor: unlocked ? 'transparent' : colors.dove,
+                borderColor: unlocked ? washBorder : colors.hairline,
               }}
             >
               <Icon
                 name={icon}
                 size={18}
-                color={unlocked ? ink : colors.dove}
+                color={unlocked ? ink : colors.muted}
                 weight="light"
               />
             </View>
             <Icon
               name={unlocked ? 'badge-check' : 'lock'}
               size={15}
-              color={unlocked ? 'ink' : 'dove'}
+              color={unlocked ? ink : colors.muted}
               weight="light"
             />
           </View>
@@ -106,7 +123,7 @@ export function BadgeTile({
             </AppText>
             <AppText
               variant="caption"
-              color={colors.graphite}
+              color={colors.muted}
               numberOfLines={2}
               style={{ marginTop: 2 }}
             >
@@ -124,11 +141,11 @@ export function BadgeTile({
                 marginTop: spacing.md,
               }}
             >
-              <AppText variant="caption" weight="medium" color={colors.ink}>
+              <AppText variant="caption" weight="medium" color={ink}>
                 +{xp} XP
               </AppText>
               {unlockedLabel ? (
-                <AppText variant="caption" color={colors.graphite}>
+                <AppText variant="caption" color={colors.ash}>
                   {unlockedLabel}
                 </AppText>
               ) : null}
@@ -139,9 +156,9 @@ export function BadgeTile({
                 style={{
                   height: 4,
                   borderRadius: 9999,
-                  backgroundColor: colors.white,
+                  backgroundColor: colors.surface,
                   borderWidth: 1,
-                  borderColor: colors.dove,
+                  borderColor: colors.hairline,
                   overflow: 'hidden',
                 }}
               >
@@ -155,10 +172,10 @@ export function BadgeTile({
                 />
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <AppText variant="caption" color={colors.graphite}>
+                <AppText variant="caption" color={colors.muted}>
                   {pct}%
                 </AppText>
-                <AppText variant="caption" color={colors.graphite}>
+                <AppText variant="caption" color={colors.muted}>
                   +{xp} XP
                 </AppText>
               </View>
@@ -166,7 +183,7 @@ export function BadgeTile({
           )}
         </Card>
       </Pressable>
-    </View>
+    </MotiView>
   );
 }
 

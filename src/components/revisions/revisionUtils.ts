@@ -9,7 +9,7 @@
 import type { Difficulty, Confidence, Revision } from '@/types/models';
 import type { TagTone } from '@/components/ui/Tag';
 import type { IconName } from '@/components/ui';
-import { palette } from '@/theme/tokens';
+import { palette, accentForTone, type CardTone } from '@/theme/tokens';
 
 const DAY_MS = 86_400_000;
 
@@ -49,6 +49,22 @@ export function gradeMeta(grade: RecallGrade): RecallGradeMeta {
   return RECALL_GRADES.find((g) => g.grade === grade) ?? RECALL_GRADES[1];
 }
 
+/**
+ * Soft-wash tone that telegraphs a recall grade — warm peach for a Hard recall
+ * (review sooner), calm sky for Medium, settled mint for Easy. Used to colour
+ * the next-review hint glyph from the curated foundation accents.
+ */
+export const GRADE_TONE: Record<RecallGrade, CardTone> = {
+  HARD: 'peach',
+  MEDIUM: 'sky',
+  EASY: 'mint',
+};
+
+/** The deeper foundation accent (icon colour) that matches a recall grade. */
+export function gradeAccent(grade: RecallGrade): string {
+  return accentForTone(GRADE_TONE[grade]);
+}
+
 /* ------------------------------------------------------------------ */
 /* Difficulty + confidence styling (monochrome / washes only)          */
 /* ------------------------------------------------------------------ */
@@ -74,11 +90,13 @@ export function clampConfidence(value: unknown): Confidence {
 }
 
 /**
- * The confidence meter is monochrome: filled pips are Ink, empty pips Dove. The
- * single warm Rust voice is reserved for the lowest (shaky) band only.
+ * Fill color for the confidence meter's lit pips. The lowest (shaky) bands keep
+ * the warm Rust warning voice so a wobbly recall still reads as a flag; solid
+ * recall fills with `tint` — the host card's tonal accent — so the meter is
+ * colourful but still meaningful. Defaults to Ink when no tint is supplied.
  */
-export function confidencePipColor(level: Confidence): string {
-  return level <= 2 ? palette.rust : palette.ink;
+export function confidencePipColor(level: Confidence, tint: string = palette.ink): string {
+  return level <= 2 ? palette.rust : tint;
 }
 
 export function confidenceLabel(level: Confidence): string {
@@ -184,6 +202,47 @@ export function nextReviewPreview(rev: Revision, meta: RecallGradeMeta): string 
   if (days < 14) return `in ${days} days`;
   const weeks = Math.round(days / 7);
   return `in ~${weeks} week${weeks === 1 ? '' : 's'}`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Spacing ladder (the HTML "Spacing ladder" rail)                     */
+/* ------------------------------------------------------------------ */
+
+/** The canonical spaced-repetition rungs (days) shown in the review panel. */
+export const SPACING_LADDER = [3, 7, 15, 30, 60] as const;
+
+export type LadderStep = {
+  /** Interval in days for this rung. */
+  days: number;
+  /** Already cleared (a previous, smaller interval). */
+  done: boolean;
+  /** The rung this revision is sitting on right now. */
+  current: boolean;
+};
+
+/**
+ * Build the spacing-ladder rungs for a revision. Every rung up to and including
+ * the revision's current interval reads as "done"; the closest rung is the live
+ * step; later rungs are still ahead. Shape-tolerant — a missing interval lands
+ * the marker on the first rung.
+ */
+export function spacingLadder(rev: Revision): LadderStep[] {
+  const interval = Number.isFinite(rev?.intervalDays) && rev.intervalDays > 0 ? rev.intervalDays : 1;
+  // Closest rung to the current interval is the live step.
+  let currentIdx = 0;
+  let best = Number.POSITIVE_INFINITY;
+  SPACING_LADDER.forEach((d, i) => {
+    const dist = Math.abs(d - interval);
+    if (dist < best) {
+      best = dist;
+      currentIdx = i;
+    }
+  });
+  return SPACING_LADDER.map((days, i) => ({
+    days,
+    done: i < currentIdx,
+    current: i === currentIdx,
+  }));
 }
 
 /* ------------------------------------------------------------------ */

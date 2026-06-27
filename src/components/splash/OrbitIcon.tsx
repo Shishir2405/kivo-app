@@ -2,7 +2,7 @@ import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { MotiView } from 'moti';
 import { Neumorph } from '@/components/ui/Neumorph';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type OrbitIconProps = {
   /** The brand SVG component to render inside the soft chip. */
@@ -44,6 +44,7 @@ export function OrbitIcon({
   chip = 52,
   style,
 }: OrbitIconProps) {
+  const { colors } = useTheme();
   return (
     <MotiView
       from={{

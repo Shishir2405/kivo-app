@@ -13,7 +13,8 @@ import { InfoTile } from '@/components/dsa/InfoTile';
 import { SectionHeading } from '@/components/dsa/SectionHeading';
 import { ListSkeleton, ErrorState, EmptyState } from '@/components/dsa/StateViews';
 import { useDsaTopics } from '@/hooks/api';
-import { colors } from '@/theme/tokens';
+import { motion } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import type { DsaTopic } from '@/types/models';
 
 /* ================================================================== */
@@ -24,7 +25,7 @@ type TopicFilter = 'all' | 'active' | 'mastered';
 
 const TOPIC_FILTERS: SegmentedOption<TopicFilter>[] = [
   { label: 'All', value: 'all' },
-  { label: 'Active', value: 'active' },
+  { label: 'In progress', value: 'active' },
   { label: 'Mastered', value: 'mastered' },
 ];
 
@@ -42,6 +43,7 @@ function topicScore(t: DsaTopic): number {
 export default function DsaScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors, accentForTone } = useTheme();
 
   const { data, isLoading, isError, error, refetch, isRefetching } = useDsaTopics();
   const [filter, setFilter] = useState<TopicFilter>('all');
@@ -64,7 +66,7 @@ export default function DsaScreen() {
   }, [topics]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -76,7 +78,7 @@ export default function DsaScreen() {
           <RefreshControl
             refreshing={isRefetching && !isLoading}
             onRefresh={() => void refetch()}
-            tintColor={colors.graphite}
+            tintColor={colors.muted}
           />
         }
       >
@@ -84,14 +86,14 @@ export default function DsaScreen() {
         <GrayMark size={22} style={{ marginBottom: 10 }} />
 
         {/* ---------- Header ---------- */}
-        <View style={{ marginBottom: 16 }}>
-          <AppText
-            variant="caption"
-            weight="medium"
-            color={colors.graphite}
-            style={{ textTransform: 'uppercase', letterSpacing: 1.4 }}
-          >
-            Practice
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition }}
+          style={{ marginBottom: 16 }}
+        >
+          <AppText variant="body" color={colors.muted} weight="medium">
+            DSA Mode
           </AppText>
           <AppText variant="headingLg" display style={{ marginTop: 2 }}>
             Topics
@@ -101,14 +103,14 @@ export default function DsaScreen() {
               ? `${summary.totalSolved} of ${summary.totalProblems} problems solved`
               : 'Your data-structures & algorithms practice'}
           </AppText>
-        </View>
+        </MotiView>
 
         {/* ---------- Summary stats (data washes) ---------- */}
         {topics.length > 0 ? (
           <MotiView
             from={{ opacity: 0, translateY: 8 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 300 }}
+            transition={{ type: 'timing', duration: motion.duration.transition, delay: 60 }}
             className="flex-row"
             style={{ gap: 10, marginBottom: 20 }}
           >
@@ -116,21 +118,21 @@ export default function DsaScreen() {
               icon="check-circle"
               value={`${summary.totalSolved}`}
               label="Solved"
-              surface="cool"
+              surface="mint"
               style={{ flex: 1 }}
             />
             <InfoTile
               icon="trending-up"
               value={`${summary.pct}%`}
               label="Overall"
-              valueColor={colors.rust}
-              surface="warm"
+              surface="sky"
               style={{ flex: 1 }}
             />
             <InfoTile
               icon="crown"
               value={`${summary.mastered}`}
               label="Mastered"
+              surface="butter"
               style={{ flex: 1 }}
             />
           </MotiView>
@@ -139,10 +141,11 @@ export default function DsaScreen() {
         {/* ---------- Topics ---------- */}
         <SectionHeading
           icon="layers"
+          iconColor={accentForTone('lavender')}
           title="All topics"
           trailing={
             topics.length > 0 ? (
-              <AppText variant="caption" color={colors.graphite}>
+              <AppText variant="caption" color={colors.muted}>
                 {filteredTopics.length}
               </AppText>
             ) : undefined
@@ -199,8 +202,8 @@ export default function DsaScreen() {
         {/* Subtle footer link to the full problem bank */}
         {topics.length > 0 ? (
           <View style={{ marginTop: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
-            <Icon name="info" size={13} color="dove" />
-            <AppText variant="caption" color={colors.graphite}>
+            <Icon name="info" size={13} color="hairline" />
+            <AppText variant="caption" color={colors.muted}>
               Tap a topic to see its problems and notes
             </AppText>
           </View>

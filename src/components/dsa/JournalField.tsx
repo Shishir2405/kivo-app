@@ -4,7 +4,7 @@ import { SoftCard } from '@/components/ui/SoftCard';
 import { SoftInput } from '@/components/ui/SoftInput';
 import { AppText } from '@/components/ui/Typography';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type JournalFieldProps = {
   /** Leading icon glyph for the field label (small, thin). */
@@ -35,10 +35,12 @@ export function JournalField({
   title,
   body,
   placeholder = 'Nothing captured yet.',
-  accent = colors.rust,
+  accent,
   onChangeBody,
   style,
 }: JournalFieldProps) {
+  const { colors } = useTheme();
+  const railColor = accent ?? colors.primary;
   const hasBody = !!body && body.trim().length > 0;
   const editable = !!onChangeBody;
 
@@ -50,7 +52,7 @@ export function JournalField({
             width: 3,
             height: 16,
             borderRadius: 2,
-            backgroundColor: accent,
+            backgroundColor: railColor,
           }}
         />
         <Icon name={icon} size={15} color="graphite" />
@@ -72,7 +74,7 @@ export function JournalField({
         <SoftCard variant="inset" radius={13} padding={14}>
           <AppText
             variant="body"
-            color={hasBody ? colors.ash : colors.dove}
+            color={hasBody ? colors.ash : colors.muted}
             style={{ lineHeight: 20, fontStyle: hasBody ? 'normal' : 'italic' }}
           >
             {hasBody ? body : placeholder}

@@ -29,7 +29,8 @@ import {
 import { useTasks, useHabits, useStudySessions } from '@/hooks/api';
 import { queryKeys } from '@/hooks/api/keys';
 import { requestData, type ApiError } from '@/services/api';
-import { colors, spacing } from '@/theme/tokens';
+import { spacing, motion } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import type { Task, Habit, Priority } from '@/types/models';
 
 /* ================================================================== */
@@ -255,6 +256,7 @@ function useLogStudySession(): UseMutationResult<
 
 export default function TrackerScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   const tasksQuery = useTasks();
   const habitsQuery = useHabits();
@@ -343,14 +345,14 @@ export default function TrackerScreen() {
   }, [tasksQuery, habitsQuery, sessionsQuery]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.graphite}
+            tintColor={colors.muted}
           />
         }
         contentContainerStyle={{
@@ -384,7 +386,7 @@ export default function TrackerScreen() {
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 320 }}
+          transition={{ type: 'timing', duration: motion.duration.transition }}
           className="flex-row"
           style={{ gap: spacing.md, marginBottom: spacing.xl }}
         >
@@ -397,98 +399,122 @@ export default function TrackerScreen() {
         </MotiView>
 
         {/* ---------- Today's plan ---------- */}
-        <SectionHeader eyebrow="Today" title="Plan" />
-        <Card style={{ marginBottom: spacing.xl }} padding={spacing.lg}>
-          {tasksQuery.isLoading ? (
-            <LoadingState label="Loading plan" />
-          ) : tasksQuery.isError ? (
-            <ErrorState
-              message={tasksQuery.error?.message}
-              onRetry={() => void tasksQuery.refetch()}
-            />
-          ) : planBlocks.length > 0 ? (
-            <Timeline blocks={planBlocks} />
-          ) : (
-            <View className="items-center" style={{ gap: 6, paddingVertical: spacing.sm }}>
-              <Icon name="check-circle" size={18} color="dove" />
-              <AppText variant="caption" color={colors.graphite}>
-                Nothing scheduled — you are all caught up.
-              </AppText>
-            </View>
-          )}
-        </Card>
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition, delay: 60 }}
+        >
+          <SectionHeader eyebrow="Today" title="Plan" />
+          <Card style={{ marginBottom: spacing.xl }} padding={spacing.lg}>
+            {tasksQuery.isLoading ? (
+              <LoadingState label="Loading plan" />
+            ) : tasksQuery.isError ? (
+              <ErrorState
+                message={tasksQuery.error?.message}
+                onRetry={() => void tasksQuery.refetch()}
+              />
+            ) : planBlocks.length > 0 ? (
+              <Timeline blocks={planBlocks} />
+            ) : (
+              <View className="items-center" style={{ gap: 6, paddingVertical: spacing.sm }}>
+                <Icon name="check-circle" size={18} color="dove" />
+                <AppText variant="caption" color={colors.graphite}>
+                  Nothing scheduled — you are all caught up.
+                </AppText>
+              </View>
+            )}
+          </Card>
+        </MotiView>
 
         {/* ---------- Focus timer ---------- */}
-        <SectionHeader eyebrow="Stay in flow" title="Focus" />
-        <View style={{ marginBottom: spacing.xl }}>
-          <FocusTimer
-            focusedTodayMinutes={focusMinutesToday}
-            onSessionComplete={onSessionComplete}
-          />
-        </View>
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition, delay: 120 }}
+        >
+          <SectionHeader eyebrow="Stay in flow" title="Focus" />
+          <View style={{ marginBottom: spacing.xl }}>
+            <FocusTimer
+              focusedTodayMinutes={focusMinutesToday}
+              onSessionComplete={onSessionComplete}
+            />
+          </View>
+        </MotiView>
 
         {/* ---------- Tasks ---------- */}
-        <SectionHeader eyebrow="Get it done" title="Tasks" />
-        <View style={{ marginBottom: spacing.md }}>
-          <SegmentedTabs
-            options={TASK_FILTERS}
-            value={taskFilter}
-            onChange={setTaskFilter}
-          />
-        </View>
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition, delay: 180 }}
+        >
+          <SectionHeader eyebrow="Get it done" title="Tasks" />
+          <View style={{ marginBottom: spacing.md }}>
+            <SegmentedTabs
+              options={TASK_FILTERS}
+              value={taskFilter}
+              onChange={setTaskFilter}
+            />
+          </View>
 
-        <View style={{ marginBottom: spacing.xl }}>
-          {tasksQuery.isLoading ? (
-            <LoadingState label="Loading tasks" />
-          ) : tasksQuery.isError ? (
-            <ErrorState
-              message={tasksQuery.error?.message}
-              onRetry={() => void tasksQuery.refetch()}
-            />
-          ) : visibleTasks.length > 0 ? (
-            <MotiView
-              key={taskFilter}
-              from={{ opacity: 0, translateY: 6 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 240 }}
-            >
-              {visibleTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onToggle={onToggleTask} />
-              ))}
-            </MotiView>
-          ) : (
-            <EmptyState
-              icon={taskFilter === 'done' ? 'check-circle' : 'badge-check'}
-              title={taskFilter === 'done' ? 'Nothing finished yet' : 'All clear'}
-              body={
-                taskFilter === 'done'
-                  ? 'Complete a task and it lands here.'
-                  : 'No open tasks right now.'
-              }
-            />
-          )}
-        </View>
+          <View style={{ marginBottom: spacing.xl }}>
+            {tasksQuery.isLoading ? (
+              <LoadingState label="Loading tasks" />
+            ) : tasksQuery.isError ? (
+              <ErrorState
+                message={tasksQuery.error?.message}
+                onRetry={() => void tasksQuery.refetch()}
+              />
+            ) : visibleTasks.length > 0 ? (
+              <MotiView
+                key={taskFilter}
+                from={{ opacity: 0, translateY: 6 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: 'timing', duration: motion.duration.micro }}
+              >
+                {visibleTasks.map((task, i) => (
+                  <TaskCard key={task.id} task={task} onToggle={onToggleTask} index={i} />
+                ))}
+              </MotiView>
+            ) : (
+              <EmptyState
+                icon={taskFilter === 'done' ? 'check-circle' : 'badge-check'}
+                title={taskFilter === 'done' ? 'Nothing finished yet' : 'All clear'}
+                body={
+                  taskFilter === 'done'
+                    ? 'Complete a task and it lands here.'
+                    : 'No open tasks right now.'
+                }
+              />
+            )}
+          </View>
+        </MotiView>
 
         {/* ---------- Habits ---------- */}
-        <SectionHeader eyebrow="Build momentum" title="Habits" />
-        {habitsQuery.isLoading ? (
-          <LoadingState label="Loading habits" />
-        ) : habitsQuery.isError ? (
-          <ErrorState
-            message={habitsQuery.error?.message}
-            onRetry={() => void habitsQuery.refetch()}
-          />
-        ) : habits.length > 0 ? (
-          habits.map((habit) => (
-            <HabitCard key={habit.id} habit={habit} onToggleToday={onToggleHabit} />
-          ))
-        ) : (
-          <EmptyState
-            icon="repeat"
-            title="No habits yet"
-            body="Pick one habit to repeat daily and watch the streak grow."
-          />
-        )}
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition, delay: 240 }}
+        >
+          <SectionHeader eyebrow="Build momentum" title="Habits" />
+          {habitsQuery.isLoading ? (
+            <LoadingState label="Loading habits" />
+          ) : habitsQuery.isError ? (
+            <ErrorState
+              message={habitsQuery.error?.message}
+              onRetry={() => void habitsQuery.refetch()}
+            />
+          ) : habits.length > 0 ? (
+            habits.map((habit, i) => (
+              <HabitCard key={habit.id} habit={habit} onToggleToday={onToggleHabit} index={i} />
+            ))
+          ) : (
+            <EmptyState
+              icon="repeat"
+              title="No habits yet"
+              body="Pick one habit to repeat daily and watch the streak grow."
+            />
+          )}
+        </MotiView>
       </ScrollView>
     </View>
   );

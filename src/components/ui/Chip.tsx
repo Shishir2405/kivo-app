@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, View, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
-import { colors, fonts, radii, interaction } from '@/theme/tokens';
+import { fonts, radii, interaction } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 
 export type ChipProps = {
   label: string;
@@ -13,17 +14,19 @@ export type ChipProps = {
 };
 
 /**
- * Steep chip — a small flat pill. Idle: white with a Dove hairline, Ash text.
- * Selected: filled Ink with white text. No neumorphism.
+ * Kivo chip — a small flat pill. Idle: surface with a hairline + muted text.
+ * Selected: filled TERRACOTTA with inverted text (the HTML "Active" tag).
+ * Theme-aware.
  */
 export function Chip({ label, selected, onPress, icon, disabled, style }: ChipProps) {
+  const { colors } = useTheme();
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
-      style={({ pressed }) => [{ opacity: disabled ? 0.4 : pressed ? 0.6 : 1 }, style]}
+      style={({ pressed }) => [{ opacity: disabled ? 0.45 : pressed ? 0.6 : 1 }, style]}
     >
       {({ pressed, hovered }) => (
         <View
@@ -35,22 +38,22 @@ export function Chip({ label, selected, onPress, icon, disabled, style }: ChipPr
             paddingHorizontal: 11,
             borderRadius: radii.pill,
             backgroundColor: selected
-              ? colors.ink
+              ? colors.primary
               : hovered && !pressed
                 ? interaction.hoverWash
-                : colors.white,
+                : colors.surface,
             borderWidth: 1,
-            borderColor: selected ? colors.ink : pressed ? colors.ink : colors.dove,
+            borderColor: selected ? colors.primary : pressed ? colors.primary : colors.hairline,
           }}
         >
           {icon ? (
-            <Icon name={icon} size={13} color={selected ? 'white' : 'graphite'} />
+            <Icon name={icon} size={13} color={selected ? colors.inkInverted : colors.muted} />
           ) : null}
           <Text
             style={{
-              fontFamily: fonts.sansMedium,
+              fontFamily: fonts.sansSemibold,
               fontSize: 13,
-              color: selected ? colors.white : colors.ash,
+              color: selected ? colors.inkInverted : colors.muted,
             }}
           >
             {label}

@@ -7,7 +7,7 @@
  * voices — the two washes (apricot / sky) and Rust — never bright/saturated.
  * Pure / deterministic — no Date.now at module scope (callers pass the day in).
  */
-import { colors } from '@/theme/tokens';
+import type { AppColors } from '@/theme/tokens';
 import type { TagTone } from '@/components/ui/Tag';
 import type { IconName, Note, NoteFolder } from '@/types/models';
 
@@ -25,14 +25,19 @@ export const ACCENT_TONE: Record<Accent, TagTone> = {
   success: 'neutral',
 };
 
-/** A soft Steep wash background for an accent (apricot / sky / fog). */
-export const ACCENT_WASH: Record<Accent, string> = {
-  highlighter: colors.fog,
-  signal: colors.sky,
-  peach: colors.apricot,
-  annotation: colors.apricot,
-  success: colors.fog,
-};
+/**
+ * A soft Kivo wash background for an accent, resolved against the ACTIVE
+ * palette so it stays dark-aware. Pass `useTheme().colors`.
+ */
+export function accentWash(colors: AppColors): Record<Accent, string> {
+  return {
+    highlighter: colors.surfaceAlt,
+    signal: colors.sky,
+    peach: colors.peach,
+    annotation: colors.peach,
+    success: colors.surfaceAlt,
+  };
+}
 
 /** All folders, in display order. */
 export const NOTE_FOLDERS: NoteFolder[] = [

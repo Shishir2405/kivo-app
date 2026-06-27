@@ -1,10 +1,10 @@
 /**
- * A tiny, dependency-free Markdown renderer tuned for the STEEP look.
+ * A tiny, dependency-free Markdown renderer tuned for the Kivo reader.
  *
- * Editorial + flat: serif headings, Inter body, a Fog "code well" with a Dove
- * hairline (no dark window chrome), a Rust rail on blockquotes/headings (the one
- * warm key-data stroke), small compact spacing. Supports the subset the notes
- * actually use:
+ * Editorial + flat: serif headings with a terracotta rail, Figtree body, a
+ * DARK ink code block (mono, like the design's reader) and a terracotta rail on
+ * blockquotes. Small compact spacing. Fully theme-aware via useTheme(). Supports
+ * the subset the notes actually use:
  *  - `#` / `##` / `###` headings
  *  - fenced ``` code blocks
  *  - `> ` blockquotes
@@ -17,9 +17,11 @@
  */
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, fonts } from '@/theme/tokens';
+import { fonts, type AppColors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
+import { Icon } from '@/components/ui/Icon';
 
-const MONO = 'monospace';
+const MONO = fonts.mono;
 
 type Block =
   | { kind: 'heading'; level: 1 | 2 | 3; text: string }
@@ -180,18 +182,21 @@ function parseInline(text: string): Span[] {
 
 function InlineText({
   text,
-  size = 13,
-  color = colors.ash,
+  colors,
+  size = 13.5,
+  color,
   lineHeight,
 }: {
   text: string;
+  colors: AppColors;
   size?: number;
   color?: string;
   lineHeight?: number;
 }) {
   const spans = useMemo(() => parseInline(text), [text]);
+  const baseColor = color ?? colors.ash;
   return (
-    <Text style={{ fontSize: size, lineHeight: lineHeight ?? size * 1.55, color, letterSpacing: -0.1 }}>
+    <Text style={{ fontSize: size, lineHeight: lineHeight ?? size * 1.55, color: baseColor, letterSpacing: -0.1 }}>
       {spans.map((s, idx) => {
         if (s.code) {
           return (
@@ -200,21 +205,21 @@ function InlineText({
               style={{
                 fontFamily: MONO,
                 fontSize: size - 1,
-                color: colors.rust,
+                color: colors.primaryOnWash,
               }}
             >
               {` ${s.text} `}
             </Text>
           );
         }
-        const fam = s.bold ? fonts.sansMedium : fonts.sans;
+        const fam = s.bold ? fonts.sansSemibold : fonts.sans;
         return (
           <Text
             key={idx}
             style={{
               fontFamily: fam,
               fontStyle: s.italic ? 'italic' : 'normal',
-              color: s.bold ? colors.ink : color,
+              color: s.bold ? colors.ink : baseColor,
             }}
           >
             {s.text}
@@ -226,53 +231,46 @@ function InlineText({
 }
 
 /* ------------------------------------------------------------------ */
-/* Code block — flat Fog well, Dove hairline                           */
+/* Code block — DARK ink window (mono), like the design's reader       */
 /* ------------------------------------------------------------------ */
 
-function CodeBlock({ lang, lines }: { lang: string; lines: string[] }) {
+function CodeBlock({ lang, lines, colors }: { lang: string; lines: string[]; colors: AppColors }) {
   return (
     <View
       style={{
         marginVertical: 8,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.dove,
-        backgroundColor: colors.fog,
+        borderRadius: 13,
+        backgroundColor: '#211C17',
         overflow: 'hidden',
+        padding: 14,
       }}
     >
-      {lang ? (
-        <View
+      <View
+        className="flex-row items-center justify-between"
+        style={{ marginBottom: 9 }}
+      >
+        <Text
           style={{
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.dove,
+            fontFamily: MONO,
+            fontSize: 10,
+            letterSpacing: 0.5,
+            color: '#A89F92',
           }}
         >
-          <Text
-            style={{
-              fontFamily: fonts.sansMedium,
-              fontSize: 10,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-              color: colors.graphite,
-            }}
-          >
-            {lang}
-          </Text>
-        </View>
-      ) : null}
+          {lang || 'code'}
+        </Text>
+        <Icon name="copy" size={13} color="#A89F92" />
+      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={{ paddingHorizontal: 12, paddingVertical: 10, minWidth: '100%' }}>
+        <View style={{ minWidth: '100%' }}>
           {lines.map((ln, idx) => (
             <Text
               key={idx}
               style={{
                 fontFamily: MONO,
-                fontSize: 12,
+                fontSize: 11.5,
                 lineHeight: 19,
-                color: colors.ink,
+                color: '#E0D6C8',
               }}
             >
               {ln.length ? ln : ' '}
@@ -288,22 +286,22 @@ function CodeBlock({ lang, lines }: { lang: string; lines: string[] }) {
 /* Table                                                               */
 /* ------------------------------------------------------------------ */
 
-function Table({ header, rows }: { header: string[]; rows: string[][] }) {
+function Table({ header, rows, colors }: { header: string[]; rows: string[][]; colors: AppColors }) {
   return (
     <View
       style={{
         marginVertical: 8,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: colors.dove,
+        borderColor: colors.hairline,
         overflow: 'hidden',
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
       }}
     >
-      <View style={{ flexDirection: 'row', backgroundColor: colors.fog }}>
+      <View style={{ flexDirection: 'row', backgroundColor: colors.surfaceAlt }}>
         {header.map((c, idx) => (
           <View key={idx} style={{ flex: 1, padding: 9 }}>
-            <Text style={{ fontFamily: fonts.sansMedium, fontSize: 12, color: colors.ink }}>
+            <Text style={{ fontFamily: fonts.sansSemibold, fontSize: 12, color: colors.ink }}>
               {c}
             </Text>
           </View>
@@ -315,12 +313,12 @@ function Table({ header, rows }: { header: string[]; rows: string[][] }) {
           style={{
             flexDirection: 'row',
             borderTopWidth: 1,
-            borderTopColor: colors.fog,
+            borderTopColor: colors.hairline,
           }}
         >
           {row.map((c, cIdx) => (
             <View key={cIdx} style={{ flex: 1, padding: 9 }}>
-              <InlineText text={c} size={12} color={colors.ash} />
+              <InlineText text={c} colors={colors} size={12} color={colors.ash} />
             </View>
           ))}
         </View>
@@ -335,20 +333,21 @@ function Table({ header, rows }: { header: string[]; rows: string[][] }) {
 
 export type MarkdownViewProps = {
   source: string;
-  /** Kept for back-compat; Steep always uses the single Rust rail. */
+  /** Kept for back-compat; Kivo always uses the single terracotta rail. */
   accent?: string;
   style?: StyleProp<ViewStyle>;
 };
 
 const HEADING = {
-  1: { size: 19, mt: 10, mb: 4 },
-  2: { size: 16, mt: 12, mb: 3 },
-  3: { size: 14, mt: 8, mb: 2 },
+  1: { size: 20, mt: 12, mb: 4 },
+  2: { size: 16.5, mt: 14, mb: 3 },
+  3: { size: 14.5, mt: 10, mb: 2 },
 } as const;
 
 export function MarkdownView({ source, style }: MarkdownViewProps) {
+  const { colors } = useTheme();
   const blocks = useMemo(() => parse(source), [source]);
-  const rail = colors.rust;
+  const rail = colors.primary;
 
   return (
     <View style={style}>
@@ -387,17 +386,32 @@ export function MarkdownView({ source, style }: MarkdownViewProps) {
             );
           }
           case 'code':
-            return <CodeBlock key={idx} lang={b.lang} lines={b.lines} />;
+            return <CodeBlock key={idx} lang={b.lang} lines={b.lines} colors={colors} />;
           case 'quote':
             return (
               <View
                 key={idx}
-                style={{ flexDirection: 'row', gap: 10, marginVertical: 6, paddingVertical: 2 }}
+                style={{
+                  marginVertical: 8,
+                  borderRadius: 8,
+                  backgroundColor: colors.surface,
+                  borderLeftWidth: 3,
+                  borderLeftColor: rail,
+                  paddingVertical: 11,
+                  paddingHorizontal: 13,
+                }}
               >
-                <View style={{ width: 3, borderRadius: 2, backgroundColor: rail }} />
-                <View style={{ flex: 1 }}>
-                  <InlineText text={b.text} size={13} color={colors.graphite} />
-                </View>
+                <Text
+                  style={{
+                    fontFamily: fonts.sans,
+                    fontStyle: 'italic',
+                    fontSize: 12.5,
+                    lineHeight: 19,
+                    color: colors.muted,
+                  }}
+                >
+                  {b.text}
+                </Text>
               </View>
             );
           case 'ul':
@@ -409,7 +423,7 @@ export function MarkdownView({ source, style }: MarkdownViewProps) {
                       style={{ width: 5, height: 5, borderRadius: 3, marginTop: 8, backgroundColor: rail }}
                     />
                     <View style={{ flex: 1 }}>
-                      <InlineText text={it} />
+                      <InlineText text={it} colors={colors} />
                     </View>
                   </View>
                 ))}
@@ -422,28 +436,28 @@ export function MarkdownView({ source, style }: MarkdownViewProps) {
                   <View key={j} style={{ flexDirection: 'row', gap: 9 }}>
                     <Text
                       style={{
-                        fontFamily: fonts.sansMedium,
-                        fontSize: 13,
-                        lineHeight: 20,
-                        color: colors.rust,
+                        fontFamily: fonts.sansSemibold,
+                        fontSize: 13.5,
+                        lineHeight: 21,
+                        color: colors.primaryOnWash,
                         minWidth: 15,
                       }}
                     >
                       {j + 1}.
                     </Text>
                     <View style={{ flex: 1 }}>
-                      <InlineText text={it} />
+                      <InlineText text={it} colors={colors} />
                     </View>
                   </View>
                 ))}
               </View>
             );
           case 'table':
-            return <Table key={idx} header={b.header} rows={b.rows} />;
+            return <Table key={idx} header={b.header} rows={b.rows} colors={colors} />;
           case 'p':
             return (
               <View key={idx} style={{ marginVertical: 2 }}>
-                <InlineText text={b.text} />
+                <InlineText text={b.text} colors={colors} color={colors.ash} />
               </View>
             );
           default:

@@ -2,23 +2,32 @@
  * Shared mapping helpers for the DSA surfaces — difficulty / status / mastery
  * tokens so every DSA screen labels things identically.
  *
- * STEEP: chrome is monochrome (ink / graphite / dove); Rust + the two washes
- * (apricot / sky) are the only chromatic voices. Tags use the Steep `TagTone`
- * set. Every glyph is an `IconName` from the curated registry — ZERO emoji.
+ * COLOR: the calm-but-colorful wash layer. Chrome stays Ink/Ash for text, but
+ * meaningful glyphs (difficulty / status / mastery) carry a matching wash
+ * accent so the DSA surfaces feel lively without going childish. Tag tones use
+ * the on-brand Steep tag set; glyph stroke colors map to the wash accents via
+ * `accentForTone`. Every glyph is an `IconName` from the curated registry.
  */
 import type { Difficulty, ProblemStatus } from '@/types/models';
 import type { TagTone } from '@/components/ui/Tag';
 import type { IconName } from '@/components/ui/Icon';
-import { colors } from '@/theme/tokens';
+import type { AppColors, CardTone } from '@/theme/tokens';
+
+/**
+ * The two theme bits the color-mapping helpers need from `useTheme()`:
+ * the ACTIVE palette and its tone-accent resolver. Passing these in keeps
+ * every DSA glyph color dark-aware (no static light-only palette baked in).
+ */
+type AccentForTone = (tone?: CardTone) => string;
 
 /* ------------------------------------------------------------------ */
 /* Difficulty                                                          */
 /* ------------------------------------------------------------------ */
 
-/** Difficulty -> Steep tag tone. Easy=cool wash, Medium=neutral, Hard=rust. */
+/** Difficulty -> Steep tag tone. Easy=cool (sky) wash, Medium=warm, Hard=rust. */
 export const DIFFICULTY_TONE: Record<Difficulty, TagTone> = {
   EASY: 'cool',
-  MEDIUM: 'neutral',
+  MEDIUM: 'warm',
   HARD: 'rust',
 };
 
@@ -34,6 +43,20 @@ export const DIFFICULTY_ICON: Record<Difficulty, IconName> = {
   MEDIUM: 'activity',
   HARD: 'flame',
 };
+
+/**
+ * Difficulty -> a matching wash accent for the difficulty glyph: Easy reads
+ * mint (calm/green), Medium butter (steady/amber), Hard peach (warm/rust).
+ * Dark-aware — resolves against the ACTIVE palette via `accentForTone`.
+ */
+export function difficultyColor(difficulty: Difficulty, accentForTone: AccentForTone): string {
+  const tone: Record<Difficulty, CardTone> = {
+    EASY: 'mint',
+    MEDIUM: 'butter',
+    HARD: 'peach',
+  };
+  return accentForTone(tone[difficulty]);
+}
 
 /* ------------------------------------------------------------------ */
 /* Problem status                                                      */
@@ -63,15 +86,27 @@ export const STATUS_ICON: Record<ProblemStatus, IconName> = {
 };
 
 /**
- * Problem status -> a monochrome/Rust stroke color for the status glyph.
- * Chrome stays graphite/ink; solved+mastered earn the Rust accent.
+ * Problem status -> stroke color for the status glyph. The journey warms up as
+ * you progress: To-do stays quiet hairline, Attempted picks up the butter
+ * accent, Solved lands on mint (done/green), Mastered crowns it with the
+ * peach/rust accent. Dark-aware — resolved against the ACTIVE palette.
  */
-export const STATUS_COLOR: Record<ProblemStatus, string> = {
-  TODO: colors.dove,
-  ATTEMPTED: colors.graphite,
-  SOLVED: colors.rust,
-  MASTERED: colors.ink,
-};
+export function statusColor(
+  status: ProblemStatus,
+  colors: AppColors,
+  accentForTone: AccentForTone,
+): string {
+  switch (status) {
+    case 'TODO':
+      return colors.muted;
+    case 'ATTEMPTED':
+      return accentForTone('butter');
+    case 'SOLVED':
+      return accentForTone('mint');
+    case 'MASTERED':
+      return accentForTone('peach');
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /* Confidence (spaced-repetition revision history)                     */
@@ -146,22 +181,29 @@ export type MasteryMeta = {
 
 /**
  * Map a 0–100 mastery/progress score onto a labelled band with a tone, icon
- * and stroke color — used for the mastery Tag on topic surfaces.
+ * and stroke color — used for the mastery Tag on topic surfaces. The glyph
+ * stroke climbs the wash accents as mastery grows: just-started Graphite ->
+ * in-progress sky -> confident butter -> mastering peach/rust crown.
  */
-export function masteryMeta(score: number): MasteryMeta {
+export function masteryMeta(
+  score: number,
+  accentForTone: AccentForTone,
+  colors: AppColors,
+): MasteryMeta {
   if (score >= 80)
-    return { label: 'Mastering', tone: 'ink', icon: 'crown', color: colors.ink };
+    return { label: 'Mastering', tone: 'ink', icon: 'crown', color: accentForTone('peach') };
   if (score >= 55)
-    return { label: 'Confident', tone: 'cool', icon: 'trending-up', color: colors.rust };
+    return { label: 'Confident', tone: 'cool', icon: 'trending-up', color: accentForTone('butter') };
   if (score >= 30)
-    return { label: 'In progress', tone: 'warm', icon: 'activity', color: colors.graphite };
-  return { label: 'Just started', tone: 'neutral', icon: 'rocket', color: colors.graphite };
+    return { label: 'In progress', tone: 'warm', icon: 'activity', color: accentForTone('sky') };
+  return { label: 'Just started', tone: 'neutral', icon: 'rocket', color: colors.muted };
 }
 
 /**
- * Progress-bar fill color from a 0–100 score: Rust once you're past the
- * halfway mark (the key-data accent), else Ink. Rust used sparingly.
+ * Progress-bar fill color from a 0–100 score: terracotta once you're past the
+ * halfway mark (the key-data accent), else ink. Dark-aware via the ACTIVE
+ * palette. Used sparingly.
  */
-export function progressColor(score: number): string {
-  return score >= 50 ? colors.rust : colors.ink;
+export function progressColor(score: number, colors: AppColors): string {
+  return score >= 50 ? colors.primary : colors.ink;
 }

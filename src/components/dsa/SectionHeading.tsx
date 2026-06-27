@@ -2,7 +2,8 @@ import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { AppText } from '@/components/ui/Typography';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors, type ColorToken } from '@/theme/tokens';
+import { type ColorToken } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type SectionHeadingProps = {
   /** Leading icon glyph (small, thin, monochrome). */
@@ -28,9 +29,10 @@ export function SectionHeading({
   eyebrow,
   title,
   trailing,
-  iconColor = 'graphite',
+  iconColor = 'muted',
   style,
 }: SectionHeadingProps) {
+  const { colors } = useTheme();
   return (
     <View
       className="flex-row items-center"
@@ -43,7 +45,7 @@ export function SectionHeading({
           <AppText
             variant="caption"
             weight="medium"
-            color={colors.graphite}
+            color={colors.muted}
             style={{ textTransform: 'uppercase', letterSpacing: 1, fontSize: 10.5 }}
           >
             {eyebrow}

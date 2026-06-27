@@ -9,6 +9,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { View, ScrollView } from 'react-native';
+import { MotiView } from 'moti';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -33,10 +34,11 @@ import {
   type AchievementCategory,
 } from '@/components/account/accountApi';
 
-import { colors, spacing } from '@/theme/tokens';
+import { useTheme, motion } from '@/theme';
+import { spacing } from '@/theme/tokens';
 
 /* ------------------------------------------------------------------ */
-/* Category → glyph + accent (color is punctuation: one wash per badge) */
+/* Category → glyph + accent (one curated wash per badge category)     */
 /* ------------------------------------------------------------------ */
 
 const CATEGORY_ICON: Record<string, IconName> = {
@@ -47,19 +49,21 @@ const CATEGORY_ICON: Record<string, IconName> = {
   MILESTONE: 'medal',
 };
 
+// One curated wash per category so the badge grid reads as an intentional,
+// rotating palette rather than a single warm voice.
 const CATEGORY_TONE: Record<string, Accent> = {
   STREAK: 'peach',
-  VOLUME: 'signal',
-  REVISION: 'peach',
-  FOCUS: 'signal',
-  MILESTONE: 'highlighter',
+  VOLUME: 'sky',
+  REVISION: 'mint',
+  FOCUS: 'lavender',
+  MILESTONE: 'butter',
 };
 
 function catIcon(c: AchievementCategory): IconName {
   return CATEGORY_ICON[c] ?? 'trophy';
 }
 function catTone(c: AchievementCategory): Accent {
-  return CATEGORY_TONE[c] ?? 'highlighter';
+  return CATEGORY_TONE[c] ?? 'butter';
 }
 
 /* ------------------------------------------------------------------ */
@@ -93,10 +97,10 @@ const FILTER_OPTIONS: SegmentedOption<Filter>[] = [
 type Milestone = { key: string; icon: IconName; title: string; requirement: string; threshold: number; tone: Accent };
 
 const MILESTONES: Milestone[] = [
-  { key: 'first_week', icon: 'sparkles', title: 'First Week', requirement: '7-day streak', threshold: 7, tone: 'signal' },
+  { key: 'first_week', icon: 'sparkles', title: 'First Week', requirement: '7-day streak', threshold: 7, tone: 'sky' },
   { key: 'thirty', icon: 'flame', title: '30 Days', requirement: '30-day streak', threshold: 30, tone: 'peach' },
-  { key: 'hundred', icon: 'medal', title: '100 Days', requirement: '100-day streak', threshold: 100, tone: 'signal' },
-  { key: 'one_year', icon: 'crown', title: 'One Year', requirement: '365-day streak', threshold: 365, tone: 'highlighter' },
+  { key: 'hundred', icon: 'medal', title: '100 Days', requirement: '100-day streak', threshold: 100, tone: 'mint' },
+  { key: 'one_year', icon: 'crown', title: 'One Year', requirement: '365-day streak', threshold: 365, tone: 'butter' },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -106,6 +110,7 @@ const MILESTONES: Milestone[] = [
 export default function AchievementsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors, accentForTone, toneStyle } = useTheme();
 
   const achievements = useAchievementsSafe();
   const account = useAccount();
@@ -140,7 +145,7 @@ export default function AchievementsScreen() {
   const currentStreak = streaks.data?.currentDailyStreak ?? a?.currentStreak ?? 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -151,45 +156,51 @@ export default function AchievementsScreen() {
         <AppHeader title="Achievements" onBack={() => router.back()} />
 
         {/* ---------- XP / level hero ---------- */}
-        <View style={{ marginTop: spacing.md, marginBottom: spacing.xl, gap: 2 }}>
-          <Eyebrow label="Your trophy cabinet" />
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-            <AppText variant="display" display weight="medium">
-              {(a?.xp ?? 0).toLocaleString()}
-            </AppText>
-            <AppText variant="subheading" color={colors.graphite}>
-              XP earned
-            </AppText>
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: motion.duration.transition }}
+        >
+          <View style={{ marginTop: spacing.md, marginBottom: spacing.xl, gap: 2 }}>
+            <Eyebrow label="Your trophy cabinet" />
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+              <AppText variant="display" display weight="medium" color={accentForTone('butter')}>
+                {(a?.xp ?? 0).toLocaleString()}
+              </AppText>
+              <AppText variant="subheading" color={colors.muted}>
+                XP earned
+              </AppText>
+            </View>
           </View>
-        </View>
 
-        {a ? (
-          <Card padding={spacing.lg} style={{ marginBottom: spacing.xl }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
-              <AppText variant="caption" color={colors.graphite}>
-                Level {a.level} → {a.level + 1}
-              </AppText>
-              <AppText variant="caption" color={colors.graphite}>
-                {a.xpToNext.toLocaleString()} XP to go
-              </AppText>
-            </View>
-            <XpProgressBar progress={a.levelProgress} />
+          {a ? (
+            <Card tone="butter" padding={spacing.lg} style={{ marginBottom: spacing.xl }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+                <AppText variant="caption" color={colors.ash}>
+                  Level {a.level} → {a.level + 1}
+                </AppText>
+                <AppText variant="caption" color={colors.ash}>
+                  {a.xpToNext.toLocaleString()} XP to go
+                </AppText>
+              </View>
+              <XpProgressBar progress={a.levelProgress} color={accentForTone('butter')} />
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.lg }}>
-              <HeroStat value={`${summary.earnedCount}`} label="unlocked" />
-              <Sep />
-              <HeroStat value={`${summary.completion}%`} label="complete" />
-              <Sep />
-              <HeroStat value={`${currentStreak}`} label="day streak" />
-            </View>
-          </Card>
-        ) : null}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.lg }}>
+                <HeroStat value={`${summary.earnedCount}`} label="unlocked" color={accentForTone('mint')} mutedColor={colors.ash} />
+                <Sep color={toneStyle('butter').border} />
+                <HeroStat value={`${summary.completion}%`} label="complete" color={accentForTone('sky')} mutedColor={colors.ash} />
+                <Sep color={toneStyle('butter').border} />
+                <HeroStat value={`${currentStreak}`} label="day streak" color={accentForTone('peach')} mutedColor={colors.ash} />
+              </View>
+            </Card>
+          ) : null}
+        </MotiView>
 
         {/* ---------- Badges ---------- */}
         <SectionLabel
           title="Badges"
           right={
-            <AppText variant="caption" color={colors.graphite}>
+            <AppText variant="caption" color={colors.muted}>
               {summary.earnedCount}/{summary.total}
             </AppText>
           }
@@ -238,7 +249,7 @@ export default function AchievementsScreen() {
           <SectionLabel
             title="Streak milestones"
             right={
-              <AppText variant="caption" color={colors.rust}>
+              <AppText variant="caption" color={colors.primary}>
                 {bestStreak}d best
               </AppText>
             }
@@ -268,19 +279,29 @@ export default function AchievementsScreen() {
 /* Local hero stat                                                     */
 /* ------------------------------------------------------------------ */
 
-function HeroStat({ value, label }: { value: string; label: string }) {
+function HeroStat({
+  value,
+  label,
+  color,
+  mutedColor,
+}: {
+  value: string;
+  label: string;
+  color?: string;
+  mutedColor: string;
+}) {
   return (
     <View style={{ alignItems: 'center', gap: 1, flex: 1 }}>
-      <AppText variant="heading" display weight="medium">
+      <AppText variant="heading" display weight="medium" color={color}>
         {value}
       </AppText>
-      <AppText variant="caption" color={colors.graphite}>
+      <AppText variant="caption" color={mutedColor}>
         {label}
       </AppText>
     </View>
   );
 }
 
-function Sep() {
-  return <View style={{ width: 1, backgroundColor: colors.dove, marginVertical: 2 }} />;
+function Sep({ color }: { color: string }) {
+  return <View style={{ width: 1, backgroundColor: color, marginVertical: 2 }} />;
 }

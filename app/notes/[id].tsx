@@ -36,7 +36,8 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { MarkdownView } from '@/components/notes/MarkdownView';
 
-import { colors, fonts, radii, interaction, pressOpacity } from '@/theme/tokens';
+import { fonts, radii, pressOpacity } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { useNote } from '@/hooks/api';
 import type { Note, NoteFolder } from '@/types/models';
 import { FOLDER_ICON, NOTE_FOLDERS, formatShortDate } from '@/components/notes/notesMeta';
@@ -63,15 +64,11 @@ const BLANK: Pick<Note, 'title' | 'body' | 'tags' | 'folder' | 'favorite' | 'pin
 /* ------------------------------------------------------------------ */
 
 function SectionLabel({ icon, text }: { icon: IconName; text: string }) {
+  const { colors } = useTheme();
   return (
     <View className="flex-row items-center" style={{ gap: 6, marginBottom: 8 }}>
-      <Icon name={icon} size={14} color="graphite" />
-      <AppText
-        variant="caption"
-        weight="medium"
-        color={colors.graphite}
-        style={{ letterSpacing: 0.6, textTransform: 'uppercase' }}
-      >
+      <Icon name={icon} size={14} color={colors.muted} />
+      <AppText variant="overline" uppercase weight="semibold" color={colors.muted}>
         {text}
       </AppText>
     </View>
@@ -83,6 +80,7 @@ function SectionLabel({ icon, text }: { icon: IconName; text: string }) {
 /* ------------------------------------------------------------------ */
 
 function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string[]) => void }) {
+  const { colors } = useTheme();
   const [draft, setDraft] = useState('');
 
   const add = () => {
@@ -113,14 +111,14 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
                   paddingHorizontal: 10,
                   borderRadius: radii.pill,
                   borderWidth: 1,
-                  borderColor: colors.dove,
-                  backgroundColor: colors.white,
+                  borderColor: colors.hairline,
+                  backgroundColor: colors.surface,
                 }}
               >
-                <AppText variant="caption" color={colors.ash}>
+                <AppText variant="caption" color={colors.ink}>
                   {t}
                 </AppText>
-                <Icon name="x" size={12} color="graphite" />
+                <Icon name="x" size={12} color={colors.muted} />
               </View>
             </Pressable>
           ))}
@@ -128,6 +126,7 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
       ) : null}
 
       <SoftInput
+        key="note-tag-draft"
         placeholder="Add a tag…"
         value={draft}
         onChangeText={setDraft}
@@ -135,7 +134,7 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
         autoCorrect={false}
         returnKeyType="done"
         onSubmitEditing={add}
-        leading={<Icon name="tag" size={16} color="graphite" />}
+        leading={<Icon name="tag" size={16} color={colors.muted} />}
         trailing={
           draft.trim().length > 0 ? (
             <Pressable
@@ -144,7 +143,7 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
               hitSlop={8}
               style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
             >
-              <Icon name="plus-circle" size={18} color="ink" />
+              <Icon name="plus-circle" size={18} color={colors.primary} weight="fill" />
             </Pressable>
           ) : undefined
         }
@@ -172,6 +171,7 @@ function OptionRow({
   onChange: (next: boolean) => void;
   divider?: boolean;
 }) {
+  const { colors } = useTheme();
   return (
     <View
       className="flex-row items-center"
@@ -179,15 +179,15 @@ function OptionRow({
         gap: 12,
         paddingVertical: 12,
         borderTopWidth: divider ? 1 : 0,
-        borderTopColor: colors.fog,
+        borderTopColor: colors.hairline,
       }}
     >
-      <Icon name={icon} size={17} color="graphite" />
+      <Icon name={icon} size={17} color={colors.muted} />
       <View style={{ flex: 1 }}>
-        <AppText variant="subheading" weight="medium">
+        <AppText variant="subheading" weight="medium" color={colors.ink}>
           {label}
         </AppText>
-        <AppText variant="caption" color={colors.graphite} style={{ marginTop: 1 }}>
+        <AppText variant="caption" color={colors.muted} style={{ marginTop: 1 }}>
           {sub}
         </AppText>
       </View>
@@ -203,6 +203,7 @@ function OptionRow({
 export default function NoteEditorScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const isNew = id === 'new';
@@ -238,13 +239,13 @@ export default function NoteEditorScreen() {
   /* ----- Loading / error states for an existing note ----- */
   if (!isNew && isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <View style={{ paddingHorizontal: 20 }}>
           <AppHeader onBack={() => router.back()} />
         </View>
         <View className="flex-1 items-center justify-center" style={{ gap: 12 }}>
-          <ActivityIndicator color={colors.ink} />
-          <AppText variant="caption" color={colors.graphite}>
+          <ActivityIndicator color={colors.primary} />
+          <AppText variant="caption" color={colors.muted}>
             Loading note…
           </AppText>
         </View>
@@ -254,23 +255,23 @@ export default function NoteEditorScreen() {
 
   if (!isNew && (isError || !fetched)) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <View style={{ paddingHorizontal: 20 }}>
           <AppHeader onBack={() => router.back()} />
         </View>
         <View className="flex-1 items-center justify-center" style={{ paddingHorizontal: 32, gap: 10 }}>
-          <Icon name={isError ? 'alert' : 'file-text'} size={24} color="graphite" />
-          <AppText variant="subheading" weight="medium">
+          <Icon name={isError ? 'alert' : 'file-text'} size={24} color={colors.muted} />
+          <AppText variant="subheading" weight="medium" color={colors.ink}>
             {isError ? 'Couldn’t load this note' : 'Note not found'}
           </AppText>
-          <AppText variant="body" color={colors.ash} style={{ textAlign: 'center' }}>
+          <AppText variant="body" color={colors.muted} style={{ textAlign: 'center' }}>
             {isError
               ? error?.message ?? 'We couldn’t reach the server.'
               : 'This note may have been archived or removed.'}
           </AppText>
           <View className="flex-row items-center" style={{ gap: 16, marginTop: 6 }}>
             {isError ? (
-              <TextLink label="Try again" onPress={() => void refetch()} icon={<Icon name="repeat" size={14} color="ink" />} />
+              <TextLink label="Try again" onPress={() => void refetch()} icon={<Icon name="repeat" size={14} color={colors.ink} />} />
             ) : null}
             <TextLink label="Back to notes" onPress={() => router.back()} muted />
           </View>
@@ -280,18 +281,18 @@ export default function NoteEditorScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ paddingHorizontal: 20 }}>
           <AppHeader
             onBack={() => router.back()}
             right={
               !isNew && fetched ? (
-                <AppText variant="caption" color={colors.graphite}>
+                <AppText variant="caption" color={colors.muted}>
                   Updated {formatShortDate(fetched.updatedAt)}
                 </AppText>
               ) : (
-                <AppText variant="caption" color={colors.graphite}>
+                <AppText variant="caption" color={colors.muted}>
                   New note
                 </AppText>
               )
@@ -299,17 +300,19 @@ export default function NoteEditorScreen() {
           />
         </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingTop: 8,
-            paddingBottom: insets.bottom + 120,
-          }}
-        >
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              paddingTop: 8,
+              paddingBottom: insets.bottom + 120,
+            }}
+          >
           {/* Title */}
           <SoftInput
+            key="note-title"
             value={title}
             onChangeText={setTitle}
             placeholder="Note title"
@@ -320,7 +323,7 @@ export default function NoteEditorScreen() {
           {/* Body: Write / Preview */}
           <View className="flex-row items-center justify-between" style={{ marginBottom: 8 }}>
             <SectionLabel icon="file-text" text="Body" />
-            <AppText variant="caption" color={colors.graphite}>
+            <AppText variant="caption" color={colors.muted}>
               {wordCount} words
             </AppText>
           </View>
@@ -341,28 +344,29 @@ export default function NoteEditorScreen() {
                 style={{
                   borderRadius: radii.input,
                   borderWidth: 1,
-                  borderColor: colors.dove,
-                  backgroundColor: colors.white,
+                  borderColor: colors.hairline,
+                  backgroundColor: colors.surface,
                 }}
               >
                 <TextInput
+                  key="note-body"
                   value={body}
                   onChangeText={setBody}
                   placeholder={'# Start writing…\n\nMarkdown supported — headings, **bold**, lists,\n> quotes, and ```code``` fences.'}
-                  placeholderTextColor={colors.dove}
+                  placeholderTextColor={colors.muted}
                   multiline
                   textAlignVertical="top"
                   style={{
                     minHeight: 240,
                     padding: 14,
-                    fontFamily: 'monospace',
+                    fontFamily: fonts.mono,
                     fontSize: 13,
                     lineHeight: 20,
                     color: colors.ink,
                   }}
                 />
               </View>
-              <AppText variant="caption" color={colors.graphite} style={{ marginTop: 6 }}>
+              <AppText variant="caption" color={colors.muted} style={{ marginTop: 6 }}>
                 Supports Markdown: # headings, lists, `code` and ``` fences.
               </AppText>
             </>
@@ -372,8 +376,8 @@ export default function NoteEditorScreen() {
                 <MarkdownView source={body} />
               ) : (
                 <View className="items-center" style={{ paddingVertical: 24, gap: 8 }}>
-                  <Icon name="eye-off" size={22} color="graphite" />
-                  <AppText variant="body" color={colors.ash}>
+                  <Icon name="eye-off" size={22} color={colors.muted} />
+                  <AppText variant="body" color={colors.muted}>
                     Nothing to preview yet
                   </AppText>
                 </View>
@@ -424,24 +428,25 @@ export default function NoteEditorScreen() {
           {saved ? (
             <SoftCard variant="inset" radius={radii.card} padding={14} style={{ marginTop: 18 }}>
               <View className="flex-row items-center" style={{ gap: 10 }}>
-                <Icon name="check-circle" size={18} color="ink" />
-                <AppText variant="body" color={colors.ash} style={{ flex: 1 }}>
+                <Icon name="check-circle" size={18} color={colors.success} weight="fill" />
+                <AppText variant="body" color={colors.muted} style={{ flex: 1 }}>
                   Saved. Your changes are stored on this device.
                 </AppText>
               </View>
             </SoftCard>
           ) : null}
-        </ScrollView>
+          </ScrollView>
+        </View>
 
-        {/* Save bar — ONE Ink pill + a Cancel TextLink */}
+        {/* Save bar — ONE terracotta pill + a Cancel TextLink */}
         <View
           style={{
             paddingHorizontal: 20,
             paddingTop: 12,
             paddingBottom: insets.bottom + 14,
-            backgroundColor: colors.white,
+            backgroundColor: colors.surface,
             borderTopWidth: 1,
-            borderTopColor: colors.fog,
+            borderTopColor: colors.hairline,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 16,
@@ -453,7 +458,7 @@ export default function NoteEditorScreen() {
             label={isNew ? 'Create note' : 'Save changes'}
             onPress={handleSave}
             disabled={title.trim() === '' && body.trim() === ''}
-            icon={<Icon name="check" size={15} color="white" />}
+            icon={<Icon name="check" size={15} color={colors.inkInverted} />}
           />
         </View>
       </KeyboardAvoidingView>

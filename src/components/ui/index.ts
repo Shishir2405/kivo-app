@@ -1,12 +1,20 @@
 /**
- * Barrel for the Kivo STEEP design kit (flat, editorial, premium).
+ * Barrel for the Kivo design kit (warm editorial — flat, calm, premium).
  * Import primitives from '@/components/ui' rather than deep paths.
  *
- * Legacy export names (SoftCard / SoftButton / Neumorph ...) are preserved so
- * existing screens keep compiling; they now render flat Steep components.
- * New code should prefer the Steep names noted below.
+ * Every primitive is theme-aware (consumes useTheme) and renders the Kivo
+ * light/dark palette. Legacy export names (SoftCard / SoftButton / Neumorph)
+ * are preserved so existing screens keep compiling.
  */
 export { Neumorph, type NeumorphProps } from './Neumorph';
+
+// Loading — shimmer skeletons (kvShimmer style).
+export {
+  Skeleton,
+  SkeletonText,
+  SkeletonCard,
+  type SkeletonProps,
+} from './Skeleton';
 
 // Cards — SoftCard is the flat white Card. Card/WarmCard/CoolCard are Steep.
 export {
@@ -14,6 +22,8 @@ export {
   Card,
   WarmCard,
   CoolCard,
+  accentForTone,
+  toneStyle,
   type SoftCardProps,
   type CardProps,
   type CardTone,

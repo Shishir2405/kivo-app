@@ -1,10 +1,11 @@
 /**
  * RateBars — a flat, dependency-free set of horizontal rate meters (Steep).
  *
- * Each row is a labelled 0–100% meter: a Fog track with a thin Ink fill and the
- * percentage as a small serif figure. Used by the analytics screen to show the
- * week's completion rates (revisions, tasks, habits) — data and typography do
- * the talking, no chart library, no neumorphism, no saturated color.
+ * Each row is a labelled 0–100% meter: a surfaceAlt track with a thin Ink fill
+ * and the percentage as a small serif figure. Used by the analytics screen to
+ * show the week's completion rates (revisions, tasks, habits) — data and
+ * typography do the talking, no chart library, no neumorphism. Theme-aware
+ * (light/dark) via useTheme().
  *
  * The legacy export name `ProductivityChart` is kept so any old import still
  * resolves; new code should use `RateBars`.
@@ -13,7 +14,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/Typography';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type RateRow = {
   label: string;
@@ -30,6 +31,8 @@ function clampPct(v: number): number {
 }
 
 export function RateBars({ rows }: RateBarsProps) {
+  const { colors } = useTheme();
+
   return (
     <View style={{ gap: 14 }}>
       {rows.map((row) => {
@@ -50,7 +53,7 @@ export function RateBars({ rows }: RateBarsProps) {
                 <AppText variant="subheading" display weight="medium">
                   {pct}
                 </AppText>
-                <AppText variant="caption" color={colors.graphite}>
+                <AppText variant="caption" color={colors.muted}>
                   %
                 </AppText>
               </View>
@@ -59,9 +62,9 @@ export function RateBars({ rows }: RateBarsProps) {
               style={{
                 height: 6,
                 borderRadius: 9999,
-                backgroundColor: colors.fog,
+                backgroundColor: colors.surfaceAlt,
                 borderWidth: 1,
-                borderColor: colors.dove,
+                borderColor: colors.hairline,
                 overflow: 'hidden',
               }}
             >

@@ -7,7 +7,8 @@ export { BadgeTile, type BadgeTileProps } from './BadgeTile';
 export { MilestoneRow, type MilestoneRowProps } from './MilestoneRow';
 export {
   type Accent,
-  ACCENT_INK,
-  ACCENT_WASH,
+  type AccentMaps,
+  useAccentMaps,
+  resolveAccent,
   onAccentInk,
 } from './accents';

@@ -8,7 +8,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { AppText } from '@/components/ui/Typography';
-import { colors } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -33,10 +33,10 @@ export type FocusTimerRingProps = {
 /**
  * A clean, flat Steep focus-timer ring.
  *
- * A thin 1px-feel Dove track with a Rust progress arc sweeping over it (the one
- * warm key-data stroke), animated via reanimated `strokeDashoffset`. The centre
+ * A soft peach-wash track with a warm peach-accent arc sweeping over it (the
+ * key-data stroke), animated via reanimated `strokeDashoffset`. The centre
  * shows the remaining time (editorial serif, tabular) and a small muted mode
- * label. No neumorphism, no gradient, no glow.
+ * label. No neumorphism, no gradient, no glow — just one warm, lively accent.
  */
 export function FocusTimerRing({
   size = 188,
@@ -46,8 +46,12 @@ export function FocusTimerRing({
   modeLabel,
   style,
 }: FocusTimerRingProps) {
+  const { colors } = useTheme();
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
+  // Terracotta arc sweeping over a soft primary-wash track (dark-aware).
+  const trackColor = colors.primaryWash;
+  const arcColor = colors.primary;
 
   const animatedProgress = useSharedValue(progress);
   useEffect(() => {
@@ -68,21 +72,21 @@ export function FocusTimerRing({
         className="items-center justify-center"
       >
         <Svg width={size} height={size}>
-          {/* Track ring — quiet Dove hairline. */}
+          {/* Track ring — deeper peach tint so it reads on the wash surface. */}
           <Circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={colors.fog}
+            stroke={trackColor}
             strokeWidth={stroke}
             fill="none"
           />
-          {/* Rust progress arc — starts at 12 o'clock. */}
+          {/* Terracotta progress arc — starts at 12 o'clock. */}
           <AnimatedCircle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={colors.rust}
+            stroke={arcColor}
             strokeWidth={stroke}
             strokeLinecap="round"
             fill="none"

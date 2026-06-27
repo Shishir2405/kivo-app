@@ -1,23 +1,26 @@
 import React from 'react';
 import { View, Text, type StyleProp, type ViewStyle } from 'react-native';
-import KivoMark from '../../../assets/brand/kivo-mark.svg';
-import { colors, fonts } from '@/theme/tokens';
+import { Image } from 'expo-image';
+import { fonts } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeContext';
 
 export type BrandLogoVariant = 'mark' | 'lockup';
 
+/** The Kivo mark PNG (terracotta "K + upward arrow"). */
+export const KIVO_MARK = require('../../../assets/brand/kivo-mark.png');
+
 /**
- * Intrinsic aspect of the redesigned Kivo mark (twin-lobe shape with the
- * upward-right growth arrow). The SVG is authored at width=80 height=62 with
- * viewBox "-2 -2 40 31", so the on-screen box is ~1.29:1 (wider than tall).
- * Scale the rendered width from the requested height to keep it undistorted.
+ * Intrinsic aspect of the official Kivo mark PNG (647×785 → w/h ≈ 0.824). The
+ * mark is taller than wide, so derive its WIDTH from the requested height to
+ * keep it undistorted.
  */
-export const MARK_ASPECT = 80 / 62; // ≈ 1.29
+export const MARK_ASPECT = 647 / 785; // ≈ 0.824 (width / height)
 
 export type BrandLogoProps = {
   variant?: BrandLogoVariant;
   /** Mark height in px (wordmark scales with it). */
   size?: number;
-  /** Render the wordmark in paper-white for dark/yellow surfaces. */
+  /** Render the wordmark light (for dark/colored surfaces). Overrides theme. */
   onDark?: boolean;
   /** Explicit wordmark color override. */
   color?: string;
@@ -26,33 +29,41 @@ export type BrandLogoProps = {
 
 /**
  * Kivo brand logo.
- *  - `mark`   -> the Kivo glyph only (yellow twin-lobe shape + growth arrow).
- *  - `lockup` -> glyph + "Kivo" wordmark (Poppins 700, tight tracking).
+ *  - `mark`   -> the terracotta Kivo glyph only (PNG).
+ *  - `lockup` -> glyph + "Kivo" wordmark in Newsreader (editorial serif),
+ *                rendered as TEXT in the theme ink so it adapts to light/dark
+ *                (we don't use the baked-in ink wordmark from kivo-logo.png,
+ *                which is invisible on dark).
  *
- * The mark's intrinsic box is ~1.29:1 (see MARK_ASPECT); we derive its width
- * from the requested `size` (height) so it never stretches or clips. The
- * wordmark cap height tracks the mark height for a balanced lockup.
+ * The mark is terracotta and reads fine on both light and dark backgrounds, so
+ * it needs no tinting.
  */
 export function BrandLogo({
   variant = 'lockup',
   size = 28,
-  onDark = false,
+  onDark,
   color,
   style,
 }: BrandLogoProps) {
+  const { colors } = useTheme();
   const markWidth = size * MARK_ASPECT;
-  const wordColor = color ?? (onDark ? colors.paper : colors.carbon);
+  const wordColor = color ?? (onDark != null ? (onDark ? '#F7F3ED' : '#211C17') : colors.ink);
 
   return (
-    <View className="flex-row items-center" style={[{ gap: size * 0.34 }, style]}>
-      <KivoMark width={markWidth} height={size} />
+    <View style={[{ flexDirection: 'row', alignItems: 'center', gap: size * 0.3 }, style]}>
+      <Image
+        source={KIVO_MARK}
+        style={{ width: markWidth, height: size }}
+        contentFit="contain"
+        accessibilityLabel="Kivo"
+      />
       {variant === 'lockup' ? (
         <Text
           style={{
-            fontFamily: fonts.displayBold,
-            fontSize: size * 1.18,
-            lineHeight: size * 1.3,
-            letterSpacing: -size * 0.05,
+            fontFamily: fonts.serifSemibold,
+            fontSize: size * 1.0,
+            lineHeight: size * 1.12,
+            letterSpacing: -size * 0.02,
             color: wordColor,
           }}
         >

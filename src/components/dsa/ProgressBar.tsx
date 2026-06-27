@@ -1,14 +1,15 @@
 import React from 'react';
 import { View } from 'react-native';
 import { MotiView } from 'moti';
-import { colors } from '@/theme/tokens';
+import { motion } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type ProgressBarProps = {
   /** 0–100 completion. */
   progress: number;
-  /** Track height in px. Steep is thin: default 6. */
+  /** Track height in px. Kivo is thin: default 6. */
   height?: number;
-  /** Fill color (defaults to Ink). Pass Rust to mark key progress. */
+  /** Fill color (defaults to ink). Pass primary to mark key progress. */
   color?: string;
   /** Animate the fill growing on mount. */
   animate?: boolean;
@@ -17,16 +18,18 @@ export type ProgressBarProps = {
 };
 
 /**
- * A flat Steep progress track — a quiet Fog rail with an Ink (or Rust) fill
- * that grows on mount. Thin, small radius, no neumorphism.
+ * A flat Kivo progress track — a quiet wash rail with an ink (or terracotta)
+ * fill that grows on mount. Thin, small radius, no neumorphism. Dark-aware.
  */
 export function ProgressBar({
   progress,
   height = 6,
-  color = colors.ink,
+  color,
   animate = true,
   delay = 0,
 }: ProgressBarProps) {
+  const { colors } = useTheme();
+  const fill = color ?? colors.ink;
   const pct = Math.max(0, Math.min(100, Number.isFinite(progress) ? progress : 0));
 
   return (
@@ -35,20 +38,20 @@ export function ProgressBar({
         height,
         width: '100%',
         borderRadius: height,
-        backgroundColor: colors.fog,
+        backgroundColor: colors.surfaceAlt,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: colors.dove,
+        borderColor: colors.hairline,
       }}
     >
       <MotiView
         from={{ width: animate ? '0%' : `${pct}%` }}
         animate={{ width: `${pct}%` }}
-        transition={{ type: 'timing', duration: 560, delay }}
+        transition={{ type: 'timing', duration: motion.duration.reveal, delay }}
         style={{
           height: '100%',
           borderRadius: height,
-          backgroundColor: color,
+          backgroundColor: fill,
         }}
       />
     </View>

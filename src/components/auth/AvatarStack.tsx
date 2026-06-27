@@ -8,7 +8,8 @@ import {
 } from 'react-native';
 import { Icon } from '@/components/ui';
 import { AppText } from '@/components/ui/Typography';
-import { colors, fonts } from '@/theme/tokens';
+import { useTheme } from '@/theme';
+import { fonts } from '@/theme/tokens';
 import { avatarStackList } from '@/constants/brandAssets';
 
 export type AvatarStackProps = {
@@ -40,6 +41,7 @@ export function AvatarStack({
   overflow,
   style,
 }: AvatarStackProps) {
+  const { colors } = useTheme();
   const ring = 2.5;
 
   return (
@@ -70,7 +72,7 @@ export function AvatarStack({
               marginLeft: -size * 0.32,
               borderWidth: ring,
               borderColor: colors.canvas,
-              backgroundColor: colors.highlighter,
+              backgroundColor: colors.butter,
               alignItems: 'center',
               justifyContent: 'center',
             }}
@@ -78,7 +80,7 @@ export function AvatarStack({
             <AppText
               variant="caption"
               weight="bold"
-              color={colors.carbon}
+              color={colors.butterAccent}
               style={{ fontSize: 12, lineHeight: 14 }}
             >
               {`+${overflow}`}
@@ -89,15 +91,15 @@ export function AvatarStack({
 
       <View style={{ flex: 1 }}>
         <View className="flex-row items-center" style={{ gap: 6 }}>
-          <AppText variant="caption" weight="semibold" color={colors.carbon}>
+          <AppText variant="caption" weight="semibold" color={colors.ink}>
             {title}
           </AppText>
-          <Icon name="badge-check" size={15} color="signal" />
+          <Icon name="badge-check" size={15} color={colors.primary} />
         </View>
         {caption ? (
           <AppText
             variant="caption"
-            color={colors.textMuted}
+            color={colors.muted}
             style={{ fontFamily: fonts.body }}
           >
             {caption}

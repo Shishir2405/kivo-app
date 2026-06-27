@@ -3,7 +3,8 @@ import { View, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppText } from '@/components/ui/Typography';
 import { Icon } from '@/components/ui/Icon';
-import { colors, pressOpacity } from '@/theme/tokens';
+import { pressOpacity } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type ScreenHeaderProps = {
   /** Small uppercase eyebrow label above the title (e.g. "Topic"). */
@@ -29,6 +30,7 @@ export function ScreenHeader({
   onBack,
   style,
 }: ScreenHeaderProps) {
+  const { colors } = useTheme();
   const router = useRouter();
   const handleBack =
     onBack ??
@@ -54,7 +56,7 @@ export function ScreenHeader({
             <AppText
               variant="caption"
               weight="medium"
-              color={colors.graphite}
+              color={colors.muted}
               style={{ fontSize: 10.5, letterSpacing: 1, textTransform: 'uppercase' }}
             >
               {eyebrow}

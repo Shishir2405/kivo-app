@@ -2,16 +2,19 @@
  * Menu hub ("More") — STEEP.
  *
  * A calm, editorial launcher to every stack route the expansion adds. Flat:
- * grouped lists of compact rows (a small thin icon, a label + subline, a chevron)
- * inside white Cards with a Dove hairline + one subtle shadow — not a puffy grid
- * of tiles. Live counts are pulled from the data hooks (notifications / notes /
- * revisions / achievements) and degrade to a neutral subline while loading or on
- * error, so a failed request never crashes the screen.
+ * grouped lists of compact rows (a small thin icon in a soft-wash tile, a label
+ * + subline, a chevron) inside white Cards with a Dove hairline + one subtle
+ * shadow. Each row's glyph tile rotates through the curated wash palette so the
+ * hub reads colorful & inviting without going childish. Live counts are pulled
+ * from the data hooks (notifications / notes / revisions / achievements) and
+ * degrade to a neutral subline while loading or on error, so a failed request
+ * never crashes the screen.
  */
 import React from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
+import { MotiView } from 'moti';
 
 import { AppText } from '@/components/ui/Typography';
 import { SoftCard } from '@/components/ui/SoftCard';
@@ -19,7 +22,8 @@ import { Tag } from '@/components/ui/Tag';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 
-import { colors, radii, interaction, pressOpacity } from '@/theme/tokens';
+import { radii, motion, interaction, pressOpacity, toneAt } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import { useNotifications, useNotes, useRevisions, useAchievements } from '@/hooks/api';
 
 type Tile = {
@@ -38,7 +42,20 @@ type Group = { title: string; tiles: Tile[] };
 /* Row                                                                */
 /* ------------------------------------------------------------------ */
 
-function FeatureRow({ tile, onPress, divider }: { tile: Tile; onPress: () => void; divider?: boolean }) {
+function FeatureRow({
+  tile,
+  onPress,
+  divider,
+  toneIndex,
+}: {
+  tile: Tile;
+  onPress: () => void;
+  divider?: boolean;
+  /** Position in the global tile order — rotates the wash so the hub looks intentional. */
+  toneIndex: number;
+}) {
+  const { colors, toneStyle } = useTheme();
+  const ts = toneStyle(toneAt(toneIndex));
   return (
     <Pressable
       onPress={onPress}
@@ -57,20 +74,34 @@ function FeatureRow({ tile, onPress, divider }: { tile: Tile; onPress: () => voi
           borderRadius: hovered ? radii.sm : 0,
           backgroundColor: hovered ? interaction.hoverWash : 'transparent',
           borderTopWidth: divider ? 1 : 0,
-          borderTopColor: colors.fog,
+          borderTopColor: colors.hairline,
         }}
       >
-        <Icon name={tile.icon} size={18} color="graphite" />
+        {/* Soft-wash glyph tile — colored icon on its matching wash. */}
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: radii.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: ts.bg,
+            borderWidth: 1,
+            borderColor: ts.border,
+          }}
+        >
+          <Icon name={tile.icon} size={18} color={ts.accent} />
+        </View>
         <View style={{ flex: 1 }}>
-          <AppText variant="subheading" weight="medium" numberOfLines={1}>
+          <AppText variant="subheading" weight="medium" color={colors.ink} numberOfLines={1}>
             {tile.label}
           </AppText>
-          <AppText variant="caption" color={colors.graphite} numberOfLines={1} style={{ marginTop: 1 }}>
+          <AppText variant="caption" color={colors.muted} numberOfLines={1} style={{ marginTop: 1 }}>
             {tile.sub}
           </AppText>
         </View>
         {tile.badge && tile.badge > 0 ? <Tag label={`${tile.badge}`} tone="rust" size="sm" /> : null}
-        <Icon name="chevron-right" size={15} color="dove" />
+        <Icon name="chevron-right" size={15} color={colors.hairline} />
       </View>
       )}
     </Pressable>
@@ -84,6 +115,7 @@ function FeatureRow({ tile, onPress, divider }: { tile: Tile; onPress: () => voi
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const notifications = useNotifications();
   const notes = useNotes();
@@ -151,7 +183,7 @@ export default function MoreScreen() {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 20 }}>
         <AppHeader onBack={() => router.back()} />
       </View>
@@ -174,22 +206,31 @@ export default function MoreScreen() {
           </AppText>
         </View>
 
-        {groups.map((group) => (
-          <View key={group.title} style={{ marginBottom: 20 }}>
-            <AppText
-              variant="caption"
-              color={colors.graphite}
-              style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 }}
-            >
-              {group.title}
-            </AppText>
-            <SoftCard radius={radii.card} padding={12}>
-              {group.tiles.map((tile, i) => (
-                <FeatureRow key={tile.key} tile={tile} onPress={() => router.push(tile.href)} divider={i > 0} />
-              ))}
-            </SoftCard>
-          </View>
-        ))}
+        {(() => {
+          let toneCursor = 0;
+          return groups.map((group) => (
+            <View key={group.title} style={{ marginBottom: 20 }}>
+              <AppText
+                variant="caption"
+                color={colors.graphite}
+                style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 }}
+              >
+                {group.title}
+              </AppText>
+              <SoftCard radius={radii.card} padding={12}>
+                {group.tiles.map((tile, i) => (
+                  <FeatureRow
+                    key={tile.key}
+                    tile={tile}
+                    onPress={() => router.push(tile.href)}
+                    divider={i > 0}
+                    toneIndex={toneCursor++}
+                  />
+                ))}
+              </SoftCard>
+            </View>
+          ));
+        })()}
 
         <View className="items-center" style={{ marginTop: 4 }}>
           <AppText variant="caption" color={colors.graphite}>

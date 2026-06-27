@@ -16,6 +16,8 @@ import { InfoTile } from '@/components/dsa/InfoTile';
 import { ProblemRow } from '@/components/dsa/ProblemRow';
 import { LoadingState, ListSkeleton, ErrorState, EmptyState } from '@/components/dsa/StateViews';
 import {
+  difficultyColor,
+  DIFFICULTY_ICON,
   DIFFICULTY_LABEL,
   DIFFICULTY_TONE,
   CONFIDENCE_LABEL,
@@ -26,7 +28,8 @@ import {
   progressColor,
 } from '@/components/dsa/dsaMeta';
 import { useDsaTopics, useDsaProblems, useRevisions } from '@/hooks/api';
-import { colors, pressOpacity } from '@/theme/tokens';
+import { motion, pressOpacity } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 import type { Problem, ProblemStatus, Revision } from '@/types/models';
 
 /* ================================================================== */
@@ -48,6 +51,7 @@ const DONE_STATUSES: ProblemStatus[] = ['SOLVED', 'MASTERED'];
 /* ================================================================== */
 
 function RevisionHistoryRow({ rev, isLast }: { rev: Revision; isLast: boolean }) {
+  const { colors } = useTheme();
   return (
     <View
       className="flex-row items-center"
@@ -55,25 +59,25 @@ function RevisionHistoryRow({ rev, isLast }: { rev: Revision; isLast: boolean })
         gap: 10,
         paddingVertical: 10,
         borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: colors.dove,
+        borderBottomColor: colors.hairline,
       }}
     >
       <View style={{ flex: 1 }}>
         <AppText variant="body" weight="medium" numberOfLines={1}>
           {rev.problemTitle}
         </AppText>
-        <AppText variant="caption" color={colors.graphite} style={{ fontSize: 10.5, marginTop: 2 }}>
+        <AppText variant="caption" color={colors.muted} style={{ fontSize: 10.5, marginTop: 2 }}>
           {rev.reviewCount}× · every {rev.intervalDays}d · last {formatShortDate(rev.lastReviewedAt)}
         </AppText>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>
         <Tag label={CONFIDENCE_LABEL[rev.confidence] ?? '—'} tone={CONFIDENCE_TONE[rev.confidence] ?? 'neutral'} size="sm" />
         {rev.dueToday ? (
-          <AppText variant="caption" weight="medium" color={colors.rust} style={{ fontSize: 10 }}>
+          <AppText variant="caption" weight="medium" color={colors.primary} style={{ fontSize: 10 }}>
             Due today
           </AppText>
         ) : (
-          <AppText variant="caption" color={colors.graphite} style={{ fontSize: 10 }}>
+          <AppText variant="caption" color={colors.muted} style={{ fontSize: 10 }}>
             Next {formatShortDate(rev.dueDate)}
           </AppText>
         )}
@@ -90,6 +94,7 @@ export default function TopicDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors, accentForTone } = useTheme();
 
   const topicsQuery = useDsaTopics();
   const problemsQuery = useDsaProblems();
@@ -131,7 +136,7 @@ export default function TopicDetailScreen() {
   /* ---- Topics still loading: show a quiet loading header ---- */
   if (topicsQuery.isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 16 }}>
           <ScreenHeader eyebrow="Topic" title="Loading…" style={{ marginBottom: 20 }} />
           <LoadingState label="Loading topic" />
@@ -143,7 +148,7 @@ export default function TopicDetailScreen() {
   /* ---- Topics failed to load ---- */
   if (topicsQuery.isError) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 16 }}>
           <ScreenHeader eyebrow="Topic" title="Couldn't load" style={{ marginBottom: 20 }} />
           <ErrorState
@@ -159,7 +164,7 @@ export default function TopicDetailScreen() {
   /* ---- Not found ---- */
   if (!topic) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 16 }}>
           <ScreenHeader eyebrow="Topic" title="Not found" style={{ marginBottom: 20 }} />
           <EmptyState
@@ -185,13 +190,13 @@ export default function TopicDetailScreen() {
 
   const progress = Number.isFinite(topic.progress) ? topic.progress : 0;
   const masteryScore = topic.mastery ?? progress;
-  const mastery = masteryMeta(masteryScore);
-  const barColor = progressColor(progress);
+  const mastery = masteryMeta(masteryScore, accentForTone, colors);
+  const barColor = progressColor(progress, colors);
   const estimatedMinutes = topic.estimatedMinutes ?? 0;
   const estimatedSpent = Math.round((estimatedMinutes * progress) / 100);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -215,7 +220,7 @@ export default function TopicDetailScreen() {
               <Icon
                 name="bookmark"
                 size={20}
-                color={bookmarked ? 'rust' : 'graphite'}
+                color={bookmarked ? 'primary' : 'muted'}
                 weight={bookmarked ? 'fill' : 'light'}
               />
             </Pressable>
@@ -227,11 +232,13 @@ export default function TopicDetailScreen() {
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 320 }}
+          transition={{ type: 'timing', duration: motion.duration.transition }}
         >
-          <SoftCard radius={18} padding={16} style={{ marginBottom: 16 }}>
+          <SoftCard tone="lavender" radius={18} padding={16} style={{ marginBottom: 16 }}>
+          {({ accent }) => (
+          <>
             <View className="flex-row items-center" style={{ gap: 10 }}>
-              <Icon name={topic.emoji} size={18} color="ink" />
+              <Icon name={topic.emoji} size={18} color={accent} />
               <AppText variant="heading" display style={{ flex: 1 }} numberOfLines={1}>
                 {topic.title}
               </AppText>
@@ -245,7 +252,12 @@ export default function TopicDetailScreen() {
 
             {/* Tags */}
             <View className="flex-row items-center flex-wrap" style={{ gap: 6, marginTop: 12 }}>
-              <Tag label={DIFFICULTY_LABEL[topic.difficulty]} tone={DIFFICULTY_TONE[topic.difficulty]} size="sm" />
+              <Tag
+                label={DIFFICULTY_LABEL[topic.difficulty]}
+                tone={DIFFICULTY_TONE[topic.difficulty]}
+                size="sm"
+                icon={<Icon name={DIFFICULTY_ICON[topic.difficulty]} size={11} color={difficultyColor(topic.difficulty, accentForTone)} />}
+              />
               <Tag
                 label={mastery.label}
                 tone={mastery.tone}
@@ -258,7 +270,7 @@ export default function TopicDetailScreen() {
             <View style={{ marginTop: 14, gap: 6 }}>
               <ProgressBar progress={progress} color={barColor} height={6} />
               <View className="flex-row items-center justify-between">
-                <AppText variant="caption" color={colors.graphite} style={{ fontSize: 11 }}>
+                <AppText variant="caption" color={colors.muted} style={{ fontSize: 11 }}>
                   {topic.solvedProblems ?? 0} of {topic.totalProblems ?? 0} solved
                 </AppText>
                 <AppText variant="caption" weight="medium" color={colors.ink} style={{ fontSize: 11 }}>
@@ -275,7 +287,9 @@ export default function TopicDetailScreen() {
                 ))}
               </View>
             ) : null}
-          </SoftCard>
+            </>
+          )}
+        </SoftCard>
         </MotiView>
 
         {/* ---------- Stat grid ---------- */}
@@ -308,7 +322,7 @@ export default function TopicDetailScreen() {
           title="Problems"
           trailing={
             problems.length > 0 ? (
-              <AppText variant="caption" weight="medium" color={colors.graphite}>
+              <AppText variant="caption" weight="medium" color={colors.muted}>
                 {doneCount}/{problems.length}
               </AppText>
             ) : undefined
@@ -354,7 +368,7 @@ export default function TopicDetailScreen() {
                     key={p.id}
                     from={{ opacity: 0, translateY: 6 }}
                     animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: 'timing', duration: 280, delay: 30 + i * 40 }}
+                    transition={{ type: 'timing', duration: motion.duration.transition, delay: 30 + i * 40 }}
                   >
                     <ProblemRow problem={p} onPress={() => router.push(`/problem/${p.id}`)} />
                   </MotiView>

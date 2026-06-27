@@ -2,7 +2,8 @@ import React from 'react';
 import { View } from 'react-native';
 import { AppText } from '@/components/ui/Typography';
 import { Icon } from '@/components/ui/Icon';
-import { colors, spacing } from '@/theme/tokens';
+import { spacing } from '@/theme/tokens';
+import { useTheme } from '@/theme';
 
 export type PlanState = 'done' | 'active' | 'upcoming';
 
@@ -18,12 +19,13 @@ export type PlanBlock = {
 };
 
 function TimelineRow({ block, isLast }: { block: PlanBlock; isLast: boolean }) {
+  const { colors } = useTheme();
   const done = block.state === 'done';
   const active = block.state === 'active';
 
-  // Node fill: Ink for done, Rust ring for active, Dove hairline for upcoming.
-  const nodeBg = done ? colors.ink : colors.white;
-  const nodeBorder = active ? colors.rust : done ? colors.ink : colors.dove;
+  // Node fill: ink for done, terracotta ring for active, hairline for upcoming.
+  const nodeBg = done ? colors.ink : colors.surface;
+  const nodeBorder = active ? colors.primary : done ? colors.ink : colors.hairline;
 
   return (
     <View className="flex-row" style={{ gap: spacing.md }}>

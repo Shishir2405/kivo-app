@@ -5,12 +5,13 @@ import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreenModule from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { useAppFonts } from '@/theme/useAppFonts';
-import { colors } from '@/theme/tokens';
+import { ThemeProvider, useTheme } from '@/theme';
 import { SplashScreen } from '@/components/SplashScreen';
 import { useUiStore, useAuthStore } from '@/store';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -21,22 +22,87 @@ SplashScreenModule.preventAutoHideAsync().catch(() => {
   /* ignore — already prevented */
 });
 
-export default function RootLayout() {
-  const [fontsLoaded, fontError] = useAppFonts();
+/**
+ * Themed shell — lives INSIDE ThemeProvider so it can read the active palette.
+ * Owns the StatusBar style, canvas backgrounds, the navigator and the animated
+ * splash overlay.
+ */
+function ThemedRoot() {
+  const { colors, isDark } = useTheme();
+
   const splashDone = useUiStore((s) => s.splashDone);
   const setSplashDone = useUiStore((s) => s.setSplashDone);
+
+  // Keep the native window background in sync with the active canvas.
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(colors.canvas).catch(() => {});
+  }, [colors.canvas]);
+
+  const [animatedSplashOver, setAnimatedSplashOver] = useState(false);
+
+  const handleSplashFinish = useCallback(() => {
+    setAnimatedSplashOver(true);
+    setSplashDone(true);
+  }, [setSplashDone]);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.canvas },
+          animation: 'fade',
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="dsa-topic/[id]" />
+        <Stack.Screen name="problem/[id]" />
+
+        {/* Feature stack routes (Menu hub + everything it links to). */}
+        <Stack.Screen name="more/index" />
+        <Stack.Screen name="notes/index" />
+        <Stack.Screen name="notes/[id]" />
+        <Stack.Screen name="resources/index" />
+        <Stack.Screen name="habits/index" />
+        <Stack.Screen name="reflections/index" />
+        <Stack.Screen name="reflections/[date]" />
+        <Stack.Screen name="notifications/index" />
+        <Stack.Screen name="achievements/index" />
+        <Stack.Screen name="analytics/index" />
+        <Stack.Screen name="calendar/index" />
+        <Stack.Screen name="focus-timer/index" />
+        <Stack.Screen name="settings/index" />
+      </Stack>
+
+      {/* Animated in-app splash overlays everything until it finishes. */}
+      {!animatedSplashOver && !splashDone ? (
+        <View style={StyleSheetAbsoluteFill}>
+          <SplashScreen onFinish={handleSplashFinish} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useAppFonts();
 
   // Install the notification handler + best-effort push registration at startup.
   useNotifications();
 
-  // Restore any persisted auth session from AsyncStorage on app start.
+  // Rehydrate the persisted theme preference + onboarding flag + auth session
+  // at startup.
+  const hydrateTheme = useUiStore((s) => s.hydrateTheme);
+  const hydrateOnboarding = useUiStore((s) => s.hydrateOnboarding);
   const restoreSession = useAuthStore((s) => s.restoreSession);
   useEffect(() => {
+    void hydrateTheme();
+    void hydrateOnboarding();
     void restoreSession();
-  }, [restoreSession]);
-
-  // Local gate for the very first animated splash (independent of route).
-  const [animatedSplashOver, setAnimatedSplashOver] = useState(false);
+  }, [hydrateTheme, hydrateOnboarding, restoreSession]);
 
   const ready = fontsLoaded || !!fontError;
 
@@ -53,61 +119,20 @@ export default function RootLayout() {
     }
   }, [ready]);
 
-  const handleSplashFinish = useCallback(() => {
-    setAnimatedSplashOver(true);
-    setSplashDone(true);
-  }, [setSplashDone]);
-
   if (!ready) {
     // Native splash still showing; render nothing.
     return null;
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.canvas }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
-          <StatusBar style="dark" />
-        <View
-          style={{ flex: 1, backgroundColor: colors.canvas }}
-          onLayout={onLayoutRootView}
-        >
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.canvas },
-              animation: 'fade',
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="dsa-topic/[id]" />
-            <Stack.Screen name="problem/[id]" />
-
-            {/* Feature stack routes (Menu hub + everything it links to). */}
-            <Stack.Screen name="more/index" />
-            <Stack.Screen name="notes/index" />
-            <Stack.Screen name="notes/[id]" />
-            <Stack.Screen name="resources/index" />
-            <Stack.Screen name="habits/index" />
-            <Stack.Screen name="reflections/index" />
-            <Stack.Screen name="reflections/[date]" />
-            <Stack.Screen name="notifications/index" />
-            <Stack.Screen name="achievements/index" />
-            <Stack.Screen name="analytics/index" />
-            <Stack.Screen name="calendar/index" />
-            <Stack.Screen name="focus-timer/index" />
-            <Stack.Screen name="settings/index" />
-          </Stack>
-
-          {/* Animated in-app splash overlays everything until it finishes. */}
-          {!animatedSplashOver && !splashDone ? (
-            <View style={{ ...StyleSheetAbsoluteFill }}>
-              <SplashScreen onFinish={handleSplashFinish} />
+          <ThemeProvider>
+            <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+              <ThemedRoot />
             </View>
-          ) : null}
-        </View>
+          </ThemeProvider>
         </SafeAreaProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
