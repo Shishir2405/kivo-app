@@ -19,7 +19,6 @@ import { useRouter } from 'expo-router';
 
 import { AppText } from '@/components/ui/Typography';
 import { PillButton, TextLink } from '@/components/ui/PillButton';
-import { GrayMark } from '@/components/ui/AppHeader';
 
 import {
   Entrance,
@@ -40,7 +39,7 @@ import {
 
 import { spacing } from '@/theme/tokens';
 import { useTheme } from '@/theme';
-import { useDashboard } from '@/hooks/api';
+import { useDashboard, useProfile } from '@/hooks/api';
 import { useAuthStore } from '@/store/useAuthStore';
 
 /* ================================================================== */
@@ -63,11 +62,22 @@ function formatToday(d: Date): string {
   return `${weekday} ${d.getDate()} ${month}`;
 }
 
-function firstName(name?: string | null): string {
-  if (!name) return 'there';
-  const trimmed = name.trim();
-  if (!trimmed) return 'there';
-  return trimmed.split(/\s+/)[0];
+/**
+ * Resolve a friendly first name for the greeting. Prefers the real profile /
+ * auth name, then falls back to the first part of the email, then "there".
+ */
+function resolveFirstName(name?: string | null, email?: string | null): string {
+  const trimmedName = name?.trim();
+  if (trimmedName) return trimmedName.split(/\s+/)[0];
+
+  const localPart = email?.trim().split('@')[0];
+  if (localPart) {
+    // Normalise "first.last" / "first_last" to just the first token.
+    const token = localPart.split(/[._-]+/)[0];
+    if (token) return token.charAt(0).toUpperCase() + token.slice(1);
+  }
+
+  return 'there';
 }
 
 /* ================================================================== */
@@ -80,11 +90,15 @@ export default function DashboardScreen() {
   const { colors } = useTheme();
 
   const user = useAuthStore((s) => s.user);
+  const { data: profile } = useProfile();
   const { data, isLoading, isError, error, refetch, isRefetching } = useDashboard();
 
   const now = new Date();
   const greeting = greetingForHour(now.getHours());
-  const name = firstName(user?.name);
+  const name = resolveFirstName(
+    profile?.name ?? user?.name,
+    profile?.email ?? user?.email,
+  );
 
   /* ---- Derived figures (safe even before data arrives) ------------ */
 
@@ -298,15 +312,15 @@ export default function DashboardScreen() {
           />
         }
       >
-        {/* ---- Header — gray mark + menu link ------------------------- */}
+        {/* ---- Header — menu link ------------------------------------- */}
         <View
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
+            minHeight: 22,
           }}
         >
-          <GrayMark size={22} />
           <TextLink label="Menu" onPress={goMore} muted size="sm" />
         </View>
 

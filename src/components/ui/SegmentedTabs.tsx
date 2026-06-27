@@ -78,12 +78,18 @@ export function SegmentedTabs<T extends string>({
                 justifyContent: 'center',
                 gap: 5,
                 borderRadius: (height - pad * 2) / 2,
+                // The active segment rides its own raised surface pill so it
+                // stays clearly distinct from the deeper track in both themes.
                 backgroundColor: active ? colors.surface : 'transparent',
-                // One soft lift on the active pill.
+                // A hairline outlines the pill — in dark this is what makes the
+                // warm-brown pill read against the near-black well.
+                borderWidth: active ? 1 : 0,
+                borderColor: active ? colors.hairline : 'transparent',
+                // One soft lift on the active pill (deeper in dark).
                 shadowColor: active ? colors.shadowTint : 'transparent',
                 shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: active ? (isDark ? 0.4 : 0.1) : 0,
-                shadowRadius: 3,
+                shadowOpacity: active ? (isDark ? 0.5 : 0.12) : 0,
+                shadowRadius: isDark ? 4 : 3,
                 elevation: active ? 2 : 0,
                 opacity: pressed && !active ? 0.6 : 1,
               })}
@@ -96,6 +102,8 @@ export function SegmentedTabs<T extends string>({
                 style={{
                   fontFamily: active ? fonts.sansBold : fonts.sansMedium,
                   fontSize: 13,
+                  // Active = full ink, inactive = muted. Clearly distinct in
+                  // both light and dark.
                   color: active ? colors.ink : colors.muted,
                   letterSpacing: -0.1,
                 }}

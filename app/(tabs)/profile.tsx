@@ -20,7 +20,6 @@ import { Card } from '@/components/ui/SoftCard';
 import { TextLink } from '@/components/ui/PillButton';
 import { Icon } from '@/components/ui/Icon';
 import { SegmentedTabs, type SegmentedOption } from '@/components/ui/SegmentedTabs';
-import { GrayMark } from '@/components/ui/AppHeader';
 
 import { MenuRow } from '@/components/profile';
 import {
@@ -95,8 +94,7 @@ export default function ProfileScreen() {
         }}
       >
         {/* ---------- Top bar ---------- */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <GrayMark size={20} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', minHeight: 20 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
             <TextLink
               label="Edit profile"

@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
 
 import { AppText } from '@/components/ui/Typography';
-import { GrayMark } from '@/components/ui/AppHeader';
 import { SegmentedTabs, type SegmentedOption } from '@/components/ui/SegmentedTabs';
 import { Select } from '@/components/ui/Select';
 import { SoftInput } from '@/components/ui/SoftInput';
@@ -147,9 +146,6 @@ export default function DsaScreen() {
           />
         }
       >
-        {/* ---------- Brand watermark ---------- */}
-        <GrayMark size={22} style={{ marginBottom: 10 }} />
-
         {/* ---------- Header ---------- */}
         <MotiView
           from={{ opacity: 0, translateY: 8 }}

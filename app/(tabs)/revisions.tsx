@@ -9,7 +9,6 @@ import { Tag } from '@/components/ui/Tag';
 import { TextLink } from '@/components/ui/PillButton';
 import {
   Icon,
-  GrayMark,
   SegmentedTabs,
   Skeleton,
   SkeletonText,
@@ -445,16 +444,11 @@ export default function RevisionsScreen() {
           />
         }
       >
-        {/* ---------- Brand mark ---------- */}
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: motion.duration.transition }}
         >
-          <View style={{ marginBottom: 10 }}>
-            <GrayMark size={22} />
-          </View>
-
           {/* ---------- Header ---------- */}
           <View className="flex-row items-start justify-between" style={{ marginBottom: 18 }}>
             <View style={{ flex: 1, paddingRight: 12 }}>

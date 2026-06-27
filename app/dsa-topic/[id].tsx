@@ -12,7 +12,7 @@ import { SegmentedTabs, type SegmentedOption } from '@/components/ui/SegmentedTa
 import { Select } from '@/components/ui/Select';
 import { SoftInput } from '@/components/ui/SoftInput';
 import { PillButton, TextLink } from '@/components/ui/PillButton';
-import { AddButton, QuickAddRow } from '@/components/ui/AddButton';
+import { AddButton, QuickAddRow, EmptyStateCTA } from '@/components/ui/AddButton';
 import { FormSheet } from '@/components/ui/FormSheet';
 import { ScreenHeader } from '@/components/dsa/ScreenHeader';
 import { SectionHeading } from '@/components/dsa/SectionHeading';
@@ -436,6 +436,7 @@ export default function TopicDetailScreen() {
                   weight={bookmarked ? 'fill' : 'light'}
                 />
               </Pressable>
+              <AddButton onPress={openAddProblem} size={34} accessibilityLabel="Add problem" />
             </View>
           }
           style={{ marginBottom: 20 }}
@@ -552,7 +553,7 @@ export default function TopicDetailScreen() {
                   {doneCount}/{problems.length}
                 </AppText>
               ) : null}
-              <AddButton onPress={openAddProblem} size={28} variant="soft" accessibilityLabel="Add problem" />
+              <AddButton onPress={openAddProblem} size={30} accessibilityLabel="Add problem" />
             </View>
           }
         />
@@ -566,14 +567,13 @@ export default function TopicDetailScreen() {
             title="Couldn't load problems"
           />
         ) : problems.length === 0 ? (
-          <View style={{ gap: 10 }}>
-            <EmptyState
-              icon="list"
-              title="No problems yet"
-              body="Add the first problem to track under this topic."
-            />
-            <QuickAddRow label="Add a problem" onPress={openAddProblem} />
-          </View>
+          <EmptyStateCTA
+            icon="list"
+            title="No problems yet"
+            description="Add the first problem to track under this topic."
+            actionLabel="Add a problem"
+            onAction={openAddProblem}
+          />
         ) : (
           <>
             <SegmentedTabs

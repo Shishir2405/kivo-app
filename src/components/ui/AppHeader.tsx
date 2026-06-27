@@ -59,19 +59,24 @@ export type AppHeaderProps = {
 /**
  * AppHeader — a thin, refined Kivo top bar. Respects the status-bar safe area.
  *
- * Layout: [ back? + mark? + title? ] ......................... [ right? ]
+ * Layout: [ back? + title? ] ......................... [ right? ]
  *
  * Small and quiet. Back is a flat chevron (theme ink). The title is an
- * editorial serif headingSm. Screens with a rich title block can drop in
- * <GrayMark /> directly instead.
+ * editorial serif headingSm. The brand mark is intentionally NOT shown in any
+ * in-app header — the logo lives on the splash + auth screens only. The
+ * `hideMark` / `markSize` / `markOpacity` props are kept for back-compat but no
+ * longer render anything.
  */
 export function AppHeader({
   title,
   right,
   onBack,
-  markSize = 22,
-  markOpacity = 0.9,
-  hideMark = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  markSize: _markSize = 22,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  markOpacity: _markOpacity = 0.9,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  hideMark: _hideMark = false,
   withInset = true,
   style,
 }: AppHeaderProps) {
@@ -102,8 +107,6 @@ export function AppHeader({
             <Icon name="chevron-left" size={24} color="ink" />
           </Pressable>
         ) : null}
-
-        {!hideMark ? <GrayMark size={markSize} opacity={markOpacity} /> : null}
 
         {title ? (
           <AppText variant="heading" display numberOfLines={1} style={{ flexShrink: 1 }}>
