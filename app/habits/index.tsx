@@ -380,7 +380,7 @@ export default function HabitsScreen() {
             </AppText>
           </View>
           {!isError && !isLoading && habits.length > 0 ? (
-            <PillButton label="Add" size="sm" onPress={openNewHabit} icon={<Icon name="plus" size={15} color="white" />} />
+            <PillButton label="Add" size="sm" onPress={openNewHabit} icon={<Icon name="plus" size={15} color="onPrimary" />} />
           ) : null}
         </MotiView>
 

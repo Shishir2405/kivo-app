@@ -111,7 +111,7 @@ export function RatingControl({
                 <AppText
                   variant="body"
                   weight={filled ? 'bold' : 'medium'}
-                  color={filled ? colors.inkInverted : colors.muted}
+                  color={filled ? colors.onPrimary : colors.muted}
                 >
                   {v}
                 </AppText>

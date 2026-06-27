@@ -496,7 +496,11 @@ export function ContinueBanner({
   // and the primary wash gives a warm chip on the dark ink banner in light.
   const bannerBg = isDark ? colors.surfaceAlt : colors.ink;
   const chipBg = isDark ? colors.surface : colors.primaryPressed;
-  const onBanner = colors.inkInverted;
+  // The banner bg flips per-theme: near-black ink in light, deep well in dark.
+  // Both are DARK surfaces, so the text/icon must be the LIGHT ink in BOTH
+  // themes. In light that's inkInverted (cream); in dark inkInverted would be
+  // near-black on a near-black banner (invisible) — use colors.ink (cream).
+  const onBanner = isDark ? colors.ink : colors.inkInverted;
 
   return (
     <Pressable onPress={onPress}>

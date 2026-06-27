@@ -366,7 +366,7 @@ export default function ReflectionsScreen() {
                 label="Write"
                 size="sm"
                 onPress={() => router.push(`/reflections/${TODAY}`)}
-                icon={<Icon name="pen" size={14} color={colors.inkInverted} />}
+                icon={<Icon name="pen" size={14} color={colors.onPrimary} />}
               />
             ) : null}
           </View>
@@ -441,7 +441,7 @@ export default function ReflectionsScreen() {
                   <PillButton
                     label="Write today"
                     onPress={() => router.push(`/reflections/${TODAY}`)}
-                    icon={<Icon name="pen" size={14} color={colors.inkInverted} />}
+                    icon={<Icon name="pen" size={14} color={colors.onPrimary} />}
                   />
                 }
               />

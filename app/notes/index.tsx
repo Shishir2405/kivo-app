@@ -346,7 +346,7 @@ export default function NotesScreen() {
               label="New"
               size="sm"
               onPress={goNew}
-              icon={<Icon name="plus" size={15} color={colors.inkInverted} />}
+              icon={<Icon name="plus" size={15} color={colors.onPrimary} />}
             />
           </View>
 

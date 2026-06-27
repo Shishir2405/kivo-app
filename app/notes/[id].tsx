@@ -610,7 +610,7 @@ export default function NoteEditorScreen() {
             label={isNew ? 'Create note' : 'Save changes'}
             onPress={handleSave}
             disabled={!canSave || saving}
-            icon={<Icon name="check" size={15} color={colors.inkInverted} />}
+            icon={<Icon name="check" size={15} color={colors.onPrimary} />}
           />
         </View>
       </KeyboardAvoidingView>

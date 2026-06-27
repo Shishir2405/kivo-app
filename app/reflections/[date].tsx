@@ -176,23 +176,28 @@ export default function ReflectionDetailScreen() {
     };
     const onError = (e: { message: string }) => setFormError(e.message);
 
+    // Structured payload — the hook maps these to the strict backend keys
+    // (note/win → learned, focus → focusLevel, mood lowercased, date → dayKey).
+    const structured = {
+      mood,
+      note: trimmedNote,
+      win: trimmedWin || undefined,
+      learned: learned.trim() || undefined,
+      challenged: challenged.trim() || undefined,
+      tomorrowPlan: tomorrowPlan.trim() || undefined,
+      focus,
+      confidence,
+      goalsCompleted: goalCount > 0 && doneCount === goalCount,
+    };
+
     if (reflection) {
       updateReflection.mutate(
-        {
-          id: reflection.id,
-          patch: { mood, note: trimmedNote, win: trimmedWin || undefined, emoji: moodM.icon },
-        },
+        { id: reflection.id, patch: structured },
         { onSuccess: onDone, onError },
       );
     } else {
       createReflection.mutate(
-        {
-          date: dayKey,
-          mood,
-          note: trimmedNote,
-          win: trimmedWin || undefined,
-          emoji: moodM.icon,
-        },
+        { date: dayKey, ...structured },
         { onSuccess: onDone, onError },
       );
     }
@@ -490,7 +495,7 @@ export default function ReflectionDetailScreen() {
                   label={reflection ? 'Update' : 'Save reflection'}
                   onPress={onSave}
                   disabled={!canSave}
-                  icon={<Icon name="check" size={15} color={colors.inkInverted} />}
+                  icon={<Icon name="check" size={15} color={colors.onPrimary} />}
                 />
               </>
             )}

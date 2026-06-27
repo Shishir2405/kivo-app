@@ -265,7 +265,7 @@ function useLogStudySession(): UseMutationResult<
         url: "/study-sessions",
         method: "POST",
         data: {
-          timerType: timerType === "deep" ? "deepwork" : "pomodoro",
+          timerType: timerType === "deep" ? "deep_focus" : "pomodoro",
           startTime: start.toISOString(),
           endTime: end.toISOString(),
           durationMinutes: minutes,

@@ -2,7 +2,7 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '@/theme';
-import { NeumorphicTabBar } from '@/components/navigation/NeumorphicTabBar';
+import { FloatingDock } from '@/components/navigation/FloatingDock';
 
 /**
  * Main app tabs with the floating bottom dock.
@@ -18,7 +18,7 @@ export default function TabsLayout() {
   const { colors } = useTheme();
   return (
     <Tabs
-      tabBar={(props: BottomTabBarProps) => <NeumorphicTabBar {...props} />}
+      tabBar={(props: BottomTabBarProps) => <FloatingDock {...props} />}
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: colors.canvas },

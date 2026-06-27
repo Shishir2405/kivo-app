@@ -395,7 +395,7 @@ export function RevisionCard({
                   size="sm"
                   disabled={pending}
                   onPress={() => onReview(revision.id, grade)}
-                  icon={<Icon name="check" size={14} color={colors.inkInverted} />}
+                  icon={<Icon name="check" size={14} color={colors.onPrimary} />}
                 />
                 <TextLink label="Cancel" muted size="sm" disabled={pending} onPress={() => setRating(false)} />
               </View>
@@ -415,7 +415,7 @@ export function RevisionCard({
                 variant="primary"
                 size="sm"
                 onPress={() => setRating(true)}
-                icon={<Icon name="check-circle" size={14} color={colors.inkInverted} />}
+                icon={<Icon name="check-circle" size={14} color={colors.onPrimary} />}
               />
               <View className="flex-row items-center" style={{ gap: 16 }}>
                 <TextLink label="Snooze" size="sm" onPress={() => onSnooze(revision.id)} />

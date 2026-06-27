@@ -395,7 +395,13 @@ export default function SettingsScreen() {
                 onChange={(v) => {
                   // hourToHHMM clamps to 0–23, so the API never sees an out-of-range hour.
                   setQuietStart(v);
-                  saveNotif({ quietStart: hourToHHMM(v) });
+                  // Send the FULL quiet-hours triple — the backend's nested schema
+                  // is strict and requires { enabled, startHour, endHour } together.
+                  saveNotif({
+                    quietHours,
+                    quietStart: hourToHHMM(v),
+                    quietEnd: hourToHHMM(quietEnd),
+                  });
                 }}
                 disabled={!quietHours}
                 style={{ flex: 1 }}
@@ -407,7 +413,11 @@ export default function SettingsScreen() {
                 value={quietEnd}
                 onChange={(v) => {
                   setQuietEnd(v);
-                  saveNotif({ quietEnd: hourToHHMM(v) });
+                  saveNotif({
+                    quietHours,
+                    quietStart: hourToHHMM(quietStart),
+                    quietEnd: hourToHHMM(v),
+                  });
                 }}
                 disabled={!quietHours}
                 style={{ flex: 1 }}
@@ -446,8 +456,8 @@ export default function SettingsScreen() {
               options={LANGUAGE_OPTIONS}
               value={language}
               onChange={(v) => {
+                // Language has no backend preference field — local UI state only.
                 setLanguage(v);
-                savePrefs({ language: v });
               }}
               style={{ width: 150 }}
             />
@@ -478,8 +488,9 @@ export default function SettingsScreen() {
             <Stepper
               value={focusMinutes}
               onChange={(v) => {
+                // Focus length has NO backend preference field — keep it local-only
+                // (sending it would 422 against the strict preferences schema).
                 setFocusMinutes(v);
-                savePrefsDebounced({ focusDuration: v });
               }}
               min={5}
               max={90}

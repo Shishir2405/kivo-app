@@ -114,26 +114,53 @@ export function isApiError(e: unknown): e is ApiError {
   );
 }
 
-function normalizeError(
-  error: AxiosError<{
-    message?: string;
-    error?: string;
-    code?: string;
-    details?: { field?: string; message: string; code?: string }[];
-  }>,
-): ApiError {
+type ApiErrorDetail = { field?: string; message: string; code?: string };
+
+function normalizeError(error: AxiosError<unknown>): ApiError {
   const response = error.response;
   const isNetwork = !response;
-  const data = response?.data;
-  const details = Array.isArray(data?.details) ? data?.details : undefined;
+  // The backend nests errors as { success:false, error:{ message, code, details } };
+  // some endpoints return a flat { message }. Handle both, and ALWAYS end with a
+  // string message (never "[object Object]").
+  const data = response?.data as
+    | {
+        message?: unknown;
+        code?: string;
+        details?: ApiErrorDetail[];
+        error?: string | { message?: string; code?: string; details?: ApiErrorDetail[] };
+      }
+    | undefined;
+  const errObj = data && typeof data.error === 'object' && data.error ? data.error : undefined;
+  const details: ApiErrorDetail[] | undefined =
+    (Array.isArray(errObj?.details) ? errObj?.details : undefined) ??
+    (Array.isArray(data?.details) ? data?.details : undefined);
+
+  // The human-readable detail line, e.g. "title: Required · dueDate: Invalid".
+  const detailLine =
+    details && details.length
+      ? details.map((d) => (d.field ? `${d.field}: ${d.message}` : d.message)).join(' · ')
+      : undefined;
+
+  const baseMessage =
+    (typeof errObj?.message === 'string' ? errObj.message : undefined) ??
+    (typeof data?.message === 'string' ? data.message : undefined) ??
+    (typeof data?.error === 'string' ? data.error : undefined) ??
+    detailLine ??
+    (isNetwork ? 'Network error. Check your connection and try again.' : error.message) ??
+    'Something went wrong. Please try again.';
+
+  // When the backend returns BOTH a generic message AND field-level details,
+  // append the details so the form surfaces exactly which keys were rejected
+  // (e.g. a 422 "Validation failed" + "title: Required").
+  const message =
+    detailLine && !baseMessage.includes(detailLine)
+      ? `${baseMessage} (${detailLine})`
+      : baseMessage;
+
   const apiError: ApiError = {
     status: response?.status ?? 0,
-    message:
-      data?.message ??
-      data?.error ??
-      (isNetwork ? 'Network error. Check your connection and try again.' : error.message) ??
-      'Something went wrong. Please try again.',
-    code: data?.code,
+    message,
+    code: errObj?.code ?? data?.code,
     details,
     isNetwork,
     raw: error,

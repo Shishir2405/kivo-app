@@ -650,7 +650,7 @@ function DayCell({
         <AppText
           variant="body"
           weight={isToday || selected ? 'medium' : 'regular'}
-          color={isToday ? colors.inkInverted : inMonth ? colors.ink : colors.muted}
+          color={isToday ? colors.onPrimary : inMonth ? colors.ink : colors.muted}
         >
           {day}
         </AppText>
@@ -664,12 +664,12 @@ function DayCell({
                 width: 4,
                 height: 4,
                 borderRadius: 999,
-                backgroundColor: isToday ? colors.inkInverted : accentDot(accent, colors),
+                backgroundColor: isToday ? colors.onPrimary : accentDot(accent, colors),
               }}
             />
           ))}
           {overflow ? (
-            <AppText variant="caption" color={isToday ? colors.inkInverted : colors.muted} style={{ fontSize: 8, lineHeight: 8 }}>
+            <AppText variant="caption" color={isToday ? colors.onPrimary : colors.muted} style={{ fontSize: 8, lineHeight: 8 }}>
               +
             </AppText>
           ) : null}
@@ -843,10 +843,10 @@ function WeekDayCard({ dayKey, events }: { dayKey: string; events: CalendarEvent
             borderColor: colors.hairline,
           }}
         >
-          <AppText variant="caption" color={today ? colors.inkInverted : colors.muted} style={{ textTransform: 'uppercase' }}>
+          <AppText variant="caption" color={today ? colors.onPrimary : colors.muted} style={{ textTransform: 'uppercase' }}>
             {wdLabel}
           </AppText>
-          <AppText variant="heading" display weight="medium" color={today ? colors.inkInverted : colors.ink}>
+          <AppText variant="heading" display weight="medium" color={today ? colors.onPrimary : colors.ink}>
             {p.d}
           </AppText>
         </View>

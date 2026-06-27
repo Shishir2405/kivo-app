@@ -47,13 +47,15 @@ export function Chip({ label, selected, onPress, icon, disabled, style }: ChipPr
           }}
         >
           {icon ? (
-            <Icon name={icon} size={13} color={selected ? colors.inkInverted : colors.muted} />
+            <Icon name={icon} size={13} color={selected ? colors.onPrimary : colors.muted} />
           ) : null}
           <Text
             style={{
               fontFamily: fonts.sansSemibold,
               fontSize: 13,
-              color: selected ? colors.inkInverted : colors.muted,
+              // Selected = filled terracotta → onPrimary (cream in BOTH themes).
+              // (inkInverted would flip to near-black on terracotta in dark.)
+              color: selected ? colors.onPrimary : colors.muted,
             }}
           >
             {label}

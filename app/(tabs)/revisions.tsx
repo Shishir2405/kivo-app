@@ -364,14 +364,18 @@ export default function RevisionsScreen() {
   /* ----- Actions ----- */
 
   const handleReview = useCallback(
-    (id: string, _grade: RecallGrade) => {
+    (id: string, grade: RecallGrade) => {
       setPendingId(id);
-      reviewMutation.mutate(id, {
-        onSettled: () => {
-          setPendingId((curr) => (curr === id ? null : curr));
-          setCleared((prev) => ({ ...prev, [id]: true }));
+      // Pass the recall grade as the required `confidence` (easy/medium/hard).
+      reviewMutation.mutate(
+        { id, confidence: grade },
+        {
+          onSettled: () => {
+            setPendingId((curr) => (curr === id ? null : curr));
+            setCleared((prev) => ({ ...prev, [id]: true }));
+          },
         },
-      });
+      );
     },
     [reviewMutation],
   );

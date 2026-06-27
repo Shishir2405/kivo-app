@@ -7,7 +7,8 @@
  *                           → persist { accessToken, refreshToken, user }
  *                           → set tokens on the api client.
  *   register(name,email,pw) → createUserWithEmailAndPassword → getIdToken
- *                           → POST /auth/register { idToken, name? }.
+ *                           → POST /auth/register { idToken } (strict: no name)
+ *                           → PATCH /users/me { displayName } to set the name.
  *   logout()                → clear storage + firebase signOut + api tokens.
  *   restoreSession()        → hydrate from AsyncStorage on app start.
  *
@@ -202,12 +203,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const cred = await createUserWithEmailAndPassword(firebaseAuth, email, password ?? '');
       const idToken = await cred.user.getIdToken();
+      // The backend /auth/register schema is .strict() and accepts ONLY { idToken }
+      // — sending `name` returns 422 "Unrecognized key". Register first, then set
+      // the display name via the profile endpoint (which accepts `displayName`).
       const data = await requestData<AuthEnvelope>({
         url: '/auth/register',
         method: 'POST',
-        data: name ? { idToken, name } : { idToken },
+        data: { idToken },
       });
       await get().setSession({ tokens: data.tokens, user: data.user });
+
+      const trimmedName = name?.trim();
+      if (trimmedName) {
+        try {
+          const updated = await requestData<UserProfile>({
+            url: '/users/me',
+            method: 'PATCH',
+            data: { displayName: trimmedName },
+          });
+          if (updated) get().setUser(updated);
+        } catch {
+          /* non-fatal — the name can be set later in Edit Profile */
+        }
+      }
       return { ok: true };
     } catch (e) {
       return { ok: false, error: readErr(e, 'Could not create your account. Please try again.') };

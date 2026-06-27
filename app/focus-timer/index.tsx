@@ -517,7 +517,7 @@ export default function FocusTimerScreen() {
               label={primaryLabel}
               size="lg"
               onPress={toggle}
-              icon={<Icon name={primaryIcon} size={16} color="white" weight={primaryIcon === 'play' ? 'fill' : 'light'} />}
+              icon={<Icon name={primaryIcon} size={16} color="onPrimary" weight={primaryIcon === 'play' ? 'fill' : 'light'} />}
             />
             <TextLink label="Reset" onPress={reset} icon={<Icon name="refresh" size={14} color="ink" />} />
           </View>

@@ -60,7 +60,7 @@ export function Checkbox({
               borderColor: checked ? colors.primary : pressed ? colors.primary : colors.hairline,
             }}
           >
-            {checked ? <Icon name="check" size={size * 0.62} color={colors.inkInverted} weight="bold" /> : null}
+            {checked ? <Icon name="check" size={size * 0.62} color={colors.onPrimary} weight="bold" /> : null}
           </View>
           {label ? (
             <Text

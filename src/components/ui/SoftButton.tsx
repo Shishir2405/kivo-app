@@ -124,7 +124,7 @@ export function SoftButton({
       >
         {icon}
         {label ? (
-          <Text style={{ fontFamily: fonts.sansSemibold, fontSize: pad.font, color: colors.inkInverted }}>
+          <Text style={{ fontFamily: fonts.sansSemibold, fontSize: pad.font, color: colors.onPrimary }}>
             {label}
           </Text>
         ) : (

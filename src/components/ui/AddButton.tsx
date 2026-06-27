@@ -104,8 +104,12 @@ export type QuickAddRowProps = {
 };
 
 /**
- * QuickAddRow — a quiet, dashed full-width "+ Add …" row to drop at the top or
- * bottom of a list so users can create inline without hunting for the header.
+ * QuickAddRow — the inline "create" affordance dropped at the top or bottom of a
+ * list ("Add a topic", "Add a problem", "Add a task", …). These are PRIMARY
+ * create actions, so the row is a FILLED terracotta button (bg colors.primary,
+ * onPrimary text + "+" icon) — clearly prominent and readable in BOTH light and
+ * dark. (Previously it was a dashed hairline row whose terracotta text read like
+ * a faint link and could disappear against the canvas.)
  */
 export function QuickAddRow({ onPress, label, icon = 'plus', style }: QuickAddRowProps) {
   const { colors } = useTheme();
@@ -122,17 +126,21 @@ export function QuickAddRow({ onPress, label, icon = 'plus', style }: QuickAddRo
           gap: spacing.sm,
           paddingVertical: spacing.md,
           paddingHorizontal: spacing.lg,
-          borderRadius: radii.card,
-          borderWidth: 1,
-          borderStyle: 'dashed',
-          borderColor: colors.hairline,
-          backgroundColor: pressed ? colors.surfaceAlt : 'transparent',
+          borderRadius: radii.pill,
+          backgroundColor: pressed ? colors.primaryPressed : colors.primary,
+          // soft terracotta glow (matches the PillButton CTA)
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.4,
+          shadowRadius: 16,
+          elevation: 4,
+          opacity: pressOpacity({ pressed }, { solid: true }),
         },
         style,
       ]}
     >
-      <Icon name={icon} size={16} color="primary" />
-      <Text style={{ fontFamily: fonts.sansSemibold, fontSize: 14, color: colors.primary }}>
+      <Icon name={icon} size={16} color="onPrimary" />
+      <Text style={{ fontFamily: fonts.sansSemibold, fontSize: 14, color: colors.onPrimary }}>
         {label}
       </Text>
     </Pressable>

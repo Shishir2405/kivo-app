@@ -29,9 +29,12 @@ export type TagTone =
 function tonesFor(c: AppColors): Record<TagTone, { bg: string; fg: string; border?: string }> {
   return {
     // Kivo
+    // ink bg inverts per-theme → inkInverted is correct. Terracotta-filled
+    // tones stay terracotta in BOTH themes → use onPrimary (cream both themes)
+    // so the label never flips to near-black on terracotta in dark.
     ink: { bg: c.ink, fg: c.inkInverted },
-    primary: { bg: c.primary, fg: c.inkInverted },
-    rust: { bg: c.primary, fg: c.inkInverted },
+    primary: { bg: c.primary, fg: c.onPrimary },
+    rust: { bg: c.primary, fg: c.onPrimary },
     neutral: { bg: c.surface, fg: c.muted, border: c.hairline },
     warm: { bg: c.peach, fg: c.peachAccent },
     peach: { bg: c.peach, fg: c.peachAccent },
@@ -42,7 +45,7 @@ function tonesFor(c: AppColors): Record<TagTone, { bg: string; fg: string; borde
     butter: { bg: c.butter, fg: c.butterAccent },
     success: { bg: c.successWash, fg: c.success },
     // legacy aliases
-    yellow: { bg: c.primary, fg: c.inkInverted },
+    yellow: { bg: c.primary, fg: c.onPrimary },
     carbon: { bg: c.ink, fg: c.inkInverted },
     signal: { bg: c.sky, fg: c.skyAccent },
     annotation: { bg: c.dangerWash, fg: c.danger },

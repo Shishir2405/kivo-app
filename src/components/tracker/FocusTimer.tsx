@@ -136,7 +136,7 @@ export function FocusTimer({ focusedTodayMinutes, onSessionComplete }: FocusTime
             <Icon
               name={finished ? 'rotate' : running ? 'pause' : 'play'}
               size={15}
-              color="white"
+              color="onPrimary"
             />
           }
         />

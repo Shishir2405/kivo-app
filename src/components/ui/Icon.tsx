@@ -286,16 +286,16 @@ export function Icon({
   fill,
 }: IconProps) {
   const { colors } = useTheme();
-  const Glyph = REGISTRY[name];
+  // Crash-proof: an unknown/empty `name` (e.g. backend data that isn't a valid
+  // IconName) must NEVER resolve to `undefined` — rendering an undefined
+  // component throws "Cannot read property 'displayName' of undefined" and
+  // white-screens the app. Fall back to a neutral registered glyph.
+  const Glyph = REGISTRY[name] ?? Object.values(REGISTRY)[0];
 
-  let resolvedWeight: IconWeight =
-    weight ??
-    (fill && fill !== 'none'
-      ? 'fill'
-      : strokeWidth != null && strokeWidth >= 2.4
-        ? 'regular'
-        : 'regular');
+  const resolvedWeight: IconWeight =
+    weight ?? (fill && fill !== 'none' ? 'fill' : 'regular');
 
+  if (!Glyph) return null;
   return <Glyph size={size} color={resolveColor(color, colors)} weight={resolvedWeight} />;
 }
 

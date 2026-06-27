@@ -545,7 +545,7 @@ export default function ProblemDetailScreen() {
             onPress={onSaveJournal}
             icon={
               savedFlash ? (
-                <Icon name="check" size={15} color={colors.inkInverted} />
+                <Icon name="check" size={15} color={colors.onPrimary} />
               ) : undefined
             }
           />
