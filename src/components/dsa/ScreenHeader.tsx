@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppText } from '@/components/ui/Typography';
@@ -32,6 +32,7 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   const { colors } = useTheme();
   const router = useRouter();
+  const [pressed, setPressed] = useState(false);
   const handleBack =
     onBack ??
     (() => {
@@ -42,10 +43,12 @@ export function ScreenHeader({
     <View className="flex-row items-center" style={[{ gap: 10 }, style]}>
       <Pressable
         onPress={handleBack}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
         accessibilityRole="button"
         accessibilityLabel="Go back"
         hitSlop={10}
-        style={({ pressed }) => ({ marginLeft: -4, opacity: pressOpacity({ pressed }) })}
+        style={{ marginLeft: -4, opacity: pressOpacity({ pressed }) }}
       >
         <Icon name="chevron-left" size={22} color="ink" />
       </Pressable>

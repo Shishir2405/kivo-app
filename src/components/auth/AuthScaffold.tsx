@@ -58,6 +58,15 @@ export function AuthScaffold({
     success: colors.successWash,
   };
 
+  // Glyph color: each wash's deeper accent so the icon never collides with its
+  // own wash fill (e.g. peach glyph on a peach tile) — readable in BOTH themes.
+  const badgeIconColor: Record<NonNullable<AuthScaffoldProps['badgeTone']>, string> = {
+    highlighter: colors.butterAccent,
+    signal: colors.skyAccent,
+    peach: colors.peachAccent,
+    success: colors.success,
+  };
+
   return (
     <DotGridBackground>
       <KeyboardAvoidingView
@@ -105,7 +114,7 @@ export function AuthScaffold({
                     justifyContent: 'center',
                   }}
                 >
-                  <Icon name={badgeIcon} size={28} color={badgeTone} strokeWidth={2.2} />
+                  <Icon name={badgeIcon} size={28} color={badgeIconColor[badgeTone]} strokeWidth={2.2} />
                 </View>
               </Neumorph>
             </MotiView>

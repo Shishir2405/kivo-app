@@ -532,7 +532,7 @@ export function ContinueBanner({
               justifyContent: 'center',
             }}
           >
-            <Icon name={icon} size={17} color={colors.primaryOnWash} weight="regular" />
+            <Icon name={icon} size={17} color={colors.onPrimary} weight="regular" />
           </View>
           <View style={{ flex: 1 }}>
             <AppText variant="caption" color={colors.muted} style={{ fontSize: 11 }}>

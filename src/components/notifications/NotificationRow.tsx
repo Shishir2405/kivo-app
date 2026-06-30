@@ -8,7 +8,7 @@
  * attention. Theme-aware (light/dark) via useTheme(); enters with a small
  * staggered fade-up. Vector Icons only, ZERO emoji.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { MotiView } from 'moti';
 
@@ -46,6 +46,7 @@ function accentTone(accent: NotificationAccent): CardTone {
 
 export function NotificationRow({ notification, onPress, index }: NotificationRowProps) {
   const { colors, toneStyle } = useTheme();
+  const [pressed, setPressed] = useState(false);
   const { read } = notification;
   const tone = accentTone(notification.accent);
   const ts = toneStyle(tone);
@@ -62,13 +63,15 @@ export function NotificationRow({ notification, onPress, index }: NotificationRo
     >
       <Pressable
         onPress={() => onPress(notification.id)}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
         accessibilityRole="button"
         accessibilityLabel={`${notification.title}. ${read ? 'Read' : 'Unread'}`}
         accessibilityState={{ selected: !read }}
-        style={({ pressed }) => ({
+        style={{
           opacity: read ? 0.7 : pressOpacity({ pressed }, { solid: true }),
           transform: [{ scale: pressed ? interaction.pressScale : 1 }],
-        })}
+        }}
       >
         <SoftCard
           variant={read ? 'inset' : 'raised'}

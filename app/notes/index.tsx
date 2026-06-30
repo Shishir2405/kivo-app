@@ -27,12 +27,43 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { Skeleton, SkeletonText } from '@/components/ui/Skeleton';
 import { AddButton, QuickAddRow, EmptyStateCTA } from '@/components/ui/AddButton';
 
-import { radii, motion, interaction, pressOpacity, toneAt } from '@/theme/tokens';
+import { radii, motion, interaction, toneAt } from '@/theme/tokens';
 import { useTheme } from '@/theme';
 import { TODAY } from '@/data/mock';
 import { useNotes } from '@/hooks/api';
 import type { Note, NoteFolder } from '@/types/models';
 import { FOLDER_ICON, NOTE_FOLDERS, formatUpdated } from '@/components/notes/notesMeta';
+
+/**
+ * Pressable with a static opacity-dip press feedback. NativeWind drops the
+ * FUNCTION form of `style`, so feedback is driven by local state + a static
+ * style array instead of `style={({ pressed }) => ...}`.
+ */
+function PressFade({
+  style,
+  onPressIn,
+  onPressOut,
+  children,
+  ...rest
+}: React.ComponentProps<typeof Pressable>) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      {...rest}
+      onPressIn={(e) => {
+        setPressed(true);
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        setPressed(false);
+        onPressOut?.(e);
+      }}
+      style={[style as any, pressed && { opacity: interaction.pressOpacity }]}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* Filter model                                                        */
@@ -87,6 +118,7 @@ function NoteCard({
   const tone = note.pinned ? 'peach' : toneAt(toneIndex);
   const ts = toneStyle(tone);
   const accent = ts.accent;
+  const [pressed, setPressed] = useState(false);
 
   return (
     <MotiView
@@ -98,10 +130,15 @@ function NoteCard({
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={`Open note: ${note.title}`}
-        style={({ pressed }) => ({
-          opacity: pressOpacity({ pressed }, { solid: true }),
-          transform: [{ scale: pressed ? interaction.pressScale : 1 }],
-        })}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        style={[
+          { opacity: 1, transform: [{ scale: 1 }] },
+          pressed && {
+            opacity: interaction.pressOpacitySolid,
+            transform: [{ scale: interaction.pressScale }],
+          },
+        ]}
       >
         <SoftCard tone={tone} radius={radii.card} padding={14} style={{ marginBottom: 10 }}>
           {/* Folder eyebrow + status glyphs */}
@@ -362,14 +399,13 @@ export default function NotesScreen() {
             leading={<Icon name="search" size={16} color={colors.muted} />}
             trailing={
               query.length > 0 ? (
-                <Pressable
+                <PressFade
                   onPress={() => setQuery('')}
                   accessibilityLabel="Clear search"
                   hitSlop={8}
-                  style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
                 >
                   <Icon name="x-circle" size={16} color={colors.muted} />
-                </Pressable>
+                </PressFade>
               ) : undefined
             }
             containerStyle={{ marginBottom: 12 }}

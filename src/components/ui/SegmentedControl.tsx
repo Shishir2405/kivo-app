@@ -51,6 +51,7 @@ export function SegmentedControl<T extends string>({
     <View style={[fullWidth ? { alignSelf: 'stretch' } : { alignSelf: 'flex-start' }, style]}>
       <View
         style={{
+          width: '100%',
           height,
           flexDirection: 'row',
           alignItems: 'stretch',
@@ -72,7 +73,8 @@ export function SegmentedControl<T extends string>({
               onPress={() => onChange(opt.value)}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
-              style={({ pressed }) => ({
+              android_ripple={{ color: colors.hairline, borderless: false }}
+              style={{
                 flex: 1,
                 minWidth: 0,
                 flexDirection: 'row',
@@ -88,8 +90,7 @@ export function SegmentedControl<T extends string>({
                 shadowOpacity: active ? (isDark ? 0.5 : 0.12) : 0,
                 shadowRadius: isDark ? 4 : 3,
                 elevation: active ? 2 : 0,
-                opacity: pressed && !active ? 0.6 : 1,
-              })}
+              }}
             >
               {opt.icon ? (
                 <Icon name={opt.icon} size={15} color={active ? colors.primary : colors.muted} />

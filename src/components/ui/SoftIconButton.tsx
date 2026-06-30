@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { interaction, pressOpacity } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeContext';
@@ -31,33 +31,41 @@ export function SoftIconButton({
 }: SoftIconButtonProps) {
   const { colors } = useTheme();
   const fill = activeColor ?? colors.primary;
+  const [pressed, setPressed] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  // Static press opacity (preserved): solid press feedback on the Pressable.
+  const wrapBase: ViewStyle = { opacity: pressOpacity({}, { solid: true }) };
+  const wrapPressed: ViewStyle = { opacity: pressOpacity({ pressed: true }, { solid: true }) };
+
+  // Inner circle styling — static, computed from props + press/hover state.
+  const circleStyle: ViewStyle = {
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: active
+      ? fill
+      : hovered && !pressed
+        ? interaction.hoverWash
+        : colors.surface,
+    borderWidth: 1,
+    borderColor: active ? fill : pressed ? colors.primary : colors.hairline,
+  };
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      style={({ pressed }) => [{ opacity: pressOpacity({ pressed }, { solid: true }) }, style]}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={[wrapBase, pressed && wrapPressed, style]}
     >
-      {({ pressed, hovered }) => (
-        <View
-          style={{
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: active
-              ? fill
-              : hovered && !pressed
-                ? interaction.hoverWash
-                : colors.surface,
-            borderWidth: 1,
-            borderColor: active ? fill : pressed ? colors.primary : colors.hairline,
-          }}
-        >
-          {children}
-        </View>
-      )}
+      <View style={circleStyle}>{children}</View>
     </Pressable>
   );
 }

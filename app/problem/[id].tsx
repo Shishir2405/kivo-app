@@ -33,9 +33,40 @@ import {
   useUpdateProblem,
   useDeleteProblem,
 } from '@/hooks/api';
-import { motion, pressOpacity, radii } from '@/theme/tokens';
+import { motion, interaction, radii } from '@/theme/tokens';
 import { useTheme } from '@/theme';
 import type { Problem, ProblemStatus } from '@/types/models';
+
+/**
+ * Pressable with a static opacity-dip press feedback. NativeWind drops the
+ * FUNCTION form of `style`, so feedback is driven by local state + a static
+ * style array instead of `style={({ pressed }) => ...}`.
+ */
+function PressFade({
+  style,
+  onPressIn,
+  onPressOut,
+  children,
+  ...rest
+}: React.ComponentProps<typeof Pressable>) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      {...rest}
+      onPressIn={(e) => {
+        setPressed(true);
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        setPressed(false);
+        onPressOut?.(e);
+      }}
+      style={[style as any, pressed && { opacity: interaction.pressOpacity }]}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 /* ================================================================== */
 /* Coding-journal local state (seeded from the problem's fields)       */
@@ -266,15 +297,14 @@ export default function ProblemDetailScreen() {
             body="It may have been removed. Go back and pick another problem."
           />
           <View style={{ alignItems: 'center', marginTop: 16 }}>
-            <Pressable
+            <PressFade
               onPress={handleBack}
               hitSlop={8}
-              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
             >
               <AppText variant="body" weight="medium" color={colors.ink}>
                 Back
               </AppText>
-            </Pressable>
+            </PressFade>
           </View>
         </View>
       </View>
@@ -301,25 +331,24 @@ export default function ProblemDetailScreen() {
           onBack={handleBack}
           trailing={
             <View className="flex-row items-center" style={{ gap: 14 }}>
-              <Pressable
+              <PressFade
                 onPress={onDelete}
                 hitSlop={10}
                 disabled={deleteProblem.isPending}
                 accessibilityRole="button"
                 accessibilityLabel="Delete problem"
-                style={({ pressed }) => ({ opacity: deleteProblem.isPending ? 0.4 : pressOpacity({ pressed }) })}
+                style={deleteProblem.isPending ? { opacity: 0.4 } : undefined}
               >
                 {deleteProblem.isPending ? (
                   <ActivityIndicator size="small" color={colors.muted} />
                 ) : (
                   <Icon name="trash" size={19} color="danger" />
                 )}
-              </Pressable>
-              <Pressable
+              </PressFade>
+              <PressFade
                 onPress={() => setBookmarked((b) => !b)}
                 hitSlop={10}
                 accessibilityLabel="Bookmark problem"
-                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
               >
                 <Icon
                   name="bookmark"
@@ -327,7 +356,7 @@ export default function ProblemDetailScreen() {
                   color={bookmarked ? 'primary' : 'muted'}
                   weight={bookmarked ? 'fill' : 'light'}
                 />
-              </Pressable>
+              </PressFade>
             </View>
           }
           style={{ marginBottom: 20 }}

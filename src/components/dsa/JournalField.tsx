@@ -22,6 +22,8 @@ export type JournalFieldProps = {
    * this change handler — the coding-journal capture mode.
    */
   onChangeBody?: (next: string) => void;
+  /** Validation error surfaced on the editable input (danger border + message). */
+  error?: string;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -37,6 +39,7 @@ export function JournalField({
   placeholder = 'Nothing captured yet.',
   accent,
   onChangeBody,
+  error,
   style,
 }: JournalFieldProps) {
   const { colors } = useTheme();
@@ -66,6 +69,7 @@ export function JournalField({
           value={body ?? ''}
           onChangeText={onChangeBody}
           placeholder={placeholder}
+          error={error}
           multiline
           textAlignVertical="top"
           style={{ lineHeight: 20, minHeight: 76 }}

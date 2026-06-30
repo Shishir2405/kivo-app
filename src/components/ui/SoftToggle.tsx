@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { MotiView } from 'moti';
 import { motion } from '@/theme/tokens';
@@ -17,6 +17,7 @@ export type SoftToggleProps = {
  */
 export function SoftToggle({ value, onValueChange, disabled }: SoftToggleProps) {
   const { colors } = useTheme();
+  const [pressed, setPressed] = useState(false);
   const W = 44;
   const H = 26;
   const KNOB = 21;
@@ -25,11 +26,13 @@ export function SoftToggle({ value, onValueChange, disabled }: SoftToggleProps) 
   return (
     <Pressable
       onPress={() => !disabled && onValueChange(!value)}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
       disabled={disabled}
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
       hitSlop={6}
-      style={({ pressed }) => ({ opacity: disabled ? 0.45 : pressed ? 0.7 : 1 })}
+      style={{ opacity: disabled ? 0.45 : pressed ? 0.7 : 1 }}
     >
       <View
         style={{
@@ -50,6 +53,10 @@ export function SoftToggle({ value, onValueChange, disabled }: SoftToggleProps) 
             height: KNOB,
             borderRadius: KNOB / 2,
             backgroundColor: '#FFFFFF',
+            // Faint outline so the white knob stays visible on the light OFF
+            // track (surfaceAlt); harmless on the terracotta ON track.
+            borderWidth: 1,
+            borderColor: value ? 'transparent' : 'rgba(33,28,23,0.12)',
             shadowColor: colors.shadowTint,
             shadowOffset: { width: 0, height: 1 },
             shadowOpacity: 0.2,

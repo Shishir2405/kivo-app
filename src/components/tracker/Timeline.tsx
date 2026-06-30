@@ -62,7 +62,7 @@ function TimelineRow({ block, isLast }: { block: PlanBlock; isLast: boolean }) {
           <AppText
             variant="subheading"
             weight="medium"
-            color={done ? colors.dove : colors.ink}
+            color={done ? colors.muted : colors.ink}
             numberOfLines={1}
             style={done ? { textDecorationLine: 'line-through' } : undefined}
           >

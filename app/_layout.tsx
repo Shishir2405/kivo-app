@@ -11,7 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { useAppFonts } from '@/theme/useAppFonts';
-import { ThemeProvider, useTheme } from '@/theme';
+import { ThemeProvider, ThemeTransitionProvider, useTheme } from '@/theme';
 import { SplashScreen } from '@/components/SplashScreen';
 import { useUiStore, useAuthStore } from '@/store';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -48,6 +48,7 @@ function ThemedRoot() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      <ThemeTransitionProvider>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -84,6 +85,7 @@ function ThemedRoot() {
           <SplashScreen onFinish={handleSplashFinish} />
         </View>
       ) : null}
+      </ThemeTransitionProvider>
     </View>
   );
 }

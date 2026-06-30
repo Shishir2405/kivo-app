@@ -126,6 +126,7 @@ function SessionRow({
   onDelete: (s: StudySession) => void;
 }) {
   const { colors } = useTheme();
+  const [pressed, setPressed] = useState(false);
   return (
     <Pressable
       onPress={() => onEdit(session)}
@@ -133,7 +134,9 @@ function SessionRow({
       delayLongPress={350}
       accessibilityRole="button"
       accessibilityLabel={`${session.topic}, ${session.minutes} minutes. Tap to edit, long-press to delete.`}
-      style={({ pressed }) => ({ opacity: pressed ? interaction.pressOpacity : 1 })}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[{ opacity: 1 }, pressed && { opacity: interaction.pressOpacity }]}
     >
       <View
         className="flex-row items-center"

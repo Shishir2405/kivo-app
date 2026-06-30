@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { MotiView } from 'moti';
 import { SoftCard } from '@/components/ui/SoftCard';
@@ -27,6 +27,7 @@ export type TopicCardProps = {
  */
 export function TopicCard({ topic, onPress, index = 0 }: TopicCardProps) {
   const { colors, accentForTone } = useTheme();
+  const [pressed, setPressed] = useState(false);
   const progress = Number.isFinite(topic.progress) ? topic.progress : 0;
   const solved = topic.solvedProblems ?? 0;
   const total = topic.totalProblems ?? 0;
@@ -42,10 +43,12 @@ export function TopicCard({ topic, onPress, index = 0 }: TopicCardProps) {
     >
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => ({
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        style={{
           opacity: pressOpacity({ pressed }, { solid: true }),
           transform: [{ scale: pressed ? interaction.pressScale : 1 }],
-        })}
+        }}
       >
         <SoftCard tone={tone} radius={16} padding={14}>
           {({ accent }) => (

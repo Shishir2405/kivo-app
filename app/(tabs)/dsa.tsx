@@ -271,7 +271,7 @@ export default function DsaScreen() {
         {/* Subtle footer link to the full problem bank */}
         {topics.length > 0 ? (
           <View style={{ marginTop: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
-            <Icon name="info" size={13} color="hairline" />
+            <Icon name="info" size={13} color="muted" />
             <AppText variant="caption" color={colors.muted}>
               Tap a topic to see its problems and notes
             </AppText>

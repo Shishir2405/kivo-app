@@ -32,7 +32,7 @@ import { FormSheet } from '@/components/ui/FormSheet';
 import { AddButton, QuickAddRow, EmptyStateCTA } from '@/components/ui/AddButton';
 import { Select, type SelectOption } from '@/components/ui/Select';
 
-import { radii, motion, interaction, pressOpacity, toneAt } from '@/theme/tokens';
+import { radii, motion, interaction, toneAt } from '@/theme/tokens';
 import { useTheme } from '@/theme';
 import {
   useResources,
@@ -155,6 +155,37 @@ function validateResource(values: {
   return errs;
 }
 
+/**
+ * Pressable with a static opacity-dip press feedback. NativeWind drops the
+ * FUNCTION form of `style`, so feedback is driven by local state + a static
+ * style array instead of `style={({ pressed }) => ...}`.
+ */
+function PressFade({
+  style,
+  onPressIn,
+  onPressOut,
+  children,
+  ...rest
+}: React.ComponentProps<typeof Pressable>) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      {...rest}
+      onPressIn={(e) => {
+        setPressed(true);
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        setPressed(false);
+        onPressOut?.(e);
+      }}
+      style={[style as any, pressed && { opacity: interaction.pressOpacity }]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Resource card                                                       */
 /* ------------------------------------------------------------------ */
@@ -179,6 +210,7 @@ function ResourceCard({
   const { colors, toneStyle } = useTheme();
   const meta = TYPE_META[resource.type];
   const ts = toneStyle(toneAt(toneIndex));
+  const [cardPressed, setCardPressed] = useState(false);
 
   return (
     <MotiView
@@ -192,10 +224,15 @@ function ResourceCard({
         delayLongPress={300}
         accessibilityRole="link"
         accessibilityLabel={`Open ${resource.title}. Long-press to edit.`}
-        style={({ pressed }) => ({
-          opacity: pressOpacity({ pressed }, { solid: true }),
-          transform: [{ scale: pressed ? interaction.pressScale : 1 }],
-        })}
+        onPressIn={() => setCardPressed(true)}
+        onPressOut={() => setCardPressed(false)}
+        style={[
+          { opacity: 1, transform: [{ scale: 1 }] },
+          cardPressed && {
+            opacity: interaction.pressOpacitySolid,
+            transform: [{ scale: interaction.pressScale }],
+          },
+        ]}
       >
         <SoftCard radius={radii.card} padding={14} style={{ marginBottom: 10 }}>
           <View className="flex-row items-center" style={{ gap: 12 }}>
@@ -226,13 +263,13 @@ function ResourceCard({
                 >
                   {resource.title}
                 </AppText>
-                <Pressable
+                <PressFade
                   onPress={() => onToggleFavorite(resource)}
                   disabled={favoritePending}
                   hitSlop={10}
                   accessibilityRole="button"
                   accessibilityLabel={resource.favorite ? 'Unstar' : 'Star'}
-                  style={({ pressed }) => ({ opacity: pressOpacity({ pressed }, { disabled: favoritePending }) })}
+                  style={favoritePending ? { opacity: interaction.disabledOpacity } : undefined}
                 >
                   <Icon
                     name="star"
@@ -240,7 +277,7 @@ function ResourceCard({
                     color={resource.favorite ? colors.primary : colors.hairline}
                     weight={resource.favorite ? 'fill' : 'regular'}
                   />
-                </Pressable>
+                </PressFade>
               </View>
 
               {/* Source / type / host */}
@@ -269,23 +306,22 @@ function ResourceCard({
               </View>
             ) : null}
             <View style={{ flex: 1 }} />
-            <Pressable
+            <PressFade
               onPress={() => onEdit(resource)}
               hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel={`Edit ${resource.title}`}
-              style={({ pressed }) => ({
-                opacity: pressOpacity({ pressed }),
+              style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 4,
-              })}
+              }}
             >
               <Icon name="pen" size={13} color={colors.muted} />
               <AppText variant="caption" color={colors.muted}>
                 Edit
               </AppText>
-            </Pressable>
+            </PressFade>
           </View>
         </SoftCard>
       </Pressable>
@@ -674,14 +710,13 @@ export default function ResourcesScreen() {
             leading={<Icon name="search" size={16} color={colors.muted} />}
             trailing={
               query.length > 0 ? (
-                <Pressable
+                <PressFade
                   onPress={() => setQuery('')}
                   hitSlop={8}
                   accessibilityLabel="Clear search"
-                  style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
                 >
                   <Icon name="x-circle" size={16} color={colors.muted} />
-                </Pressable>
+                </PressFade>
               ) : undefined
             }
             containerStyle={{ marginBottom: 12 }}

@@ -41,7 +41,7 @@ import {
 } from '@/components/ui';
 
 import { useTheme, motion } from '@/theme';
-import { radii, interaction, pressOpacity } from '@/theme/tokens';
+import { radii, interaction } from '@/theme/tokens';
 import type { CalendarEvent, CalendarEventType, StudySession } from '@/types/models';
 import {
   useTasks,
@@ -85,6 +85,37 @@ const VIEW_OPTIONS = [
 ];
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Pressable with a static opacity-dip press feedback. NativeWind drops the
+ * FUNCTION form of `style`, so press feedback is driven by local state + a
+ * static style array instead of `style={({ pressed }) => ...}`.
+ */
+function PressFade({
+  style,
+  onPressIn,
+  onPressOut,
+  children,
+  ...rest
+}: React.ComponentProps<typeof Pressable>) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      {...rest}
+      onPressIn={(e) => {
+        setPressed(true);
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        setPressed(false);
+        onPressOut?.(e);
+      }}
+      style={[style as any, pressed && { opacity: interaction.pressOpacity }]}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -199,19 +230,31 @@ export default function CalendarScreen() {
     setEditing(null);
   }, []);
 
+  // Backend study-sessions validator: topicName min 1 / max 200;
+  // durationMinutes int nonnegative max 1440 (we require > 0 for a logged focus
+  // session). Mirror those limits here so submit is blocked + errors inline.
+  const TOPIC_MAX = 200;
+  const MINUTES_MAX = 1_440;
+
   const minutesNum = parseInt(fMinutes, 10);
-  const minutesValid = !Number.isNaN(minutesNum) && minutesNum > 0;
-  const topicValid = fTopic.trim().length > 0;
+  const minutesValid =
+    !Number.isNaN(minutesNum) && minutesNum > 0 && minutesNum <= MINUTES_MAX;
+  const topicTrimmed = fTopic.trim();
+  const topicValid = topicTrimmed.length > 0 && topicTrimmed.length <= TOPIC_MAX;
   const submitDisabled = !topicValid || !minutesValid;
   const saving = createSession.isPending || updateSession.isPending;
 
   const submitSession = useCallback(() => {
-    if (!topicValid) {
+    if (topicTrimmed.length === 0) {
       setFormErr('Give the session a topic.');
       return;
     }
+    if (topicTrimmed.length > TOPIC_MAX) {
+      setFormErr(`Topic must be at most ${TOPIC_MAX} characters.`);
+      return;
+    }
     if (!minutesValid) {
-      setFormErr('Enter the minutes focused (a number above 0).');
+      setFormErr(`Enter the minutes focused (1–${MINUTES_MAX}).`);
       return;
     }
     setFormErr('');
@@ -222,23 +265,22 @@ export default function CalendarScreen() {
       updateSession.mutate(
         {
           id: editing.id,
-          patch: { topic: fTopic.trim(), minutes: minutesNum, problemsSolved },
+          patch: { topic: topicTrimmed, minutes: minutesNum, problemsSolved },
         },
         { onSuccess: closeSheet, onError: (e) => setFormErr(e.message) },
       );
     } else {
       createSession.mutate(
-        { topic: fTopic.trim(), minutes: minutesNum, problemsSolved, date: sheetDay },
+        { topic: topicTrimmed, minutes: minutesNum, problemsSolved, date: sheetDay },
         { onSuccess: closeSheet, onError: (e) => setFormErr(e.message) },
       );
     }
   }, [
-    topicValid,
+    topicTrimmed,
     minutesValid,
     fSolved,
     editing,
     updateSession,
-    fTopic,
     minutesNum,
     closeSheet,
     createSession,
@@ -327,16 +369,15 @@ export default function CalendarScreen() {
           onBack={() => router.back()}
           right={
             <View className="flex-row items-center" style={{ gap: 14 }}>
-              <Pressable
+              <PressFade
                 onPress={goToday}
                 hitSlop={8}
                 accessibilityLabel="Jump to today"
-                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
               >
                 <AppText variant="caption" weight="medium" color={colors.ink}>
                   Today
                 </AppText>
-              </Pressable>
+              </PressFade>
               <AddButton
                 onPress={() => openCreate(selectedDay)}
                 accessibilityLabel="Log a study session"
@@ -445,9 +486,16 @@ export default function CalendarScreen() {
           value={fTopic}
           onChangeText={setFTopic}
           placeholder="e.g. Graphs · BFS / DFS"
+          maxLength={TOPIC_MAX}
           autoFocus
           returnKeyType="next"
-          error={!topicValid && formErr ? 'Topic is required' : undefined}
+          error={
+            topicTrimmed.length > TOPIC_MAX
+              ? `Topic must be at most ${TOPIC_MAX} characters.`
+              : topicTrimmed.length === 0 && formErr
+              ? 'Topic is required'
+              : undefined
+          }
         />
         <SoftInput
           label="Minutes focused"
@@ -455,7 +503,11 @@ export default function CalendarScreen() {
           onChangeText={setFMinutes}
           placeholder="e.g. 45"
           keyboardType="number-pad"
-          error={!minutesValid && formErr ? 'Enter a number above 0' : undefined}
+          error={
+            !minutesValid && (fMinutes.trim().length > 0 || formErr)
+              ? `Enter a number between 1 and ${MINUTES_MAX}`
+              : undefined
+          }
         />
         <SoftInput
           label="Problems solved (optional)"
@@ -551,25 +603,23 @@ function MonthView({
       <SoftCard radius={radii.card} padding={14}>
         {/* Month pager */}
         <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
-          <Pressable
+          <PressFade
             onPress={() => onStep(-1)}
             hitSlop={10}
             accessibilityLabel="Previous month"
-            style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
           >
             <Icon name="chevron-left" size={20} color="ink" />
-          </Pressable>
+          </PressFade>
           <AppText variant="heading" display weight="medium">
             {monthLabel(focusY, focusM0)}
           </AppText>
-          <Pressable
+          <PressFade
             onPress={() => onStep(1)}
             hitSlop={10}
             accessibilityLabel="Next month"
-            style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
           >
             <Icon name="chevron-right" size={20} color="ink" />
-          </Pressable>
+          </PressFade>
         </View>
 
         {/* Weekday header */}
@@ -634,7 +684,8 @@ function DayCell({
       accessibilityRole="button"
       accessibilityLabel={`${day}, ${events.length} events`}
       accessibilityState={{ selected }}
-      style={({ pressed }) => ({ flex: 1, aspectRatio: 1, padding: 2, opacity: pressed ? interaction.pressOpacity : 1 })}
+      android_ripple={{ color: colors.hairline, borderless: false }}
+      style={{ flex: 1, aspectRatio: 1, padding: 2 }}
     >
       <View
         style={{
@@ -756,16 +807,15 @@ function CalendarEventCard({
     return <EventRow event={event} index={index} />;
   }
   return (
-    <Pressable
+    <PressFade
       onPress={() => onEditSession(event)}
       onLongPress={() => onDeleteSession(event)}
       delayLongPress={350}
       accessibilityRole="button"
       accessibilityLabel={`${event.title}. Tap to edit, long-press to delete.`}
-      style={({ pressed }) => ({ opacity: pressed ? interaction.pressOpacity : 1 })}
     >
       <EventRow event={event} index={index} />
-    </Pressable>
+    </PressFade>
   );
 }
 
@@ -790,25 +840,23 @@ function WeekView({
   return (
     <View>
       <View className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
-        <Pressable
+        <PressFade
           onPress={() => onStep(-1)}
           hitSlop={10}
           accessibilityLabel="Previous week"
-          style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
         >
           <Icon name="chevron-left" size={20} color="ink" />
-        </Pressable>
+        </PressFade>
         <AppText variant="heading" display weight="medium">
           {rangeLabel}
         </AppText>
-        <Pressable
+        <PressFade
           onPress={() => onStep(1)}
           hitSlop={10}
           accessibilityLabel="Next week"
-          style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
         >
           <Icon name="chevron-right" size={20} color="ink" />
-        </Pressable>
+        </PressFade>
       </View>
 
       <View style={{ gap: 10 }}>

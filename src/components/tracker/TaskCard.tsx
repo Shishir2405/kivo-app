@@ -60,6 +60,7 @@ export type TaskCardProps = {
 export function TaskCard({ task, onToggle, onToggleChecklistItem, onEdit, index = 0 }: TaskCardProps) {
   const { colors, toneStyle } = useTheme();
   const [expanded, setExpanded] = useState(false);
+  const [pressed, setPressed] = useState(false);
 
   const checklist = task.checklist ?? [];
   const hasChecklist = checklist.length > 0;
@@ -86,12 +87,14 @@ export function TaskCard({ task, onToggle, onToggleChecklistItem, onEdit, index 
         />
 
         <Pressable
-          style={({ pressed }) => ({ flex: 1, opacity: tappable ? pressOpacity({ pressed }) : 1 })}
+          style={{ flex: 1, opacity: tappable ? pressOpacity({ pressed }) : 1 }}
           disabled={!tappable}
           onPress={() => {
             if (hasDetail) setExpanded((e) => !e);
             else if (canEdit) onEdit?.(task);
           }}
+          onPressIn={() => setPressed(true)}
+          onPressOut={() => setPressed(false)}
           accessibilityHint={canEdit && !hasDetail ? 'Opens the editor' : undefined}
         >
           <View className="flex-row items-start" style={{ gap: spacing.sm }}>
@@ -99,7 +102,7 @@ export function TaskCard({ task, onToggle, onToggleChecklistItem, onEdit, index 
               <AppText
                 variant="body"
                 weight="medium"
-                color={task.done ? colors.dove : colors.ink}
+                color={task.done ? colors.muted : colors.ink}
                 numberOfLines={2}
                 style={task.done ? { textDecorationLine: 'line-through' } : undefined}
               >
@@ -183,7 +186,7 @@ export function TaskCard({ task, onToggle, onToggleChecklistItem, onEdit, index 
                 />
                 <AppText
                   variant="caption"
-                  color={item.done ? colors.dove : colors.ash}
+                  color={item.done ? colors.muted : colors.ash}
                   style={{
                     flex: 1,
                     ...(item.done ? { textDecorationLine: 'line-through' } : null),

@@ -12,6 +12,12 @@
  * palette (back-compat) — prefer useTheme().colors in new code.
  */
 export { ThemeProvider, useTheme, type ThemeValue, type ThemeMode } from './ThemeContext';
+export {
+  ThemeTransitionProvider,
+  useThemeTransition,
+  type ThemeTransitionValue,
+  type TransitionOrigin,
+} from './ThemeTransition';
 export { useAppFonts } from './useAppFonts';
 export * from './tokens';
 export { default } from './tokens';

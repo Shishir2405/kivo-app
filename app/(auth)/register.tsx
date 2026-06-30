@@ -27,6 +27,11 @@ import { GoogleSignInButton } from '@/components/auth';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Backend stores the Firebase display name via updateProfileSchema, which caps
+// displayName at min 1 / max 120. Mirror that ceiling so we never submit a name
+// the server would reject; keep a friendly min of 2 for the UX.
+const NAME_MAX = 120;
+
 /** Three-segment password strength, matching the HTML register meter. */
 function scoreThree(pw: string): number {
   if (!pw) return 0;
@@ -76,7 +81,10 @@ export default function RegisterScreen() {
 
   const validate = () => {
     const next: typeof errors = {};
-    if (name.trim().length < 2) next.name = 'Tell us your name';
+    const trimmedName = name.trim();
+    if (trimmedName.length < 2) next.name = 'Tell us your name';
+    else if (trimmedName.length > NAME_MAX)
+      next.name = `Name must be at most ${NAME_MAX} characters`;
     if (!EMAIL_RE.test(email.trim())) next.email = 'Enter a valid email address';
     if (password.length < 8) next.password = 'Use at least 8 characters';
     if (!agreed) next.agreed = 'Please accept the Terms to continue';
@@ -159,6 +167,7 @@ export default function RegisterScreen() {
                 if (formError) setFormError(null);
               }}
               error={errors.name}
+              maxLength={NAME_MAX}
               autoCapitalize="words"
               autoComplete="name"
               returnKeyType="next"

@@ -6,7 +6,7 @@
  * track with a hairline. Tapping any segment sets the rating with a snappy
  * spring. Fully theme-aware (light / dark) via useTheme().
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { MotiView } from 'moti';
 
@@ -49,6 +49,7 @@ export function RatingControl({
   disabled,
 }: RatingControlProps) {
   const { colors } = useTheme();
+  const [pressedValue, setPressedValue] = useState<Rating | null>(null);
   return (
     <View style={{ opacity: disabled ? 0.5 : 1 }}>
       {/* Label row */}
@@ -83,15 +84,18 @@ export function RatingControl({
       >
         {VALUES.map((v) => {
           const filled = v <= value;
+          const pressed = pressedValue === v;
           return (
             <Pressable
               key={v}
               disabled={disabled}
               onPress={() => onChange(v)}
+              onPressIn={() => setPressedValue(v)}
+              onPressOut={() => setPressedValue(null)}
               accessibilityRole="adjustable"
               accessibilityLabel={`${label} ${v} of 5`}
               accessibilityState={{ selected: v === value }}
-              style={({ pressed }) => ({ flex: 1, opacity: pressOpacity({ pressed }, { disabled }) })}
+              style={{ flex: 1, opacity: pressOpacity({ pressed }, { disabled }) }}
               hitSlop={6}
             >
               <MotiView

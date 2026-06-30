@@ -33,7 +33,7 @@ import {
   progressColor,
 } from '@/components/dsa/dsaMeta';
 import {
-  useDsaTopics,
+  useDsaTopic,
   useDsaProblems,
   useRevisions,
   useUpdateDsaTopic,
@@ -42,9 +42,40 @@ import {
   useCreateProblem,
   useDeleteProblem,
 } from '@/hooks/api';
-import { motion, pressOpacity } from '@/theme/tokens';
+import { motion, interaction } from '@/theme/tokens';
 import { useTheme } from '@/theme';
 import type { Difficulty, Problem, ProblemStatus, Revision } from '@/types/models';
+
+/**
+ * Pressable with a static opacity-dip press feedback. NativeWind drops the
+ * FUNCTION form of `style`, so feedback is driven by local state + a static
+ * style array instead of `style={({ pressed }) => ...}`.
+ */
+function PressFade({
+  style,
+  onPressIn,
+  onPressOut,
+  children,
+  ...rest
+}: React.ComponentProps<typeof Pressable>) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      {...rest}
+      onPressIn={(e) => {
+        setPressed(true);
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        setPressed(false);
+        onPressOut?.(e);
+      }}
+      style={[style as any, pressed && { opacity: interaction.pressOpacity }]}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 /* ================================================================== */
 /* Problem filter (segmented control)                                  */
@@ -116,8 +147,8 @@ export default function TopicDetailScreen() {
   const router = useRouter();
   const { colors, accentForTone } = useTheme();
 
-  const topicsQuery = useDsaTopics();
-  const problemsQuery = useDsaProblems();
+  const topicQuery = useDsaTopic(id);
+  const problemsQuery = useDsaProblems({ topicId: id });
   const revisionsQuery = useRevisions();
 
   const updateTopic = useUpdateDsaTopic();
@@ -126,11 +157,10 @@ export default function TopicDetailScreen() {
   const createProblem = useCreateProblem();
   const deleteProblem = useDeleteProblem();
 
-  const topic = useMemo(
-    () => (topicsQuery.data ?? []).find((t) => t.id === id),
-    [topicsQuery.data, id],
-  );
+  const topic = topicQuery.data;
 
+  // The backend already filters by topicId, but keep a defensive client filter
+  // in case the cache is shared/seeded with other topics' problems.
   const problems = useMemo<Problem[]>(
     () => (problemsQuery.data ?? []).filter((p) => p.topicId === id),
     [problemsQuery.data, id],
@@ -321,8 +351,8 @@ export default function TopicDetailScreen() {
     if (router.canGoBack()) router.back();
   };
 
-  /* ---- Topics still loading: show a quiet loading header ---- */
-  if (topicsQuery.isLoading) {
+  /* ---- Topic still loading: show a quiet loading header ---- */
+  if (topicQuery.isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 16 }}>
@@ -333,15 +363,15 @@ export default function TopicDetailScreen() {
     );
   }
 
-  /* ---- Topics failed to load ---- */
-  if (topicsQuery.isError) {
+  /* ---- Topic failed to load ---- */
+  if (topicQuery.isError) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 16 }}>
           <ScreenHeader eyebrow="Topic" title="Couldn't load" style={{ marginBottom: 20 }} />
           <ErrorState
-            error={topicsQuery.error}
-            onRetry={() => void topicsQuery.refetch()}
+            error={topicQuery.error}
+            onRetry={() => void topicQuery.refetch()}
             title="Couldn't load topic"
           />
         </View>
@@ -361,15 +391,14 @@ export default function TopicDetailScreen() {
             body="It may have been removed. Go back and pick another topic."
           />
           <View style={{ alignItems: 'center', marginTop: 16 }}>
-            <Pressable
+            <PressFade
               onPress={handleBack}
               hitSlop={8}
-              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
             >
               <AppText variant="body" weight="medium" color={colors.ink}>
                 Back to topics
               </AppText>
-            </Pressable>
+            </PressFade>
           </View>
         </View>
       </View>
@@ -400,34 +429,32 @@ export default function TopicDetailScreen() {
           onBack={handleBack}
           trailing={
             <View className="flex-row items-center" style={{ gap: 14 }}>
-              <Pressable
+              <PressFade
                 onPress={openEdit}
                 hitSlop={10}
                 accessibilityRole="button"
                 accessibilityLabel="Edit topic"
-                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
               >
                 <Icon name="pen" size={19} color="muted" />
-              </Pressable>
-              <Pressable
+              </PressFade>
+              <PressFade
                 onPress={confirmDeleteTopic}
                 hitSlop={10}
                 disabled={deleteTopic.isPending}
                 accessibilityRole="button"
                 accessibilityLabel="Delete topic"
-                style={({ pressed }) => ({ opacity: deleteTopic.isPending ? 0.4 : pressOpacity({ pressed }) })}
+                style={deleteTopic.isPending ? { opacity: 0.4 } : undefined}
               >
                 {deleteTopic.isPending ? (
                   <ActivityIndicator size="small" color={colors.muted} />
                 ) : (
                   <Icon name="trash" size={19} color="danger" />
                 )}
-              </Pressable>
-              <Pressable
+              </PressFade>
+              <PressFade
                 onPress={() => setBookmarked((b) => !b)}
                 hitSlop={10}
                 accessibilityLabel="Bookmark topic"
-                style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
               >
                 <Icon
                   name="bookmark"
@@ -435,7 +462,7 @@ export default function TopicDetailScreen() {
                   color={bookmarked ? 'primary' : 'muted'}
                   weight={bookmarked ? 'fill' : 'light'}
                 />
-              </Pressable>
+              </PressFade>
               <AddButton onPress={openAddProblem} size={34} accessibilityLabel="Add problem" />
             </View>
           }

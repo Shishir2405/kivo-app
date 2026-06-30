@@ -14,8 +14,10 @@
  *  - submit validates, disables while pending, surfaces API errors inline,
  *    and never crashes the screen.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, ScrollView } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, ScrollView, Pressable, Alert } from 'react-native';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -32,7 +34,8 @@ import { Eyebrow } from '@/components/account/SteepParts';
 
 import { spacing, radii } from '@/theme/tokens';
 import { useTheme } from '@/theme';
-import { useProfile, useUpdateProfile } from '@/hooks/api';
+import { useUpdateProfile } from '@/hooks/api';
+import { useAccount } from '@/components/account/accountApi';
 
 // Backend: displayName min 1 / max 120, bio is free text. We keep tighter,
 // sensible UX caps (name 60, bio 240) which stay well inside the backend max.
@@ -50,14 +53,16 @@ export default function EditProfileScreen() {
   const { colors, toneStyle } = useTheme();
   const qc = useQueryClient();
 
-  const profile = useProfile();
+  const profile = useAccount();
   const update = useUpdateProfile();
   const p = profile.data;
 
-  // Local form state, seeded once from the live profile.
+  // Local form state, seeded once from the live account.
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [dailyGoal, setDailyGoal] = useState(3);
+  // Avatar URI: the remote photoUrl once loaded, or a freshly picked local URI.
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [seeded, setSeeded] = useState(false);
   const [touched, setTouched] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -66,9 +71,37 @@ export default function EditProfileScreen() {
     if (!p || seeded) return;
     setName(p.name ?? '');
     setBio(p.bio ?? '');
-    setDailyGoal(p.dailyGoal ?? 3);
+    setDailyGoal(p.dailyProblemGoal ?? 3);
+    setAvatarUri(p.photoUrl ?? null);
     setSeeded(true);
   }, [p, seeded]);
+
+  // ---- Avatar picker ----
+  const pickAvatar = useCallback(async () => {
+    setLocalError(null);
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          'Photo access needed',
+          'Allow photo library access in Settings to change your profile picture.',
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setAvatarUri(result.assets[0].uri);
+        if (!touched) setTouched(true);
+      }
+    } catch {
+      setLocalError('Could not open your photo library. Please try again.');
+    }
+  }, [touched]);
 
   const mint = toneStyle('mint');
   const initial = (name.trim().slice(0, 1) || p?.name?.slice(0, 1) || 'K').toUpperCase();
@@ -98,9 +131,10 @@ export default function EditProfileScreen() {
     return (
       name.trim() !== (p.name ?? '') ||
       bio.trim() !== (p.bio ?? '') ||
-      dailyGoal !== (p.dailyGoal ?? 3)
+      dailyGoal !== (p.dailyProblemGoal ?? 3) ||
+      (avatarUri ?? null) !== (p.photoUrl ?? null)
     );
-  }, [p, name, bio, dailyGoal]);
+  }, [p, name, bio, dailyGoal, avatarUri]);
 
   const formValid = !nameRequiredErr && !nameTooLong && !bioTooLong && !goalOutOfRange;
   const canSubmit = formValid && dirty && !update.isPending;
@@ -118,8 +152,15 @@ export default function EditProfileScreen() {
       );
       return;
     }
+    const avatarChanged = (avatarUri ?? null) !== (p?.photoUrl ?? null);
     update.mutate(
-      { name: trimmedName, bio: bio.trim(), dailyGoal },
+      {
+        name: trimmedName,
+        bio: bio.trim(),
+        dailyGoal,
+        // Only send photoUrl when the avatar actually changed to a URI.
+        ...(avatarChanged && avatarUri ? { photoUrl: avatarUri } : {}),
+      },
       {
         onSuccess: () => {
           // Profile + Settings screens read the mapped `account` query.
@@ -202,24 +243,61 @@ export default function EditProfileScreen() {
           </View>
         ) : (
           <>
-            {/* ---------- Avatar preview (initials) ---------- */}
+            {/* ---------- Avatar preview + picker ---------- */}
             <View style={{ alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xl }}>
-              <View
-                style={{
-                  width: 84,
-                  height: 84,
-                  borderRadius: 9999,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: mint.bg,
-                  borderWidth: 1,
-                  borderColor: mint.border,
-                }}
+              <Pressable
+                onPress={pickAvatar}
+                accessibilityRole="button"
+                accessibilityLabel="Change profile photo"
+                hitSlop={8}
+                android_ripple={{ color: mint.border, borderless: true }}
               >
-                <AppText variant="headingLg" display weight="semibold" color={mint.accent}>
-                  {initial}
-                </AppText>
-              </View>
+                <View
+                  style={{
+                    width: 84,
+                    height: 84,
+                    borderRadius: 9999,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: mint.bg,
+                    borderWidth: 1,
+                    borderColor: mint.border,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {avatarUri ? (
+                    <Image
+                      source={{ uri: avatarUri }}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="cover"
+                      transition={150}
+                    />
+                  ) : (
+                    <AppText variant="headingLg" display weight="semibold" color={mint.accent}>
+                      {initial}
+                    </AppText>
+                  )}
+                </View>
+                {/* Camera badge to signal the avatar is editable. */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    right: -2,
+                    bottom: -2,
+                    width: 28,
+                    height: 28,
+                    borderRadius: 9999,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.hairline,
+                  }}
+                >
+                  <Icon name="camera" size={14} color="ink" />
+                </View>
+              </Pressable>
+              <TextLink label="Change photo" onPress={pickAvatar} />
               {p?.email ? (
                 <AppText variant="caption" color={colors.muted}>
                   {p.email}

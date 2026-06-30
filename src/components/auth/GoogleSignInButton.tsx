@@ -72,6 +72,8 @@ export function GoogleSignInButton({ onSuccess, onError, disabled }: GoogleSignI
   const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle);
   const loading = useAuthStore((s) => s.loading);
   const [busy, setBusy] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+  const [hovered, setHovered] = React.useState(false);
 
   // Stable config reference — a NEW object each render makes expo-auth-session
   // re-create the request and churn re-renders, which can disturb focus on the
@@ -136,34 +138,36 @@ export function GoogleSignInButton({ onSuccess, onError, disabled }: GoogleSignI
   return (
     <Pressable
       onPress={handlePress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
       disabled={isDisabled}
       accessibilityRole="button"
       accessibilityLabel="Continue with Google"
-      style={({ pressed }) => ({ opacity: pressOpacity({ pressed }, { disabled: isDisabled }) })}
+      style={{ opacity: pressOpacity({ pressed }, { disabled: isDisabled }) }}
     >
-      {({ pressed, hovered }) => (
-        <View
-          className="flex-row items-center justify-center"
-          style={{
-            gap: 8,
-            paddingVertical: 10,
-            paddingHorizontal: 16,
-            borderRadius: radii.pill,
-            backgroundColor: hovered && !pressed ? interaction.hoverWash : colors.surface,
-            borderWidth: 1,
-            borderColor: pressed ? colors.ink : colors.hairline,
-          }}
-        >
-          {busy ? (
-            <ActivityIndicator size="small" color={colors.ink} />
-          ) : (
-            <GoogleGlyph size={16} />
-          )}
-          <Text style={{ fontFamily: fonts.sansMedium, fontSize: 13, color: colors.ink }}>
-            {busy ? 'Connecting…' : 'Continue with Google'}
-          </Text>
-        </View>
-      )}
+      <View
+        className="flex-row items-center justify-center"
+        style={{
+          gap: 8,
+          paddingVertical: 10,
+          paddingHorizontal: 16,
+          borderRadius: radii.pill,
+          backgroundColor: hovered && !pressed ? interaction.hoverWash : colors.surface,
+          borderWidth: 1,
+          borderColor: pressed ? colors.ink : colors.hairline,
+        }}
+      >
+        {busy ? (
+          <ActivityIndicator size="small" color={colors.ink} />
+        ) : (
+          <GoogleGlyph size={16} />
+        )}
+        <Text style={{ fontFamily: fonts.sansMedium, fontSize: 13, color: colors.ink }}>
+          {busy ? 'Connecting…' : 'Continue with Google'}
+        </Text>
+      </View>
     </Pressable>
   );
 }

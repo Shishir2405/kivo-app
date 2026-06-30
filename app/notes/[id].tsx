@@ -39,11 +39,42 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { MarkdownView } from '@/components/notes/MarkdownView';
 
-import { fonts, radii, pressOpacity } from '@/theme/tokens';
+import { fonts, radii, interaction } from '@/theme/tokens';
 import { useTheme } from '@/theme';
 import { useNote, useCreateNote, useUpdateNote, useDeleteNote } from '@/hooks/api';
 import type { Note, NoteFolder } from '@/types/models';
 import { FOLDER_ICON, NOTE_FOLDERS, formatShortDate } from '@/components/notes/notesMeta';
+
+/**
+ * Pressable with a static opacity-dip press feedback. NativeWind drops the
+ * FUNCTION form of `style`, so feedback is driven by local state + a static
+ * style array instead of `style={({ pressed }) => ...}`.
+ */
+function PressFade({
+  style,
+  onPressIn,
+  onPressOut,
+  children,
+  ...rest
+}: React.ComponentProps<typeof Pressable>) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      {...rest}
+      onPressIn={(e) => {
+        setPressed(true);
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        setPressed(false);
+        onPressOut?.(e);
+      }}
+      style={[style as any, pressed && { opacity: interaction.pressOpacity }]}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 const FOLDER_OPTIONS: SelectOption<NoteFolder>[] = NOTE_FOLDERS.map((f) => ({
   label: f,
@@ -124,11 +155,10 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
       {tags.length > 0 ? (
         <View className="flex-row flex-wrap" style={{ gap: 6, marginBottom: 10 }}>
           {tags.map((t) => (
-            <Pressable
+            <PressFade
               key={t}
               onPress={() => remove(t)}
               accessibilityLabel={`Remove tag ${t}`}
-              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
             >
               <View
                 className="flex-row items-center"
@@ -147,7 +177,7 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
                 </AppText>
                 <Icon name="x" size={12} color={colors.muted} />
               </View>
-            </Pressable>
+            </PressFade>
           ))}
         </View>
       ) : null}
@@ -168,14 +198,13 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
         leading={<Icon name="tag" size={16} color={colors.muted} />}
         trailing={
           draft.trim().length > 0 ? (
-            <Pressable
+            <PressFade
               onPress={add}
               accessibilityLabel="Add tag"
               hitSlop={8}
-              style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
             >
               <Icon name="plus-circle" size={18} color={colors.primary} weight="fill" />
-            </Pressable>
+            </PressFade>
           ) : undefined
         }
       />
@@ -404,18 +433,16 @@ export default function NoteEditorScreen() {
                   <AppText variant="caption" color={colors.muted}>
                     Updated {formatShortDate(fetched.updatedAt)}
                   </AppText>
-                  <Pressable
+                  <PressFade
                     onPress={handleDelete}
                     disabled={deleteNote.isPending}
                     hitSlop={10}
                     accessibilityRole="button"
                     accessibilityLabel="Delete note"
-                    style={({ pressed }) => ({
-                      opacity: pressOpacity({ pressed }, { disabled: deleteNote.isPending }),
-                    })}
+                    style={deleteNote.isPending ? { opacity: interaction.disabledOpacity } : undefined}
                   >
                     <Icon name="trash" size={18} color={colors.danger} />
-                  </Pressable>
+                  </PressFade>
                 </View>
               ) : (
                 <AppText variant="caption" color={colors.muted}>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   Text,
@@ -57,6 +57,7 @@ export function PillButton({
 }: PillButtonProps) {
   const { colors } = useTheme();
   const s = SIZES[size];
+  const [pressed, setPressed] = useState(false);
 
   if (variant === 'ghost') {
     return (
@@ -72,25 +73,32 @@ export function PillButton({
     );
   }
 
+  // Static base style — none of these depend on press state.
+  const baseStyle: ViewStyle = {
+    borderRadius: radii.pill,
+    backgroundColor: colors.primary,
+    opacity: pressOpacity({}, { disabled, solid: true }),
+    alignSelf: fullWidth ? 'stretch' : 'flex-start',
+    // soft terracotta glow (the HTML CTA shadow)
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: disabled ? 0 : 0.45,
+    shadowRadius: 18,
+    elevation: disabled ? 0 : 4,
+  };
+  // Press feedback (preserved): swap to primaryPressed bg + solid press opacity.
+  const pressedStyle: ViewStyle = {
+    backgroundColor: colors.primaryPressed,
+    opacity: pressOpacity({ pressed: true }, { disabled, solid: true }),
+  };
+
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed }) => [
-        {
-          borderRadius: radii.pill,
-          backgroundColor: pressed && !disabled ? colors.primaryPressed : colors.primary,
-          opacity: pressOpacity({ pressed }, { disabled, solid: true }),
-          alignSelf: fullWidth ? 'stretch' : 'flex-start',
-          // soft terracotta glow (the HTML CTA shadow)
-          shadowColor: colors.primary,
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: disabled ? 0 : 0.45,
-          shadowRadius: 18,
-          elevation: disabled ? 0 : 4,
-        },
-        style,
-      ]}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[baseStyle, !disabled && pressed && pressedStyle, style]}
     >
       <View
         style={{
@@ -141,18 +149,21 @@ export function TextLink({
 }: TextLinkProps) {
   const { colors } = useTheme();
   const font = SIZES[size].font;
+  const [pressed, setPressed] = useState(false);
+  const baseStyle: ViewStyle = {
+    alignSelf: fullWidth ? 'stretch' : 'flex-start',
+    opacity: pressOpacity({}, { disabled }),
+  };
+  // Press feedback (preserved): link press opacity 0.6.
+  const pressedStyle: ViewStyle = { opacity: pressOpacity({ pressed: true }, { disabled }) };
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       hitSlop={8}
-      style={({ pressed }) => [
-        {
-          alignSelf: fullWidth ? 'stretch' : 'flex-start',
-          opacity: pressOpacity({ pressed }, { disabled }),
-        },
-        style,
-      ]}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[baseStyle, !disabled && pressed && pressedStyle, style]}
     >
       <View
         style={{

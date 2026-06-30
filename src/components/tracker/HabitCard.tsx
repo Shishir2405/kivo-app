@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { MotiView } from 'moti';
 import { Card } from '@/components/ui/SoftCard';
@@ -33,6 +33,8 @@ export type HabitCardProps = {
  */
 export function HabitCard({ habit, onToggleToday, onEdit, index = 0 }: HabitCardProps) {
   const { colors, toneStyle } = useTheme();
+  const [editPressed, setEditPressed] = useState(false);
+  const [togglePressed, setTogglePressed] = useState(false);
   const completedThisWeek = habit.weekHistory.filter(Boolean).length;
   const done = habit.completedToday;
   const canEdit = !!onEdit;
@@ -44,9 +46,11 @@ export function HabitCard({ habit, onToggleToday, onEdit, index = 0 }: HabitCard
     <Card tone={tone} padding={spacing.md} style={{ marginBottom: spacing.sm }}>
       <View className="flex-row items-center" style={{ gap: spacing.md }}>
         <Pressable
-          style={({ pressed }) => ({ flex: 1, opacity: canEdit ? pressOpacity({ pressed }) : 1 })}
+          style={{ flex: 1, opacity: canEdit ? pressOpacity({ pressed: editPressed }) : 1 }}
           disabled={!canEdit}
           onPress={canEdit ? () => onEdit?.(habit) : undefined}
+          onPressIn={() => setEditPressed(true)}
+          onPressOut={() => setEditPressed(false)}
           accessibilityRole={canEdit ? 'button' : undefined}
           accessibilityLabel={canEdit ? `Edit ${habit.title}` : undefined}
         >
@@ -71,11 +75,13 @@ export function HabitCard({ habit, onToggleToday, onEdit, index = 0 }: HabitCard
         {/* Flat circular complete toggle. */}
         <Pressable
           onPress={() => onToggleToday(habit.id, !done)}
+          onPressIn={() => setTogglePressed(true)}
+          onPressOut={() => setTogglePressed(false)}
           accessibilityRole="button"
           accessibilityState={{ selected: done }}
           accessibilityLabel={`Mark ${habit.title} ${done ? 'incomplete' : 'complete'} for today`}
           hitSlop={6}
-          style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+          style={{ opacity: pressOpacity({ pressed: togglePressed }) }}
         >
           <MotiView
             animate={{ scale: done ? 1 : 0.96 }}

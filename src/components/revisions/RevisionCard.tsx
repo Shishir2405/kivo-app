@@ -178,10 +178,13 @@ function RecallOption({
   onPress: () => void;
 }) {
   const meta = gradeMeta(visual.grade);
+  const [pressed, setPressed] = useState(false);
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={{
         opacity: pressOpacity({ pressed }),
         backgroundColor: visual.bg,
         borderWidth: 1,
@@ -189,7 +192,7 @@ function RecallOption({
         borderRadius: 14,
         paddingVertical: 13,
         paddingHorizontal: 14,
-      })}
+      }}
       className="flex-row items-center"
     >
       <View

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { SoftCard } from '@/components/ui/SoftCard';
 import { AppText } from '@/components/ui/Typography';
@@ -30,14 +30,17 @@ export type ProblemRowProps = {
 export function ProblemRow({ problem, onPress }: ProblemRowProps) {
   const { colors, accentForTone } = useTheme();
   const statusStroke = statusColor(problem.status, colors, accentForTone);
+  const [pressed, setPressed] = useState(false);
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={{
         opacity: pressOpacity({ pressed }, { solid: true }),
         transform: [{ scale: pressed ? interaction.pressScale : 1 }],
-      })}
+      }}
     >
       <SoftCard radius={14} padding={12}>
         <View className="flex-row items-center" style={{ gap: 10 }}>

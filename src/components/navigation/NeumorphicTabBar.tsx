@@ -74,6 +74,7 @@ export function NeumorphicTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const [pillW, setPillW] = useState(0);
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
   const cellW = pillW > 0 ? (pillW - PAD * 2) / TABS.length : 0;
 
   const activeIndex = Math.max(
@@ -154,22 +155,26 @@ export function NeumorphicTabBar({ state, navigation }: BottomTabBarProps) {
             if (!focused && !ev.defaultPrevented) navigation.navigate(route.name);
           };
 
+          const pressed = pressedKey === route.key;
+
           return (
             <Pressable
               key={route.key}
               onPress={onPress}
+              onPressIn={() => setPressedKey(route.key)}
+              onPressOut={() => setPressedKey(null)}
               onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
               accessibilityRole="button"
               accessibilityState={focused ? { selected: true } : {}}
               accessibilityLabel={tab.label}
-              style={({ pressed }) => ({
+              style={{
                 flex: 1,
                 zIndex: 1,
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 3,
                 opacity: pressed && !focused ? 0.6 : 1,
-              })}
+              }}
             >
               <TabIcon name={tab.name} color={color} />
               <Text

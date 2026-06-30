@@ -84,6 +84,8 @@ function HabitCard({
   const ts = toneStyle(tone);
   const done = habit.completedToday;
   const canEdit = !!onEdit;
+  const [titlePressed, setTitlePressed] = useState(false);
+  const [togglePressed, setTogglePressed] = useState(false);
 
   return (
     <SoftCard radius={radii.cardLg} padding={14}>
@@ -102,9 +104,11 @@ function HabitCard({
           <Icon name={habit.emoji} size={16} color={ts.accent} />
         </View>
         <Pressable
-          style={({ pressed }) => ({ flex: 1, opacity: canEdit && pressed ? 0.7 : 1 })}
+          style={[{ flex: 1 }, canEdit && titlePressed && { opacity: 0.7 }]}
           disabled={!canEdit}
           onPress={canEdit ? () => onEdit?.(habit) : undefined}
+          onPressIn={canEdit ? () => setTitlePressed(true) : undefined}
+          onPressOut={canEdit ? () => setTitlePressed(false) : undefined}
           accessibilityRole={canEdit ? 'button' : undefined}
           accessibilityLabel={canEdit ? `Edit ${habit.title}` : undefined}
         >
@@ -128,7 +132,9 @@ function HabitCard({
           accessibilityState={{ selected: done }}
           accessibilityLabel={`Mark ${habit.title} ${done ? 'incomplete' : 'complete'} for today`}
           hitSlop={8}
-          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+          onPressIn={() => setTogglePressed(true)}
+          onPressOut={() => setTogglePressed(false)}
+          style={[{ opacity: 1 }, togglePressed && { opacity: 0.7 }]}
         >
           <View
             style={{

@@ -428,11 +428,72 @@ export function useDashboard(): ApiQueryResult<DashboardData> {
   });
 }
 
+/* ---- DSA topic inbound mapper (backend shape → screen-facing DsaTopic) ---- */
+
+/**
+ * The backend topic uses `name` / `completedProblems` / `masteryLevel`
+ * (a string enum) / `totalProblems` / `isCompleted`, but every DSA screen
+ * (TopicCard, dsa tab, topic detail) reads the legacy `DsaTopic` shape:
+ * `title` / `solvedProblems` / `mastery` (0–100 number) / `emoji` / `difficulty`
+ * / `estimatedMinutes` / `roadmapId`. The backend doesn't store the latter four,
+ * so we map what exists and default the rest. Mirrors `mapDashboard` (every field
+ * gets a safe default so a missing/renamed backend field can't crash a screen).
+ */
+interface BackendDsaTopic {
+  id?: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  progress?: number;
+  masteryLevel?: string;
+  mastery?: number;
+  studyTimeMinutes?: number;
+  estimatedMinutes?: number;
+  totalProblems?: number;
+  completedProblems?: number;
+  solvedProblems?: number;
+  tags?: string[];
+  isCompleted?: boolean;
+  emoji?: string;
+  difficulty?: string;
+  roadmapId?: string;
+}
+
+/** Backend `masteryLevel` enum → an approximate 0–100 mastery score. */
+const MASTERY_LEVEL_SCORE: Record<string, number> = {
+  learning: 25,
+  familiar: 50,
+  proficient: 75,
+  mastered: 100,
+};
+
+function mapDsaTopic(raw: BackendDsaTopic | null | undefined): DsaTopic {
+  const r = raw ?? {};
+  const masteryFromLevel =
+    typeof r.masteryLevel === 'string' ? MASTERY_LEVEL_SCORE[r.masteryLevel] : undefined;
+  return {
+    id: r.id ?? '',
+    // Backend doesn't store these — keep screen-safe defaults.
+    roadmapId: r.roadmapId ?? '',
+    title: r.title ?? r.name ?? 'Untitled topic',
+    emoji: (r.emoji as DsaTopic['emoji']) ?? 'code',
+    description: r.description ?? '',
+    difficulty: (r.difficulty as DsaTopic['difficulty']) ?? 'MEDIUM',
+    totalProblems: r.totalProblems ?? 0,
+    solvedProblems: r.solvedProblems ?? r.completedProblems ?? 0,
+    progress: typeof r.progress === 'number' ? r.progress : 0,
+    estimatedMinutes: r.estimatedMinutes ?? r.studyTimeMinutes ?? 0,
+    tags: Array.isArray(r.tags) ? r.tags : [],
+    mastery: typeof r.mastery === 'number' ? r.mastery : masteryFromLevel,
+  };
+}
+
 export function useRevisions(): ApiQueryResult<Revision[]> {
   const enabled = useIsAuthed();
   return useQuery<Revision[], ApiError>({
     queryKey: queryKeys.revisions,
-    queryFn: () => requestData<Revision[]>({ url: '/revisions', method: 'GET' }),
+    queryFn: () =>
+      requestData<Revision[]>({ url: '/revisions', method: 'GET', params: { limit: 100 } }),
     enabled,
   });
 }
@@ -441,7 +502,7 @@ export function useTasks(): ApiQueryResult<Task[]> {
   const enabled = useIsAuthed();
   return useQuery<Task[], ApiError>({
     queryKey: queryKeys.tasks,
-    queryFn: () => requestData<Task[]>({ url: '/tasks', method: 'GET' }),
+    queryFn: () => requestData<Task[]>({ url: '/tasks', method: 'GET', params: { limit: 100 } }),
     enabled,
   });
 }
@@ -450,7 +511,7 @@ export function useNotes(): ApiQueryResult<Note[]> {
   const enabled = useIsAuthed();
   return useQuery<Note[], ApiError>({
     queryKey: queryKeys.notes,
-    queryFn: () => requestData<Note[]>({ url: '/notes', method: 'GET' }),
+    queryFn: () => requestData<Note[]>({ url: '/notes', method: 'GET', params: { limit: 100 } }),
     enabled,
   });
 }
@@ -468,7 +529,7 @@ export function useHabits(): ApiQueryResult<Habit[]> {
   const enabled = useIsAuthed();
   return useQuery<Habit[], ApiError>({
     queryKey: queryKeys.habits,
-    queryFn: () => requestData<Habit[]>({ url: '/habits', method: 'GET' }),
+    queryFn: () => requestData<Habit[]>({ url: '/habits', method: 'GET', params: { limit: 100 } }),
     enabled,
   });
 }
@@ -477,7 +538,8 @@ export function useResources(): ApiQueryResult<Resource[]> {
   const enabled = useIsAuthed();
   return useQuery<Resource[], ApiError>({
     queryKey: queryKeys.resources,
-    queryFn: () => requestData<Resource[]>({ url: '/resources', method: 'GET' }),
+    queryFn: () =>
+      requestData<Resource[]>({ url: '/resources', method: 'GET', params: { limit: 100 } }),
     enabled,
   });
 }
@@ -486,16 +548,52 @@ export function useDsaTopics(): ApiQueryResult<DsaTopic[]> {
   const enabled = useIsAuthed();
   return useQuery<DsaTopic[], ApiError>({
     queryKey: queryKeys.dsaTopics,
-    queryFn: () => requestData<DsaTopic[]>({ url: '/dsa/topics', method: 'GET' }),
+    queryFn: async () => {
+      const raw = await requestData<BackendDsaTopic[]>({
+        url: '/dsa/topics',
+        method: 'GET',
+        params: { limit: 100 },
+      });
+      return (Array.isArray(raw) ? raw : []).map(mapDsaTopic);
+    },
     enabled,
   });
 }
 
-export function useDsaProblems(): ApiQueryResult<Problem[]> {
+/**
+ * Fetch ONE topic by id via GET /dsa/topics/:id — the list is capped, so a topic
+ * outside the first page would be unreachable from `useDsaTopics().find(...)`.
+ * Mirrors `useNote(id)`: enabled only when authed && id present. Maps the backend
+ * shape to the screen-facing `DsaTopic`.
+ */
+export function useDsaTopic(id: string): ApiQueryResult<DsaTopic> {
+  const enabled = useIsAuthed() && !!id;
+  return useQuery<DsaTopic, ApiError>({
+    queryKey: queryKeys.dsaTopic(id),
+    queryFn: async () => {
+      const raw = await requestData<BackendDsaTopic>({ url: `/dsa/topics/${id}`, method: 'GET' });
+      return mapDsaTopic(raw);
+    },
+    enabled,
+  });
+}
+
+/**
+ * DSA problems. Pass `{ topicId }` to fetch only that topic's problems via the
+ * backend `?topicId` filter (server-side, not client-filtered over a capped list).
+ * Either way we request `limit: 100` so effectively all rows load.
+ */
+export function useDsaProblems(opts?: { topicId?: string }): ApiQueryResult<Problem[]> {
+  const topicId = opts?.topicId;
   const enabled = useIsAuthed();
   return useQuery<Problem[], ApiError>({
-    queryKey: queryKeys.dsaProblems,
-    queryFn: () => requestData<Problem[]>({ url: '/dsa/problems', method: 'GET' }),
+    queryKey: topicId ? queryKeys.dsaProblemsByTopic(topicId) : queryKeys.dsaProblems,
+    queryFn: () =>
+      requestData<Problem[]>({
+        url: '/dsa/problems',
+        method: 'GET',
+        params: topicId ? { limit: 100, topicId } : { limit: 100 },
+      }),
     enabled,
   });
 }
@@ -531,7 +629,8 @@ export function useNotifications(): ApiQueryResult<AppNotification[]> {
   const enabled = useIsAuthed();
   return useQuery<AppNotification[], ApiError>({
     queryKey: queryKeys.notifications,
-    queryFn: () => requestData<AppNotification[]>({ url: '/notifications', method: 'GET' }),
+    queryFn: () =>
+      requestData<AppNotification[]>({ url: '/notifications', method: 'GET', params: { limit: 100 } }),
     enabled,
   });
 }

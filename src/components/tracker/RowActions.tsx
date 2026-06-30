@@ -118,6 +118,7 @@ export type RowActionsSheetProps = {
 export function RowActionsSheet({ visible, onClose, title, actions }: RowActionsSheetProps) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const [pressedKey, setPressedKey] = React.useState<string | null>(null);
 
   return (
     <Modal
@@ -187,15 +188,17 @@ export function RowActionsSheet({ visible, onClose, title, actions }: RowActions
                 onClose();
                 a.onPress();
               }}
-              style={({ pressed }) => ({
+              onPressIn={() => setPressedKey(a.key)}
+              onPressOut={() => setPressedKey(null)}
+              style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: spacing.md,
                 paddingVertical: spacing.md,
                 paddingHorizontal: spacing.sm,
                 borderRadius: radii.card,
-                backgroundColor: pressed ? colors.surfaceAlt : 'transparent',
-              })}
+                backgroundColor: pressedKey === a.key ? colors.surfaceAlt : 'transparent',
+              }}
             >
               <Icon name={a.icon} size={18} color={a.destructive ? 'danger' : 'ink'} />
               <Text

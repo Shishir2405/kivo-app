@@ -7,7 +7,7 @@
  * percentage. Flat, compact, with a single wash voice per badge. Theme-aware
  * (light/dark) via useTheme(); enters with a small staggered fade-up.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { MotiView } from 'moti';
 
@@ -47,6 +47,7 @@ export function BadgeTile({
   onPress,
 }: BadgeTileProps) {
   const { colors } = useTheme();
+  const [pressed, setPressed] = useState(false);
   const maps = useAccentMaps();
   const ink = maps.ink[tone];
   const washBorder = maps.border[tone];
@@ -66,10 +67,12 @@ export function BadgeTile({
     >
       <Pressable
         onPress={onPress}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
         disabled={!onPress}
         accessibilityRole="button"
         accessibilityLabel={`${title}${unlocked ? ', unlocked' : ', locked'}`}
-        style={({ pressed }) =>
+        style={
           onPress && pressed
             ? { opacity: interaction.pressOpacitySolid, transform: [{ scale: interaction.pressScale }] }
             : null

@@ -345,6 +345,7 @@ export default function OnboardingScreen() {
 
   const scrollRef = useRef<ScrollView>(null);
   const [index, setIndex] = useState(0);
+  const [advancePressed, setAdvancePressed] = useState(false);
 
   const lastIndex = SLIDES.length - 1;
   const isLast = index === lastIndex;
@@ -479,19 +480,24 @@ export default function OnboardingScreen() {
               accessibilityRole="button"
               accessibilityLabel="Next"
               onPress={handleAdvance}
-              style={({ pressed }) => ({
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                backgroundColor: pressed ? colors.primaryPressed : colors.primary,
-                alignItems: 'center',
-                justifyContent: 'center',
-                shadowColor: colors.primary,
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.45,
-                shadowRadius: 18,
-                elevation: 4,
-              })}
+              onPressIn={() => setAdvancePressed(true)}
+              onPressOut={() => setAdvancePressed(false)}
+              style={[
+                {
+                  width: 52,
+                  height: 52,
+                  borderRadius: 26,
+                  backgroundColor: colors.primary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: colors.primary,
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowOpacity: 0.45,
+                  shadowRadius: 18,
+                  elevation: 4,
+                },
+                advancePressed && { backgroundColor: colors.primaryPressed },
+              ]}
             >
               <AdvanceArrow color={colors.onPrimary} />
             </Pressable>

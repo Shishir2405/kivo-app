@@ -31,6 +31,8 @@ export type SelectProps<T extends string> = {
   /** Title shown at the top of the sheet. */
   title?: string;
   disabled?: boolean;
+  /** Validation error: switches the trigger border to danger + shows a caption below. */
+  error?: string;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -49,6 +51,7 @@ export function Select<T extends string>({
   label,
   title,
   disabled,
+  error,
   style,
 }: SelectProps<T>) {
   const { colors } = useTheme();
@@ -93,6 +96,7 @@ export function Select<T extends string>({
               alignItems: 'center',
               gap: 10,
               borderRadius: radii.input,
+              ...(error ? { borderWidth: 1.5, borderColor: colors.danger } : null),
             }}
           >
             {selected?.icon ? <Icon name={selected.icon} size={18} color="ink" /> : null}
@@ -111,6 +115,20 @@ export function Select<T extends string>({
           </View>
         </Neumorph>
       </Pressable>
+
+      {error ? (
+        <Text
+          style={{
+            fontFamily: fonts.sans,
+            fontSize: 12,
+            color: colors.danger,
+            marginTop: 5,
+            marginLeft: 4,
+          }}
+        >
+          {error}
+        </Text>
+      ) : null}
 
       <Modal
         visible={open}

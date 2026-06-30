@@ -25,7 +25,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { RatingControl } from '@/components/reflections/RatingControl';
 
-import { radii, motion, pressOpacity } from '@/theme/tokens';
+import { radii, motion, interaction } from '@/theme/tokens';
 import { useTheme } from '@/theme';
 import { TODAY } from '@/data/mock';
 import {
@@ -38,6 +38,37 @@ import type { Mood, Rating, Reflection } from '@/types/models';
 import { MOODS, moodMeta, longDate, relativeDay, journalForDay } from '@/components/reflections/shared';
 
 type Goal = { id: string; label: string; done: boolean };
+
+/**
+ * Pressable with a static opacity-dip press feedback. NativeWind drops the
+ * FUNCTION form of `style`, so feedback is driven by local state + a static
+ * style array instead of `style={({ pressed }) => ...}`.
+ */
+function PressFade({
+  style,
+  onPressIn,
+  onPressOut,
+  children,
+  ...rest
+}: React.ComponentProps<typeof Pressable>) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      {...rest}
+      onPressIn={(e) => {
+        setPressed(true);
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        setPressed(false);
+        onPressOut?.(e);
+      }}
+      style={[style as any, pressed && { opacity: interaction.pressOpacity }]}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* Section label                                                       */
@@ -233,20 +264,20 @@ export default function ReflectionDetailScreen() {
               <View className="flex-row items-center" style={{ gap: 10 }}>
                 <Tag label={relativeDay(dayKey, TODAY)} tone={dayKey === TODAY ? 'ink' : 'neutral'} size="sm" />
                 {reflection ? (
-                  <Pressable
+                  <PressFade
                     onPress={onDelete}
                     hitSlop={10}
                     disabled={deleteReflection.isPending}
                     accessibilityRole="button"
                     accessibilityLabel="Delete reflection"
-                    style={({ pressed }) => ({ opacity: deleteReflection.isPending ? 0.4 : pressOpacity({ pressed }) })}
+                    style={deleteReflection.isPending ? { opacity: 0.4 } : undefined}
                   >
                     {deleteReflection.isPending ? (
                       <ActivityIndicator size="small" color={colors.muted} />
                     ) : (
                       <Icon name="trash" size={18} color="danger" />
                     )}
-                  </Pressable>
+                  </PressFade>
                 ) : null}
               </View>
             }
@@ -389,14 +420,13 @@ export default function ReflectionDetailScreen() {
                   {goals.map((g) => (
                     <View key={g.id} className="flex-row items-center justify-between" style={{ gap: 12 }}>
                       <Checkbox checked={g.done} onChange={() => toggleGoal(g.id)} label={g.label} style={{ flex: 1 }} />
-                      <Pressable
+                      <PressFade
                         onPress={() => removeGoal(g.id)}
                         hitSlop={8}
                         accessibilityLabel={`Remove ${g.label}`}
-                        style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
                       >
                         <Icon name="x" size={15} color={colors.muted} />
-                      </Pressable>
+                      </PressFade>
                     </View>
                   ))}
                 </View>
@@ -418,14 +448,13 @@ export default function ReflectionDetailScreen() {
                 leading={<Icon name="plus-circle" size={16} color={colors.muted} />}
                 trailing={
                   newGoal.trim().length > 0 ? (
-                    <Pressable
+                    <PressFade
                       onPress={addGoal}
                       hitSlop={8}
                       accessibilityLabel="Add goal"
-                      style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
                     >
                       <Icon name="check-circle" size={18} color={colors.primary} weight="fill" />
-                    </Pressable>
+                    </PressFade>
                   ) : undefined
                 }
               />

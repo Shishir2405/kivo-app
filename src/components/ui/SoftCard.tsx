@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Pressable, type ViewStyle, type StyleProp } from 'react-native';
 import {
   radii,
@@ -93,6 +93,8 @@ export function SoftCard({
   const resolvedChildren =
     typeof children === 'function' ? children({ accent }) : children;
 
+  const [pressed, setPressed] = useState(false);
+
   const baseStyle: ViewStyle = {
     backgroundColor: bg,
     borderRadius: radius,
@@ -105,10 +107,12 @@ export function SoftCard({
     return (
       <Pressable
         onPress={onPress}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         className={className}
-        style={({ pressed }) => [
+        style={[
           baseStyle,
           withShadow ? shadow : null,
           pressed

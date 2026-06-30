@@ -11,6 +11,7 @@
  */
 import React, { useState } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
@@ -70,6 +71,7 @@ export default function ProfileScreen() {
   const weekly = useWeeklyReport();
   const [range, setRange] = useState<HeatmapRange>('365');
   const heatmap = useHeatmap(range);
+  const [identityPressed, setIdentityPressed] = useState(false);
 
   const a = account.data;
   const w = weekly.data;
@@ -125,9 +127,14 @@ export default function ProfileScreen() {
               onPress={() => router.push('/settings/profile')}
               accessibilityRole="button"
               accessibilityLabel="Edit profile"
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, alignItems: 'center', gap: spacing.sm })}
+              onPressIn={() => setIdentityPressed(true)}
+              onPressOut={() => setIdentityPressed(false)}
+              style={[
+                { alignItems: 'center', gap: spacing.sm },
+                identityPressed && { opacity: 0.7 },
+              ]}
             >
-              {/* Avatar well */}
+              {/* Avatar well — show the uploaded photo when present, else the initial. */}
               <View
                 style={{
                   width: 78,
@@ -138,11 +145,22 @@ export default function ProfileScreen() {
                   backgroundColor: mint.bg,
                   borderWidth: 1,
                   borderColor: mint.border,
+                  overflow: 'hidden',
                 }}
               >
-                <AppText variant="headingLg" display weight="semibold" color={mint.accent}>
-                  {a.initial}
-                </AppText>
+                {a.photoUrl ? (
+                  <Image
+                    source={{ uri: a.photoUrl }}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="cover"
+                    transition={200}
+                    accessibilityLabel="Profile photo"
+                  />
+                ) : (
+                  <AppText variant="headingLg" display weight="semibold" color={mint.accent}>
+                    {a.initial}
+                  </AppText>
+                )}
               </View>
 
               <View style={{ alignItems: 'center', gap: 2 }}>

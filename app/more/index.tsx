@@ -10,7 +10,7 @@
  * degrade to a neutral subline while loading or on error, so a failed request
  * never crashes the screen.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
@@ -22,7 +22,7 @@ import { Tag } from '@/components/ui/Tag';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { AppHeader } from '@/components/ui/AppHeader';
 
-import { radii, motion, interaction, pressOpacity, toneAt } from '@/theme/tokens';
+import { radii, motion, interaction, toneAt } from '@/theme/tokens';
 import { useTheme } from '@/theme';
 import { useNotifications, useNotes, useRevisions, useAchievements } from '@/hooks/api';
 
@@ -56,23 +56,25 @@ function FeatureRow({
 }) {
   const { colors, toneStyle } = useTheme();
   const ts = toneStyle(toneAt(toneIndex));
+  const [pressed, setPressed] = useState(false);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={tile.label}
-      style={({ pressed }) => ({ opacity: pressOpacity({ pressed }) })}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[{ opacity: 1 }, pressed && { opacity: interaction.pressOpacity }]}
     >
-      {({ hovered }: { hovered?: boolean }) => (
       <View
         className="flex-row items-center"
         style={{
           gap: 12,
           paddingVertical: 12,
-          paddingHorizontal: hovered ? 8 : 0,
-          marginHorizontal: hovered ? -8 : 0,
-          borderRadius: hovered ? radii.sm : 0,
-          backgroundColor: hovered ? interaction.hoverWash : 'transparent',
+          paddingHorizontal: 0,
+          marginHorizontal: 0,
+          borderRadius: 0,
+          backgroundColor: 'transparent',
           borderTopWidth: divider ? 1 : 0,
           borderTopColor: colors.hairline,
         }}
@@ -101,9 +103,8 @@ function FeatureRow({
           </AppText>
         </View>
         {tile.badge && tile.badge > 0 ? <Tag label={`${tile.badge}`} tone="rust" size="sm" /> : null}
-        <Icon name="chevron-right" size={15} color={colors.hairline} />
+        <Icon name="chevron-right" size={15} color={colors.muted} />
       </View>
-      )}
     </Pressable>
   );
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   Text,
@@ -57,20 +57,23 @@ export function SoftButton({
   const { colors } = useTheme();
   const pad = PAD[size];
   const isLink = variant === 'neutral';
+  const [pressed, setPressed] = useState(false);
 
   if (isLink) {
+    const linkBase: ViewStyle = {
+      alignSelf: fullWidth ? 'stretch' : 'flex-start',
+      opacity: pressOpacity({}, { disabled }),
+    };
+    // Press feedback (preserved): link press opacity 0.6.
+    const linkPressed: ViewStyle = { opacity: pressOpacity({ pressed: true }, { disabled }) };
     return (
       <Pressable
         onPress={onPress}
         disabled={disabled}
         hitSlop={8}
-        style={({ pressed }) => [
-          {
-            alignSelf: fullWidth ? 'stretch' : 'flex-start',
-            opacity: pressOpacity({ pressed }, { disabled }),
-          },
-          style,
-        ]}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        style={[linkBase, !disabled && pressed && linkPressed, style]}
       >
         <View
           style={{
@@ -93,24 +96,30 @@ export function SoftButton({
     );
   }
 
+  const baseStyle: ViewStyle = {
+    borderRadius: radius,
+    backgroundColor: colors.primary,
+    opacity: pressOpacity({}, { disabled, solid: true }),
+    alignSelf: fullWidth ? 'stretch' : 'flex-start',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: disabled ? 0 : 0.45,
+    shadowRadius: 18,
+    elevation: disabled ? 0 : 4,
+  };
+  // Press feedback (preserved): swap to primaryPressed bg + solid press opacity.
+  const pressedStyle: ViewStyle = {
+    backgroundColor: colors.primaryPressed,
+    opacity: pressOpacity({ pressed: true }, { disabled, solid: true }),
+  };
+
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed }) => [
-        {
-          borderRadius: radius,
-          backgroundColor: pressed && !disabled ? colors.primaryPressed : colors.primary,
-          opacity: pressOpacity({ pressed }, { disabled, solid: true }),
-          alignSelf: fullWidth ? 'stretch' : 'flex-start',
-          shadowColor: colors.primary,
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: disabled ? 0 : 0.45,
-          shadowRadius: 18,
-          elevation: disabled ? 0 : 4,
-        },
-        style,
-      ]}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[baseStyle, !disabled && pressed && pressedStyle, style]}
     >
       <View
         style={{

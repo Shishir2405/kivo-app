@@ -36,7 +36,7 @@ import { Eyebrow, StateBlock } from '@/components/account/SteepParts';
 import { useAccount, type RawThemeMode } from '@/components/account/accountApi';
 
 import { spacing, motion } from '@/theme/tokens';
-import { useTheme } from '@/theme';
+import { useTheme, useThemeTransition } from '@/theme';
 import {
   requestNotificationPermissions,
   cancelAllReminders,
@@ -75,6 +75,23 @@ const HOUR_OPTIONS: { label: string; value: string }[] = Array.from({ length: 24
   const label = `${String(h).padStart(2, '0')}:00`;
   return { label, value };
 });
+
+/**
+ * Daily problem-goal limits — mirror the backend `users.validator`
+ * (`dailyProblemGoal: z.number().int().min(0).max(100)`). The Stepper's own
+ * min/max keeps a tap in range, but the value is SEEDED from `/auth/me`, so a
+ * corrupt / legacy out-of-range value must still be caught before we PATCH.
+ */
+const DAILY_GOAL_MIN = 0;
+const DAILY_GOAL_MAX = 100;
+
+/** Returns an inline error message if `goal` is outside the backend range. */
+function dailyGoalErrorFor(goal: number): string | undefined {
+  if (!Number.isInteger(goal)) return 'Daily goal must be a whole number';
+  if (goal < DAILY_GOAL_MIN || goal > DAILY_GOAL_MAX)
+    return `Daily goal must be between ${DAILY_GOAL_MIN} and ${DAILY_GOAL_MAX}`;
+  return undefined;
+}
 
 /* ------------------------------------------------------------------ */
 /* A subtle staggered entrance wrapper                                  */
@@ -117,7 +134,13 @@ export default function SettingsScreen() {
 
   // Theme preference is driven by the live ThemeProvider so toggling it here
   // re-skins the whole app instantly (and persists via the UI store).
-  const { colors, mode: theme, setMode: setTheme } = useTheme();
+  const { colors, mode: theme } = useTheme();
+  // Circular-reveal theme switch: the new theme "irises" out from the toggle.
+  const { transitionTheme } = useThemeTransition();
+  // Wraps the theme SegmentedControl so we can measure its on-screen center and
+  // use it as the reveal origin (SegmentedControl's onChange gives no touch
+  // coords, so the control center is the origin — looks great either way).
+  const themeControlRef = useRef<View>(null);
 
   // Local preference state — seeded from the live account once it loads.
   const [language, setLanguage] = useState<AppLanguage>('en');
@@ -215,6 +238,24 @@ export default function SettingsScreen() {
     [savePrefs],
   );
 
+  // Theme toggle handler — measure the control's on-screen center and run the
+  // circular reveal to `next` (the provider commits the theme + persists once
+  // the screen is covered), then persist the backend preference.
+  const handleThemeChange = useCallback(
+    (next: RawThemeMode) => {
+      const measureView = themeControlRef.current;
+      if (measureView) {
+        measureView.measureInWindow((x, y, w, h) => {
+          transitionTheme(next, { x: x + w / 2, y: y + h / 2 });
+        });
+      } else {
+        transitionTheme(next);
+      }
+      savePrefs({ theme: next });
+    },
+    [transitionTheme, savePrefs],
+  );
+
   // Enabling a reminder toggle first asks for OS permission; denial keeps it off.
   // On grant it updates local state, runs an optional persister, and saves.
   const enableWithPermission = useCallback(
@@ -237,6 +278,11 @@ export default function SettingsScreen() {
     },
     [],
   );
+
+  // Inline validation for the daily problem goal (backend range 0–100). The
+  // Stepper clamps taps, but the seeded value can be out of range, so we surface
+  // an error and gate the PATCH on it below.
+  const dailyGoalError = dailyGoalErrorFor(dailyGoal);
 
   const confirmLogout = useCallback(() => {
     Alert.alert('Sign out', 'You can sign back in anytime.', [
@@ -440,14 +486,13 @@ export default function SettingsScreen() {
         <SectionHeader title="Appearance" />
         <SectionCard>
           <ControlRow icon="sun" title="Theme" subtitle="Auto follows your device" align="block">
-            <SegmentedTabs
-              options={THEME_OPTIONS}
-              value={theme}
-              onChange={(v) => {
-                setTheme(v); // persists locally via the ThemeProvider/store
-                savePrefs({ theme: v });
-              }}
-            />
+            <View ref={themeControlRef} collapsable={false} style={{ alignSelf: 'stretch' }}>
+              <SegmentedTabs
+                options={THEME_OPTIONS}
+                value={theme}
+                onChange={handleThemeChange}
+              />
+            </View>
           </ControlRow>
           <RowDivider />
           <ControlRow icon="globe" title="Language" align="center">
@@ -471,17 +516,24 @@ export default function SettingsScreen() {
         <Enter delay={240}>
         <SectionHeader title="Study" />
         <SectionCard>
-          <ControlRow icon="target" title="Daily goal" subtitle="Problems to solve each day" align="center">
+          <ControlRow icon="target" title="Daily goal" subtitle="Problems to solve each day" align="block">
             <Stepper
               value={dailyGoal}
               onChange={(v) => {
                 setDailyGoal(v);
-                savePrefsDebounced({ dailyGoal: v });
+                // Only PATCH when the new value is within the backend's 0–100
+                // range — an out-of-range value would 422 against the schema.
+                if (!dailyGoalErrorFor(v)) savePrefsDebounced({ dailyGoal: v });
               }}
               min={1}
               max={20}
               suffix="/ day"
             />
+            {dailyGoalError ? (
+              <AppText variant="caption" color={colors.danger}>
+                {dailyGoalError}
+              </AppText>
+            ) : null}
           </ControlRow>
           <RowDivider />
           <ControlRow icon="timer" title="Focus length" subtitle="Default deep-work block" align="center">

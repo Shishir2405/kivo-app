@@ -1,24 +1,28 @@
-import React, { useState } from 'react';
-import { View, Pressable, Text } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { LayoutChangeEvent, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
-import Svg, { Path, Rect, Circle } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 import { fonts, motion } from '@/theme/tokens';
 import { useTheme } from '@/theme/ThemeContext';
 
 /**
- * FloatingDock — the Kivo bottom navigation (NEW, standalone component; replaces
- * the old NeumorphicTabBar). Built to the Kivo.dc design dock.
+ * FloatingDock — the Kivo bottom navigation (rebuilt from scratch).
  *
- * Layout is the canonical, bulletproof pattern: an outer full-width row (default
- * `alignItems:'stretch'`) padded horizontally, holding a pill bar whose five
- * tabs are each `flex:1` — so they ALWAYS spread evenly and can never cluster to
- * one side. A peach indicator spring-slides under the active tab (measured via
- * onLayout). Active = deep terracotta, inactive = muted; dark mode uses the
- * design's warm-dark dock values. This is intentionally NOT the segmented
- * "tablist" component — they are separate.
+ * LAYOUT CONTRACT (bulletproof even spread):
+ *   outer wrapper (column)  →  pill row `width:'100%'`, `flexDirection:'row'`
+ *   →  five tab cells each `flex:1, minWidth:0`. Because the row fills its
+ *   parent and every cell flexes equally, the tabs ALWAYS divide the bar into
+ *   five identical columns — they can never cluster to one side regardless of
+ *   content width, font metrics, or platform.
+ *
+ * The active peach indicator is positioned from the *measured cell width*
+ * (one onLayout on the row's inner track) and spring-slides under the focused
+ * tab. If measurement hasn't landed yet (width 0) the indicator simply stays
+ * hidden — the tabs are already laid out correctly without it, so there is no
+ * dependency the other way around.
  */
 type TabKey = 'index' | 'dsa' | 'revisions' | 'tracker' | 'profile';
 
@@ -30,16 +34,20 @@ const TABS: { name: TabKey; label: string }[] = [
   { name: 'profile', label: 'Profile' },
 ];
 
-function DockIcon({ name, color }: { name: TabKey; color: string }) {
+/** Inner padding of the pill (the indicator track inset). */
+const PAD = 6;
+const PILL_HEIGHT = 60;
+
+function DockIcon({ name, color, focused }: { name: TabKey; color: string; focused: boolean }) {
   const s = {
     stroke: color,
-    strokeWidth: 1.9,
+    strokeWidth: focused ? 2.1 : 1.9,
     fill: 'none' as const,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
   };
   return (
-    <Svg width={19} height={19} viewBox="0 0 24 24">
+    <Svg width={21} height={21} viewBox="0 0 24 24">
       {name === 'index' ? (
         <>
           <Path d="M3 10.5 12 3l9 7.5" {...s} />
@@ -69,26 +77,32 @@ function DockIcon({ name, color }: { name: TabKey; color: string }) {
   );
 }
 
-const PAD = 6;
-
 export function FloatingDock({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const [trackW, setTrackW] = useState(0);
-  const cellW = trackW > 0 ? (trackW - PAD * 2) / TABS.length : 0;
 
-  const activeIndex = Math.max(
-    0,
-    TABS.findIndex((t) => {
-      const r = state.routes.find((rt) => rt.name === t.name);
-      return r ? state.routes.indexOf(r) === state.index : false;
-    }),
+  // The five visible tabs, paired with their live route (skip any tab whose
+  // screen isn't registered) so order + focus stay in lockstep with the router.
+  const cells = useMemo(
+    () =>
+      TABS.map((tab) => state.routes.find((r) => r.name === tab.name))
+        .map((route, i) => (route ? { tab: TABS[i], route } : null))
+        .filter((c): c is { tab: (typeof TABS)[number]; route: (typeof state.routes)[number] } => c !== null),
+    [state.routes],
   );
 
-  const pillBg = isDark ? 'rgba(30,26,20,0.96)' : '#FFFFFF';
-  const pillBorder = isDark ? '#3A3026' : '#EDE6DA';
+  const count = cells.length || 1;
+  const cellW = trackW > 0 ? trackW / count : 0;
+  const activeIndex = Math.max(
+    0,
+    cells.findIndex(({ route }) => state.routes.indexOf(route) === state.index),
+  );
+
+  const pillBg = isDark ? 'rgba(30,26,20,0.97)' : '#FFFFFF';
+  const pillBorder = isDark ? '#3A3026' : '#ECE4D7';
   const indicatorBg = isDark ? '#3A2C1A' : '#FAE7DB';
-  const activeColor = isDark ? '#E6B08A' : '#BD6238';
+  const activeColor = isDark ? '#E6B08A' : '#C46A3D';
   const inactiveColor = isDark ? '#8C8377' : '#9A9082';
 
   return (
@@ -101,85 +115,97 @@ export function FloatingDock({ state, navigation }: BottomTabBarProps) {
       }}
     >
       <View
-        onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
         style={{
-          flexDirection: 'row',
-          alignItems: 'stretch',
-          position: 'relative',
-          height: 62,
+          width: '100%',
+          height: PILL_HEIGHT,
           padding: PAD,
-          borderRadius: 24,
+          borderRadius: 26,
           backgroundColor: pillBg,
           borderWidth: 1,
           borderColor: pillBorder,
           shadowColor: '#211C17',
-          shadowOffset: { width: 0, height: 14 },
-          shadowOpacity: isDark ? 0.5 : 0.2,
-          shadowRadius: 22,
-          elevation: 14,
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: isDark ? 0.5 : 0.16,
+          shadowRadius: 20,
+          elevation: 12,
         }}
       >
-        {/* Spring-sliding peach indicator under the active tab. */}
-        {cellW > 0 ? (
-          <MotiView
-            animate={{ translateX: PAD + activeIndex * cellW }}
-            transition={motion.springSnappy}
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: PAD,
-              bottom: PAD,
-              left: 0,
-              width: cellW,
-              borderRadius: 18,
-              backgroundColor: indicatorBg,
-            }}
-          />
-        ) : null}
+        {/* Indicator track — its width is what we measure to size each cell. */}
+        <View
+          onLayout={(e: LayoutChangeEvent) => setTrackW(e.nativeEvent.layout.width)}
+          style={{ flex: 1, flexDirection: 'row', width: '100%', position: 'relative' }}
+        >
+          {/* Spring-sliding peach indicator under the active tab. */}
+          {cellW > 0 ? (
+            <MotiView
+              animate={{ translateX: activeIndex * cellW }}
+              transition={motion.springSnappy}
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                left: 0,
+                width: cellW,
+                borderRadius: 18,
+                backgroundColor: indicatorBg,
+              }}
+            />
+          ) : null}
 
-        {TABS.map((tab) => {
-          const route = state.routes.find((r) => r.name === tab.name);
-          if (!route) return null;
-          const focused = state.routes.indexOf(route) === state.index;
-          const color = focused ? activeColor : inactiveColor;
+          {cells.map(({ tab, route }) => {
+            const focused = state.routes.indexOf(route) === state.index;
+            const color = focused ? activeColor : inactiveColor;
 
-          const onPress = () => {
-            const ev = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!focused && !ev.defaultPrevented) navigation.navigate(route.name);
-          };
+            const onPress = () => {
+              const ev = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!focused && !ev.defaultPrevented) navigation.navigate(route.name);
+            };
 
-          return (
-            <Pressable
-              key={route.key}
-              onPress={onPress}
-              onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
-              accessibilityRole="button"
-              accessibilityState={focused ? { selected: true } : {}}
-              accessibilityLabel={tab.label}
-              style={({ pressed }) => ({
-                flex: 1,
-                alignSelf: 'stretch',
-                zIndex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 3,
-                opacity: pressed && !focused ? 0.6 : 1,
-              })}
-            >
-              <DockIcon name={tab.name} color={color} />
-              <Text
-                numberOfLines={1}
-                style={{ fontFamily: fonts.sansSemibold, fontSize: 9, color }}
+            return (
+              <Pressable
+                key={route.key}
+                onPress={onPress}
+                onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
+                accessibilityRole="button"
+                accessibilityState={focused ? { selected: true } : {}}
+                accessibilityLabel={tab.label}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  zIndex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 3,
+                }}
               >
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <MotiView
+                  animate={{ scale: focused ? 1 : 0.94, translateY: focused ? -1 : 0 }}
+                  transition={motion.springSnappy}
+                  style={{ alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <DockIcon name={tab.name} color={color} focused={focused} />
+                </MotiView>
+                <Text
+                  numberOfLines={1}
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: focused ? fonts.sansSemibold : fonts.sansMedium,
+                    fontSize: 10,
+                    letterSpacing: 0.1,
+                    color,
+                  }}
+                >
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </View>
   );

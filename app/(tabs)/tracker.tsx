@@ -546,7 +546,7 @@ export default function TrackerScreen() {
                 className="items-center"
                 style={{ gap: 6, paddingVertical: spacing.sm }}
               >
-                <Icon name="check-circle" size={18} color="dove" />
+                <Icon name="check-circle" size={18} color="success" />
                 <AppText variant="caption" color={colors.graphite}>
                   Nothing scheduled — you are all caught up.
                 </AppText>

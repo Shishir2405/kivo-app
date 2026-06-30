@@ -42,6 +42,8 @@ export interface RawAccount {
   email: string;
   displayName: string | null;
   photoUrl: string | null;
+  /** Free-text bio. Not all backends return this; treated as optional. */
+  bio?: string | null;
   role: string;
   preferences?: {
     theme?: RawThemeMode;
@@ -72,6 +74,10 @@ export interface Account {
   /** "@handle" derived from the email local-part. */
   username: string;
   initial: string;
+  /** Remote avatar URL, or null when the user has no photo (initials fallback). */
+  photoUrl: string | null;
+  /** Free-text bio (empty string when the backend doesn't store one). */
+  bio: string;
   currentStreak: number;
   longestStreak: number;
   xp: number;
@@ -122,6 +128,8 @@ export function mapAccount(raw: RawAccount): Account {
     name,
     username: `@${local}`,
     initial: (name.slice(0, 1) || 'K').toUpperCase(),
+    photoUrl: raw.photoUrl ?? null,
+    bio: raw.bio ?? '',
     currentStreak: Math.max(0, raw.currentStreak ?? 0),
     longestStreak: Math.max(0, raw.longestStreak ?? 0),
     xp,
